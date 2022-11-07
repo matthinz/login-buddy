@@ -28,22 +28,24 @@ export const SCREENSHOT_FLOW: Flow = [
 
         await fs.rm(file).catch(() => {});
 
+        console.log("Writing %s...", file);
+
         await tab.screenshot({
           path: file,
           fullPage: true,
         });
       },
-    }),
-    {
-      name: "restore",
-      async run(tab: Page, state: Record<string, unknown>) {
-        const { originalUrl } = state;
-        delete state.originalUrl;
-        console.log("restore to %s", originalUrl);
-        if (originalUrl) {
-          await tab.goto(originalUrl.toString());
-        }
-      },
-    }
+    })
   ),
+  {
+    name: "restore",
+    async run(tab: Page, state: Record<string, unknown>) {
+      const { originalUrl } = state;
+      delete state.originalUrl;
+      console.log("restore to %s", originalUrl);
+      if (originalUrl) {
+        await tab.goto(originalUrl.toString());
+      }
+    },
+  },
 ];
