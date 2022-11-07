@@ -3,74 +3,72 @@ import { Flow, FlowItem } from "./types";
 
 export type RunFlowOptions = {
   state?: Record<string, unknown>;
-  stopAt?: string;
   tab: Page;
 };
 
 export function runFlow(
   flow: Flow,
-  { tab, state: incomingState, stopAt }: RunFlowOptions
+  { tab, state: incomingState }: RunFlowOptions
 ): Promise<Record<string, unknown>> {
-  let promise = Promise.resolve(true);
-
-  let prev: FlowItem | undefined;
-
   const state: Record<string, unknown> = incomingState ?? {};
 
-  for (let i = 0; i < flow.length; i++) {
-    const item = flow[i];
-
-    promise = promise.then(async (keepGoing) => {
-      if (!keepGoing) {
-        console.log("Not running %s", item.name);
-        return false;
-      }
-
-      if (!prev) {
-        if (item.url) {
-          console.log("Navigate to %s", item.url);
-          await tab.goto(item.url);
+  const promise = flow.reduce<Promise<boolean>>(
+    (promise, item, index) =>
+      promise.then(async (keepGoing) => {
+        if (!keepGoing) {
+          // We've short-circuited out
+          return false;
         }
-      } else if (prev?.submitSelector) {
-        console.log("Submit: %s", prev.submitSelector);
-        await Promise.all([
-          tab.click(prev.submitSelector),
-          tab.waitForNavigation(),
-        ]);
-      }
 
-      if (stopAt && item.name === stopAt) {
-        prev = undefined;
-        return false;
-      }
+        if (index === 0) {
+          // First item, we navigate to the URL
+          if (item.url) {
+            console.log("Initial navigation: %s", item.url);
+            await tab.goto(item.url);
+          }
+        } else {
+          // We need to submit the previous item if it has a submitSelector
+          const { submitSelector } = flow[index - 1];
+          if (submitSelector) {
+            await doSubmit(submitSelector);
+          }
+        }
 
-      if (item.run) {
-        await item.run(tab, state);
-      }
+        if (item.url) {
+          const actualUrl = tab.url();
+          if (actualUrl != item.url) {
+            console.log(
+              "At wrong URL. Expected to be at '%s', but at '%s'",
+              item.url,
+              actualUrl
+            );
+          }
+        }
 
-      prev = item;
-      return true;
-    });
-  }
+        if (item.run) {
+          await item.run(tab, state);
+        }
 
-  promise = promise.then(async (keepGoing) => {
+        return true;
+      }),
+    Promise.resolve(true)
+  );
+
+  return promise.then(async (keepGoing) => {
     if (!keepGoing) {
-      return false;
+      return state;
     }
 
-    if (!prev) {
-      return false;
+    const { submitSelector } = flow[flow.length - 1];
+    if (submitSelector) {
+      await doSubmit(submitSelector);
     }
 
-    if (prev?.submitSelector) {
-      console.log("Submit: %s", prev.submitSelector);
-      await Promise.all([
-        tab.click(prev.submitSelector),
-        tab.waitForNavigation(),
-      ]);
-    }
-    return true;
+    return state;
   });
 
-  return promise.then(() => state);
+  function doSubmit(selector: string): Promise<unknown> {
+    console.log("Submit: %s", selector);
+    return Promise.all([tab.click(selector), tab.waitForNavigation()]);
+  }
 }
