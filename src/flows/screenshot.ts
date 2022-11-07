@@ -23,7 +23,8 @@ export const SCREENSHOT_FLOW: Flow = [
 
         await tab.goto(url);
 
-        const file = `${lang}.png`;
+        const { tag = "screenshot" } = state;
+        const file = `${tag}-${lang}.png`;
 
         await fs.rm(file).catch(() => {});
 

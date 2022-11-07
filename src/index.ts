@@ -27,6 +27,7 @@ function launchBrowser(): Promise<Browser> {
   if (!browserPromise) {
     browserPromise = launch({
       headless: false,
+      defaultViewport: null,
     });
   }
   return browserPromise;
@@ -72,8 +73,10 @@ async function handleCommand(line: string): Promise<void> {
     await signUp();
   }
 
-  if (/^(screenshots?|shoot)$/i.test(line)) {
-    await takeScreenshots();
+  let m = /^(screen\s*shots?|shoot)(.*)/i.exec(line);
+
+  if (m) {
+    await takeScreenshots(m[2].trim());
   }
 
   if (line === "verify") {
@@ -107,13 +110,17 @@ async function signUp() {
   user.backupCodes.forEach((code) => console.log(code));
 }
 
-async function takeScreenshots() {
+async function takeScreenshots(tag: string) {
   if (!tab || !user) {
     console.error("No session running");
     return;
   }
 
-  await runFlow(SCREENSHOT_FLOW, { tab });
+  const state = {
+    tag,
+  };
+
+  await runFlow(SCREENSHOT_FLOW, { state, tab });
 }
 
 async function startVerification() {

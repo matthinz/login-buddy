@@ -2,18 +2,20 @@ import { Page } from "puppeteer";
 import { Flow, FlowItem } from "./types";
 
 export type RunFlowOptions = {
+  state?: Record<string, unknown>;
   stopAt?: string;
   tab: Page;
 };
 
 export function runFlow(
   flow: Flow,
-  { tab, stopAt }: RunFlowOptions
+  { tab, state: incomingState, stopAt }: RunFlowOptions
 ): Promise<Record<string, unknown>> {
   let promise = Promise.resolve(true);
 
   let prev: FlowItem | undefined;
-  const state: Record<string, unknown> = {};
+
+  const state: Record<string, unknown> = incomingState ?? {};
 
   for (let i = 0; i < flow.length; i++) {
     const item = flow[i];
