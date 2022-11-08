@@ -84,7 +84,7 @@ async function handleCommand(line: string): Promise<void> {
   }
 }
 
-async function signUp() {
+async function signUp(): Promise<Record<string, unknown>> {
   if (user) {
     throw new Error("TODO: sign out");
   }
@@ -97,17 +97,21 @@ async function signUp() {
 
   tab = await browser.newPage();
 
-  const { email, password, backupCodes } = await runFlow(SIGN_UP_FLOW, { tab });
+  const state = await runFlow(SIGN_UP_FLOW, { tab });
 
   user = {
-    email: String(email),
-    password: String(password),
-    backupCodes: Array.isArray(backupCodes) ? (backupCodes as string[]) : [],
+    email: String(state.email),
+    password: String(state.password),
+    backupCodes: Array.isArray(state.backupCodes)
+      ? (state.backupCodes as string[])
+      : [],
   };
 
   console.log("Your user is %s, password %s", user.email, user.password);
   console.log("Backup codes:");
   user.backupCodes.forEach((code) => console.log(code));
+
+  return state;
 }
 
 async function takeScreenshots(tag: string) {
@@ -134,5 +138,11 @@ async function startVerification() {
 
   console.log("starting verification...");
 
-  await runFlow(VERIFY_FLOW, { tab });
+  const state = {
+    ...user,
+  };
+
+  const { personalKey } = await runFlow(VERIFY_FLOW, { tab, state });
+
+  console.log("Your personal key is %s", personalKey);
 }

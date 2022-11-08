@@ -57,4 +57,43 @@ export const VERIFY_FLOW: Flow = [
     submitSelector:
       "form[action='/verify/doc_auth/verify'] button[type=submit]",
   },
+  {
+    name: "Phone number verification",
+    submitSelector: "button[type=submit]",
+    async run(tab, state) {
+      await tab.type("input[name=idv_phone_form\\[phone\\]]", "3602345678");
+    },
+  },
+  {
+    name: "OTP delivery method",
+    submitSelector: "input[type=submit]",
+    async run(tab, state) {
+      console.log("clicking otp_delivery_preference_sms");
+      await tab.click("label[for=otp_delivery_preference_sms]");
+      console.log("clicked it!");
+    },
+  },
+  {
+    name: "Enter your one-time code",
+    submitSelector: "input[type=submit]",
+  },
+  {
+    name: "Re-enter password",
+    submitSelector: "button[type=submit]",
+    async run(tab, state) {
+      await tab.type("input[type=password]", state.password ?? "");
+    },
+  },
+  {
+    name: "Personal key",
+    submitSelector: "button[type=submit]",
+    async run(tab, state) {
+      state.personalKey = (await tab.evaluate(() => {
+        // @ts-ignore
+        return document.querySelector(".personal-key-block").innerText;
+      })) as string;
+
+      await tab.click("label[for=acknowledgment]");
+    },
+  },
 ];
