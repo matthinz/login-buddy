@@ -1,6 +1,5 @@
 import { Browser, launch, Page } from "puppeteer";
 import { runFlow } from "./flows";
-import { LOGOUT_FLOW } from "./flows/log-out";
 import { SCREENSHOT_FLOW } from "./flows/screenshot";
 import { SIGN_UP_FLOW } from "./flows/sign-up";
 import { VERIFY_FLOW } from "./flows/verify";
@@ -72,13 +71,6 @@ function listenForCommands(stream: NodeJS.ReadStream): () => Promise<void> {
 async function handleCommand(line: string): Promise<void> {
   if (line === "new user" || line === "signup") {
     await signUp();
-  }
-
-  if (/^(log|sign)\s*out\s*$/.test(line)) {
-    user = undefined;
-    if (tab) {
-      await runFlow(LOGOUT_FLOW, { tab });
-    }
   }
 
   let m = /^(screen\s*shots?|shoot)(.*)/i.exec(line);
