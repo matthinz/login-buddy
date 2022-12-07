@@ -97,6 +97,10 @@ async function signUp(): Promise<Record<string, unknown>> {
 
   tab = await browser.newPage();
 
+  if (process.env["MOBILE"]) {
+    await tab.setUserAgent("iphone");
+  }
+
   const state = await runFlow(SIGN_UP_FLOW, { tab });
 
   user = {
