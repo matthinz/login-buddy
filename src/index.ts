@@ -1,7 +1,8 @@
-import { Browser, launch, Page } from "puppeteer";
+import { Browser, launch, Page, Puppeteer } from "puppeteer";
 import { runFlow } from "./flows";
 import { SCREENSHOT_FLOW } from "./flows/screenshot";
 import { SIGN_UP_FLOW } from "./flows/sign-up";
+import { SP_SIGN_UP_FLOW } from "./flows/sp-sign-up";
 import { VERIFY_FLOW } from "./flows/verify";
 
 type LoginUser = {
@@ -70,7 +71,7 @@ function listenForCommands(stream: NodeJS.ReadStream): () => Promise<void> {
 
 async function handleCommand(line: string): Promise<void> {
   if (line === "new user" || line === "signup") {
-    await signUp();
+    await signUp(!!process.env["SP_SIGNUP"]);
   }
 
   let m = /^(screen\s*shots?|shoot)(.*)/i.exec(line);
@@ -84,7 +85,7 @@ async function handleCommand(line: string): Promise<void> {
   }
 }
 
-async function signUp(): Promise<Record<string, unknown>> {
+async function signUp(fromSp?: boolean): Promise<Record<string, unknown>> {
   if (user) {
     throw new Error("TODO: sign out");
   }
@@ -101,7 +102,7 @@ async function signUp(): Promise<Record<string, unknown>> {
     await tab.setUserAgent("iphone");
   }
 
-  const state = await runFlow(SIGN_UP_FLOW, { tab });
+  const state = await runFlow(fromSp ? SP_SIGN_UP_FLOW : SIGN_UP_FLOW, { tab });
 
   user = {
     email: String(state.email),
