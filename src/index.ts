@@ -92,31 +92,27 @@ async function signUp(fromSp?: boolean): Promise<Record<string, unknown>> {
 
   const browser = await launchBrowser();
 
-  if (tab) {
-    await tab.close();
-  }
+  await SIGN_UP_FLOW.run({
+    baseURL: "http://localhost:3000",
+    browser,
+  });
 
-  tab = await browser.newPage();
+  // const state = await runFlow(fromSp ? SP_SIGN_UP_FLOW : SIGN_UP_FLOW, { tab });
 
-  if (process.env["MOBILE"]) {
-    await tab.setUserAgent("iphone");
-  }
+  // user = {
+  //   email: String(state.email),
+  //   password: String(state.password),
+  //   backupCodes: Array.isArray(state.backupCodes)
+  //     ? (state.backupCodes as string[])
+  //     : [],
+  // };
 
-  const state = await runFlow(fromSp ? SP_SIGN_UP_FLOW : SIGN_UP_FLOW, { tab });
+  // console.log("Your user is %s, password %s", user.email, user.password);
+  // console.log("Backup codes:");
+  // user.backupCodes.forEach((code) => console.log(code));
 
-  user = {
-    email: String(state.email),
-    password: String(state.password),
-    backupCodes: Array.isArray(state.backupCodes)
-      ? (state.backupCodes as string[])
-      : [],
-  };
-
-  console.log("Your user is %s, password %s", user.email, user.password);
-  console.log("Backup codes:");
-  user.backupCodes.forEach((code) => console.log(code));
-
-  return state;
+  // return state;
+  return {};
 }
 
 async function takeScreenshots(tag: string) {
