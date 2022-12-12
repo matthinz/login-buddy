@@ -25,6 +25,8 @@ export type Flow<State> = {
    */
   evaluate(func: (page: Page, state: State) => Promise<void>): Flow<State>;
 
+  expectUrl(url: string | URL): Flow<State>;
+
   generate<Key extends string, Value>(
     key: Key,
     generator: (state: State) => Value | Promise<Value>
@@ -34,7 +36,7 @@ export type Flow<State> = {
 
   click(selector: string): Flow<State>;
 
-  submit(selector: string): Flow<State>;
+  submit(selector?: string): Flow<State>;
 
   type(
     selector: string | ((state: State) => string | Promise<string>),
@@ -82,6 +84,7 @@ function createFlow<PrevState, State extends PrevState>(
 ): Flow<State> {
   return {
     evaluate,
+    expectUrl,
     click,
     generate,
     run,
@@ -125,6 +128,28 @@ function createFlow<PrevState, State extends PrevState>(
     });
   }
 
+  function expectUrl(
+    url:
+      | string
+      | URL
+      | ((state: State) => string | URL | Promise<string> | Promise<URL>)
+  ) {
+    return createFlow(params, async (page, state, options) => {
+      const nextState = await func(page, state, options);
+      url = (typeof url === "function" ? await url(nextState) : url).toString();
+
+      if (options.baseURL) {
+        url = new URL(url.toString(), options.baseURL);
+      }
+
+      if (page.url() !== url.toString()) {
+        console.error("Expected to be at '%s', but at '%s'", url, page.url());
+      }
+
+      return nextState;
+    });
+  }
+
   function generate<Key extends string, Value>(
     key: Key,
     generator: (state: State) => Value | Promise<Value>
@@ -137,12 +162,16 @@ function createFlow<PrevState, State extends PrevState>(
   }
 
   function submit(
-    selector: string | ((state: State) => string | Promise<string>)
+    selector?: string | ((state: State) => string | Promise<string>)
   ): Flow<State> {
     return createFlow(params, async (page, state, options) => {
       const nextState = await func(page, state, options);
+
+      selector = selector ?? "button[type=submit]";
       selector =
         typeof selector === "function" ? await selector(nextState) : selector;
+
+      console.error("submit %s", selector);
       await Promise.all([page.click(selector), page.waitForNavigation()]);
       return nextState;
     });

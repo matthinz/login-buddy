@@ -5,6 +5,8 @@ import { SIGN_UP_FLOW } from "./flows/sign-up";
 import { SP_SIGN_UP_FLOW } from "./flows/sp-sign-up";
 import { VERIFY_FLOW } from "./flows/verify";
 
+import readline from "node:readline";
+
 type LoginUser = {
   email: string;
   password: string;
@@ -21,7 +23,31 @@ run().catch((err) => {
 });
 
 async function run() {
-  listenForCommands(process.stdin);
+  let currentPromise: Promise<void> | undefined;
+
+  const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout,
+    prompt: "> ",
+  });
+
+  rl.on("line", (line) => {
+    if (currentPromise) {
+      console.error("Hold on, busy now");
+      return;
+    }
+
+    currentPromise = handleCommand(line, rl).finally(() => {
+      currentPromise = undefined;
+      rl.prompt();
+    });
+  });
+
+  rl.on("close", () => {
+    process.exit();
+  });
+
+  rl.prompt();
 }
 
 function launchBrowser(): Promise<Browser> {
@@ -34,68 +60,52 @@ function launchBrowser(): Promise<Browser> {
   return browserPromise;
 }
 
-function listenForCommands(stream: NodeJS.ReadStream): () => Promise<void> {
-  let buffer: Buffer | undefined;
-
-  let promise: Promise<void> = Promise.resolve();
-
-  stream.on("data", handleData);
-
-  stream.on("close", handleClose);
-
-  function handleClose() {
-    handleData(undefined);
-  }
-
-  function handleData(chunk: Buffer | undefined) {
-    if (chunk != null) {
-      buffer = buffer == null ? chunk : Buffer.concat([buffer, chunk]);
-    }
-    if (buffer == null) {
-      return;
-    }
-    const lines = buffer.toString("utf8").split("\n");
-    buffer = Buffer.from(lines.pop() ?? "");
-
-    lines.forEach((line) => {
-      promise = promise.then(() => handleCommand(line));
-    });
-  }
-
-  return () => {
-    stream.off("close", handleClose);
-    stream.off("data", handleData);
-    return promise;
-  };
-}
-
-async function handleCommand(line: string): Promise<void> {
+async function handleCommand(
+  line: string,
+  rl: readline.Interface
+): Promise<void> {
   if (line === "new user" || line === "signup") {
-    await signUp(!!process.env["SP_SIGNUP"]);
+    await signUp(!!process.env["SP_SIGNUP"], rl);
+    return;
   }
 
   let m = /^(screen\s*shots?|shoot)(.*)/i.exec(line);
 
   if (m) {
     await takeScreenshots(m[2].trim());
+    return;
   }
 
   if (line === "verify") {
     await startVerification();
+    return;
   }
 }
 
-async function signUp(fromSp?: boolean): Promise<Record<string, unknown>> {
+async function signUp(
+  fromSp: boolean,
+  rl: readline.Interface
+): Promise<Record<string, unknown>> {
   if (user) {
     throw new Error("TODO: sign out");
   }
 
   const browser = await launchBrowser();
 
-  await SIGN_UP_FLOW.run({
-    baseURL: "http://localhost:3000",
-    browser,
-  });
+  try {
+    await SIGN_UP_FLOW.run({
+      baseURL: "http://localhost:3000",
+      browser,
+    });
+  } catch (err) {
+    console.error(err);
+    console.error("HI");
+    rl.question("", () => {
+      browser.close().then(() => {
+        process.exit();
+      });
+    });
+  }
 
   // const state = await runFlow(fromSp ? SP_SIGN_UP_FLOW : SIGN_UP_FLOW, { tab });
 
@@ -130,7 +140,8 @@ async function takeScreenshots(tag: string) {
 
 async function startVerification() {
   if (!user) {
-    await signUp();
+    throw new Error("not implemented");
+    // await signUp();
   }
 
   if (!tab) {
