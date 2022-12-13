@@ -18,7 +18,7 @@ export const SIGN_UP_FLOW = navigateTo("/sign_up/enter_email")
     ].join("");
   })
   .generate("password", () => DEFAULT_PASSWORD)
-  .type("[name=user\\[email\\]]", (state) => state.email)
+  .type('[name="user\\[email\\]"]', (state) => state.email)
   .click("label[for=user_terms_accepted]")
   .submit("button[type=submit]")
 
@@ -26,7 +26,7 @@ export const SIGN_UP_FLOW = navigateTo("/sign_up/enter_email")
   .submit("#confirm-now")
 
   .expectUrl("/sign_up/enter_password")
-  .type("[name=password_form\\[password\\]]", (state) => state.password)
+  .type('[name="password_form\\[password\\]"]', (state) => state.password)
   .submit("button[type=submit]")
 
   .expectUrl("/authentication_methods_setup")

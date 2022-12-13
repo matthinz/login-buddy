@@ -92,7 +92,7 @@ async function signUp(
   const browser = await launchBrowser();
 
   try {
-    const state = await SIGN_UP_FLOW.run({
+    const state = await SP_SIGN_UP_FLOW.run({
       baseURL: "http://localhost:3000",
       browser,
     });

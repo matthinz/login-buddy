@@ -3,6 +3,8 @@ import { launch, Browser, Page } from "puppeteer";
 export type FlowRunOptions = {
   baseURL?: string | URL;
   browser?: Browser;
+  page?: Page;
+  skipNavigation?: boolean;
 };
 
 type FlowParams<State> = {
@@ -40,6 +42,12 @@ export type Flow<State> = {
     generator: (state: State) => Value | Promise<Value>
   ): Flow<State & { [K in Key]: Value }>;
 
+  passTo<OtherState extends State>(
+    otherFlow: Flow<OtherState>
+  ): Flow<State & OtherState>;
+
+  skipNavigation(): Flow<State>;
+
   // Actions that can be taken
 
   click(selector: string): Flow<State>;
@@ -69,6 +77,11 @@ export function navigateTo(url: string | URL): Flow<{}> {
       );
     }
 
+    if (options.skipNavigation) {
+      console.error("Skipping navigation to %s", url);
+      return state;
+    }
+
     console.error("navigateTo %s", url);
 
     await page.goto(url.toString());
@@ -96,14 +109,44 @@ function createFlow<PrevState, State extends PrevState>(
     expectUrl,
     click,
     generate,
+    passTo,
+    skipNavigation,
     run,
     submit,
     type,
   };
 
   async function run(options?: FlowRunOptions): Promise<State> {
-    const browser = options?.browser ?? params.browser ?? (await launch());
-    const page = params.page ?? (await browser.newPage());
+    let browser: Browser | undefined;
+    let page: Page | undefined;
+
+    if (options?.page) {
+      page = options.page;
+    } else if (params.page) {
+      page = params.page;
+    }
+
+    if (options?.browser) {
+      browser = options.browser;
+    } else if (params.browser) {
+      browser = params.browser;
+    } else if (page) {
+      browser = page.browser();
+    }
+
+    if (!browser) {
+      browser = await launch({
+        headless: false,
+      });
+    }
+
+    if (!page) {
+      page = await browser.newPage();
+    }
+
+    if (page.browser() !== browser) {
+      throw new Error("Somehow ended up using a page from a different browser");
+    }
 
     const nextOptions: FlowRunOptions = {
       ...(options ?? {}),
@@ -180,6 +223,34 @@ function createFlow<PrevState, State extends PrevState>(
     }) as Flow<State & { [K in Key]: Value }>;
   }
 
+  function passTo<OtherState>(
+    otherFlow: Flow<OtherState>
+  ): Flow<State & OtherState> {
+    return createFlow(params, async (page, state, options) => {
+      const nextState = await func(page, state, options);
+      const otherState = await otherFlow.run({
+        ...params,
+        ...options,
+        page,
+      });
+      return {
+        ...nextState,
+        ...otherState,
+      };
+    }).evaluate(async (page) => {
+      await page.waitForNetworkIdle();
+    });
+  }
+
+  function skipNavigation(): Flow<State> {
+    return createFlow(params, (page, state, options) =>
+      func(page, state, {
+        ...options,
+        skipNavigation: true,
+      })
+    );
+  }
+
   function submit(
     selector?: string | ((state: State) => string | Promise<string>)
   ): Flow<State> {
@@ -191,6 +262,8 @@ function createFlow<PrevState, State extends PrevState>(
         typeof selector === "function" ? await selector(nextState) : selector;
 
       await Promise.all([page.click(selector), page.waitForNavigation()]);
+      await page.waitForNetworkIdle();
+
       return nextState;
     });
   }
@@ -205,6 +278,10 @@ function createFlow<PrevState, State extends PrevState>(
       text = typeof text === "function" ? await text(nextState) : text;
       selector =
         typeof selector === "function" ? await selector(nextState) : selector;
+
+      await page.waitForSelector(selector, {
+        timeout: 3000,
+      });
 
       await page.type(selector, text);
 
