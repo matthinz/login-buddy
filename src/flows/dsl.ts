@@ -25,6 +25,14 @@ export type Flow<State> = {
    */
   evaluate(func: (page: Page, state: State) => Promise<void>): Flow<State>;
 
+  /**
+   * Evaluates a function and allows modifying state.
+   * @param func
+   */
+  evaluateAndModifyState<NextState extends State>(
+    func: (page: Page, state: State) => Promise<NextState>
+  ): Flow<NextState>;
+
   expectUrl(url: string | URL): Flow<State>;
 
   generate<Key extends string, Value>(
@@ -84,6 +92,7 @@ function createFlow<PrevState, State extends PrevState>(
 ): Flow<State> {
   return {
     evaluate,
+    evaluateAndModifyState,
     expectUrl,
     click,
     generate,
@@ -125,6 +134,16 @@ function createFlow<PrevState, State extends PrevState>(
       const nextState = await func(page, state, options);
       await funcToEval(page, nextState);
       return nextState;
+    });
+  }
+
+  function evaluateAndModifyState<NextState extends State>(
+    funcToEval: (page: Page, state: State) => Promise<NextState>
+  ) {
+    return createFlow(params, async (page, state, options) => {
+      const nextState = await func(page, state, options);
+      const modifiedState = await funcToEval(page, nextState);
+      return modifiedState;
     });
   }
 
@@ -171,7 +190,6 @@ function createFlow<PrevState, State extends PrevState>(
       selector =
         typeof selector === "function" ? await selector(nextState) : selector;
 
-      console.error("submit %s", selector);
       await Promise.all([page.click(selector), page.waitForNavigation()]);
       return nextState;
     });

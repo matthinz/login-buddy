@@ -34,23 +34,24 @@ export const SIGN_UP_FLOW = navigateTo("/sign_up/enter_email")
   .submit("button[type=submit]")
 
   .expectUrl("/backup_code_setup")
-  // .evaluate(async (page, state) => {
-  //   console.log("eval", state);
-  //   // TODO: Augment state with actual backup codes
-  //   //       state.backupCodes = await tab.evaluate((): string[] => {
-  //   //         return [].map.call(
-  //   //           // @ts-ignore
-  //   //           document.querySelectorAll("main code"),
-  //   //           // @ts-ignore
-  //   //           (el): string => el.innerText
-  //   //         ) as string[];
-  //   //       });
-  // })
-  .submit('form[action="/backup_code_setup"] button[type=submit]')
+  .submit("button[type=submit]")
 
-  // add backup method
   .expectUrl("/backup_code_setup")
+  .evaluateAndModifyState(async (page, state) => {
+    // TODO: Augment state with actual backup codes
+    const backupCodes = await page.evaluate((): string[] => {
+      return [].map.call(
+        // @ts-ignore
+        document.querySelectorAll("main code"),
+        // @ts-ignore
+        (el): string => el.innerText
+      ) as string[];
+    });
+    return { ...state, backupCodes };
+  })
   .submit('form[action="/backup_code_continue"] button[type=submit]')
 
-  .expectUrl("/")
-  .submit("form[action='/auth_method_confirmation/skip'] button[type=submit]");
+  .expectUrl("/auth_method_confirmation")
+  .submit('form[action="/auth_method_confirmation/skip"] button[type=submit]')
+
+  .expectUrl("/account");

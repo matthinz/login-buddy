@@ -28,7 +28,6 @@ async function run() {
   const rl = readline.createInterface({
     input: process.stdin,
     output: process.stdout,
-    prompt: "> ",
   });
 
   rl.on("line", (line) => {
@@ -93,36 +92,22 @@ async function signUp(
   const browser = await launchBrowser();
 
   try {
-    await SIGN_UP_FLOW.run({
+    const state = await SIGN_UP_FLOW.run({
       baseURL: "http://localhost:3000",
       browser,
     });
+    console.log(`Created account ${state.email} (password: ${state.password})`);
+    return state;
   } catch (err) {
     console.error(err);
-    console.error("HI");
+
     rl.question("", () => {
       browser.close().then(() => {
         process.exit();
       });
     });
+    return {};
   }
-
-  // const state = await runFlow(fromSp ? SP_SIGN_UP_FLOW : SIGN_UP_FLOW, { tab });
-
-  // user = {
-  //   email: String(state.email),
-  //   password: String(state.password),
-  //   backupCodes: Array.isArray(state.backupCodes)
-  //     ? (state.backupCodes as string[])
-  //     : [],
-  // };
-
-  // console.log("Your user is %s, password %s", user.email, user.password);
-  // console.log("Backup codes:");
-  // user.backupCodes.forEach((code) => console.log(code));
-
-  // return state;
-  return {};
 }
 
 async function takeScreenshots(tag: string) {
