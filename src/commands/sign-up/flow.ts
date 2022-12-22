@@ -1,4 +1,4 @@
-import { navigateTo } from "./dsl";
+import { navigateTo } from "../../dsl";
 
 const DEFAULT_PASSWORD = "reallygoodpassword";
 

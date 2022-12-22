@@ -1,4 +1,6 @@
 import { launch, Browser, Page } from "puppeteer";
+import { promises as fs } from "fs";
+import path from "path";
 
 export type FlowRunOptions = {
   baseURL?: string | URL;
@@ -58,6 +60,12 @@ export type Flow<State> = {
     selector: string | ((state: State) => string | Promise<string>),
     text: string | ((state: State) => string | Promise<string>)
   ): Flow<State>;
+
+  upload(
+    selector: string | ((state: State) => string | Promise<string>),
+    filename: string | ((state: State) => string | Promise<string>),
+    contents?: string | ((state: State) => string | Promise<string>)
+  ): Flow<State>;
 };
 
 /**
@@ -114,6 +122,7 @@ function createFlow<PrevState, State extends PrevState>(
     run,
     submit,
     type,
+    upload,
   };
 
   async function run(options?: FlowRunOptions): Promise<State> {
@@ -284,6 +293,47 @@ function createFlow<PrevState, State extends PrevState>(
       });
 
       await page.type(selector, text);
+
+      return nextState;
+    });
+  }
+
+  function upload(
+    selector: string | ((state: State) => string | Promise<string>),
+    filename: string | ((state: State) => string | Promise<string>),
+    contents?: string | ((state: State) => string | Promise<string>)
+  ) {
+    return createFlow(params, async (page, state, options) => {
+      const nextState = await func(page, state, options);
+
+      selector =
+        typeof selector === "function" ? await selector(nextState) : selector;
+      filename =
+        typeof filename === "function" ? await filename(nextState) : filename;
+      if (contents) {
+        contents =
+          typeof contents === "function" ? await contents(nextState) : contents;
+      }
+
+      const tempFile = path.join(".tmp", filename);
+      await fs
+        .mkdir(path.dirname(tempFile), {
+          recursive: true,
+        })
+        .catch((err) => {
+          console.error(err);
+        });
+      await fs.writeFile(tempFile, contents ?? "");
+
+      await page.waitForSelector(selector, { timeout: 3000 });
+      await page.click(selector);
+
+      const [fileChooser] = await Promise.all([
+        page.waitForFileChooser(),
+        page.click(selector),
+      ]);
+
+      await fileChooser.accept([path.resolve(tempFile)]);
 
       return nextState;
     });

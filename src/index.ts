@@ -1,21 +1,10 @@
-import { Browser, launch, Page, Puppeteer } from "puppeteer";
-import { runFlow } from "./flows";
-import { SCREENSHOT_FLOW } from "./flows/screenshot";
-import { SIGN_UP_FLOW } from "./flows/sign-up";
-import { SP_SIGN_UP_FLOW } from "./flows/sp-sign-up";
-import { VERIFY_FLOW } from "./flows/verify";
-
+import { Browser, launch, Page } from "puppeteer";
 import readline from "node:readline";
 
-type LoginUser = {
-  email: string;
-  password: string;
-  backupCodes: string[];
-};
+import { CommandFunctions } from "./types";
+import { signUp, verify } from "./commands";
 
-let browserPromise: Promise<Browser> | undefined;
-let tab: Page | undefined;
-let user: LoginUser | undefined;
+const ALL_COMMANDS = [signUp, verify];
 
 run().catch((err) => {
   console.error(err);
@@ -23,20 +12,49 @@ run().catch((err) => {
 });
 
 async function run() {
+  let browserPromise: Promise<Browser> | undefined;
+  let pagePromise: Promise<Page> | undefined;
+
+  const funcs: CommandFunctions = {
+    getBrowser: () => {
+      if (!browserPromise) {
+        browserPromise = launch({
+          headless: false,
+          defaultViewport: null,
+        });
+      }
+      return browserPromise;
+    },
+    getPage: () => {
+      if (!pagePromise) {
+        pagePromise = funcs.getBrowser().then((browser) => browser.newPage());
+      }
+      return pagePromise;
+    },
+    getLastSignup: () => undefined,
+  };
+
+  const rl = createInterface(funcs);
+  welcome();
+  rl.prompt();
+}
+
+function createInterface(funcs: CommandFunctions): readline.Interface {
   let currentPromise: Promise<void> | undefined;
 
   const rl = readline.createInterface({
     input: process.stdin,
     output: process.stdout,
+    prompt: "> ",
   });
 
   rl.on("line", (line) => {
     if (currentPromise) {
-      console.error("Hold on, busy now");
+      console.error("Hold your 🐴🐴 please.");
       return;
     }
 
-    currentPromise = handleCommand(line, rl).finally(() => {
+    currentPromise = handleCommand(line, rl, funcs).finally(() => {
       currentPromise = undefined;
       rl.prompt();
     });
@@ -46,100 +64,41 @@ async function run() {
     process.exit();
   });
 
-  rl.prompt();
-}
-
-function launchBrowser(): Promise<Browser> {
-  if (!browserPromise) {
-    browserPromise = launch({
-      headless: false,
-      defaultViewport: null,
-    });
-  }
-  return browserPromise;
+  return rl;
 }
 
 async function handleCommand(
   line: string,
-  rl: readline.Interface
+  rl: readline.Interface,
+  funcs: CommandFunctions
 ): Promise<void> {
-  if (line === "new user" || line === "signup") {
-    await signUp(!!process.env["SP_SIGNUP"], rl);
+  let promise: Promise<void> | undefined;
+
+  for (let i = 0; i < ALL_COMMANDS.length; i++) {
+    promise = ALL_COMMANDS[i].runFromUserInput(line, funcs);
+    if (promise) {
+      break;
+    }
+  }
+
+  if (!promise) {
+    console.log("Huh?");
+    rl.prompt();
     return;
   }
 
-  let m = /^(screen\s*shots?|shoot)(.*)/i.exec(line);
-
-  if (m) {
-    await takeScreenshots(m[2].trim());
-    return;
-  }
-
-  if (line === "verify") {
-    await startVerification();
-    return;
-  }
+  await promise;
 }
 
-async function signUp(
-  fromSp: boolean,
-  rl: readline.Interface
-): Promise<Record<string, unknown>> {
-  if (user) {
-    throw new Error("TODO: sign out");
-  }
+async function welcome() {
+  console.log(`
+Welcome to the Login Assistant!
 
-  const browser = await launchBrowser();
+This is a little helper for you if you're doing work on the Login.gov frontend.
 
-  try {
-    const state = await SP_SIGN_UP_FLOW.run({
-      baseURL: "http://localhost:3000",
-      browser,
-    });
-    console.log(`Created account ${state.email} (password: ${state.password})`);
-    return state;
-  } catch (err) {
-    console.error(err);
+Some commands:
 
-    rl.question("", () => {
-      browser.close().then(() => {
-        process.exit();
-      });
-    });
-    return {};
-  }
-}
+- 'signup' to create a new account
 
-async function takeScreenshots(tag: string) {
-  if (!tab || !user) {
-    console.error("No session running");
-    return;
-  }
-
-  const state = {
-    tag,
-  };
-
-  await runFlow(SCREENSHOT_FLOW, { state, tab });
-}
-
-async function startVerification() {
-  if (!user) {
-    throw new Error("not implemented");
-    // await signUp();
-  }
-
-  if (!tab) {
-    throw new Error();
-  }
-
-  console.log("starting verification...");
-
-  const state = {
-    ...user,
-  };
-
-  const { personalKey } = await runFlow(VERIFY_FLOW, { tab, state });
-
-  console.log("Your personal key is %s", personalKey);
+`);
 }
