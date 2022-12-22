@@ -19,10 +19,21 @@ export async function run(
   { getPage }: CommandFunctions
 ): Promise<void> {
   const page = await getPage();
-  await SIGN_UP_FLOW.run({
+  const state = await SIGN_UP_FLOW.run({
     baseURL: "http://localhost:3000",
     page,
   });
+
+  console.log(
+    `
+
+Signup complete!
+User: ${state.email}
+Pass: ${state.password}
+Backup codes:
+  ${state.backupCodes.join("\n  ")}
+  `.trimEnd()
+  );
 }
 
 export function runFromUserInput(

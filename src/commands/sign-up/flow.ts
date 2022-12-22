@@ -38,7 +38,6 @@ export const SIGN_UP_FLOW = navigateTo("/sign_up/enter_email")
 
   .expectUrl("/backup_code_setup")
   .evaluateAndModifyState(async (page, state) => {
-    // TODO: Augment state with actual backup codes
     const backupCodes = await page.evaluate((): string[] => {
       return [].map.call(
         // @ts-ignore

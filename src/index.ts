@@ -29,7 +29,13 @@ async function run() {
       if (!pagePromise) {
         pagePromise = funcs.getBrowser().then((browser) => browser.newPage());
       }
-      return pagePromise;
+      return pagePromise.then((page) => {
+        if (page.isClosed()) {
+          pagePromise = undefined;
+          return funcs.getPage();
+        }
+        return page;
+      });
     },
     getLastSignup: () => undefined,
   };
@@ -99,6 +105,8 @@ This is a little helper for you if you're doing work on the Login.gov frontend.
 Some commands:
 
 - 'signup' to create a new account
+- 'verify' to create a verified account (or verify the one you just created)
+- 'screenshot' to take screenshots
 
 `);
 }
