@@ -2,9 +2,9 @@ import { Browser, launch, Page } from "puppeteer";
 import readline from "node:readline";
 
 import { CommandFunctions } from "./types";
-import { signUp, verify } from "./commands";
+import { screenshot, signUp, verify } from "./commands";
 
-const ALL_COMMANDS = [signUp, verify];
+const ALL_COMMANDS = [screenshot, signUp, verify];
 
 run().catch((err) => {
   console.error(err);
