@@ -4,6 +4,8 @@
   "main": "index.js",
   "license": "MIT",
   "dependencies": {
+    "getopts": "^2.3.0",
+    "p-block": "^0.0.3",
     "puppeteer": "^19.2.2"
   },
   "devDependencies": {

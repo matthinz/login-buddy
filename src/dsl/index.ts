@@ -1,276 +1,55 @@
 import { launch, Browser, Page } from "puppeteer";
-import { promises as fs } from "fs";
-import path from "path";
-import { Flow, FlowParams, FlowRunOptions } from "./types";
+import { Flow } from "./flow";
+import { FlowInterface, FlowRunOptions, FromState } from "./types";
 
-/**
- * Starts a new flow, navigated to the given URL.
- * @param url
- */
-export function navigateTo(url: string | URL): Flow<{}> {
-  const params: FlowParams<{}> = {
-    state: {},
+export function createFlow<Options extends FlowRunOptions>(
+  options?: Partial<Options>
+): FlowInterface<{}, Options> {
+  let { page, browser } = options ?? {};
+
+  if (!browser) {
+    let _browser: Browser | undefined;
+    browser = async () => {
+      _browser =
+        _browser ??
+        (await launch({
+          defaultViewport: null,
+          headless: false,
+        }));
+      return _browser;
+    };
+  }
+
+  if (!page) {
+    let _page: Page | undefined;
+    page = async () => {
+      if (_page && !_page.isClosed()) {
+        return _page;
+      }
+      if (!browser) {
+        throw new Error("lost browser");
+      }
+      const b = await browser();
+      _page = await b.newPage();
+      return _page;
+    };
+  }
+
+  const actualOptions: FlowRunOptions = {
+    baseURL: process.env.BASE_URL ?? "http://localhost:3000",
+    browser,
+    page,
   };
 
-  return createFlow(params, async (page, state, options) => {
-    if (options.baseURL) {
-      url = new URL(
-        url.toString(),
-        options.baseURL ? options.baseURL.toString() : undefined
-      );
-    }
-
-    if (options.skipNavigation) {
-      console.error("Skipping navigation to %s", url);
-      return state;
-    }
-
-    console.error("navigateTo %s", url);
-
-    await page.goto(url.toString());
-
-    return state;
-  });
+  return new Flow(() => Promise.resolve({}), actualOptions);
 }
 
 /**
- *
- * @param state
- * @returns
+ * Starts a new flow, without any custom options.
+ * @param url
  */
-function createFlow<PrevState, State extends PrevState>(
-  params: FlowParams<PrevState>,
-  func: (
-    page: Page,
-    state: PrevState,
-    options: FlowRunOptions
-  ) => Promise<State>
-): Flow<State> {
-  return {
-    evaluate,
-    evaluateAndModifyState,
-    expectUrl,
-    click,
-    generate,
-    passTo,
-    skipNavigation,
-    run,
-    submit,
-    type,
-    upload,
-  };
-
-  async function run(options?: FlowRunOptions): Promise<State> {
-    let browser: Browser | undefined;
-    let page: Page | undefined;
-
-    if (options?.page) {
-      page = options.page;
-    } else if (params.page) {
-      page = params.page;
-    }
-
-    if (options?.browser) {
-      browser = options.browser;
-    } else if (params.browser) {
-      browser = params.browser;
-    } else if (page) {
-      browser = page.browser();
-    }
-
-    if (!browser) {
-      browser = await launch({
-        headless: false,
-      });
-    }
-
-    if (!page) {
-      page = await browser.newPage();
-    }
-
-    if (page.browser() !== browser) {
-      throw new Error("Somehow ended up using a page from a different browser");
-    }
-
-    const nextOptions: FlowRunOptions = {
-      ...(options ?? {}),
-    };
-
-    return await func(page, params.state, nextOptions);
-  }
-
-  function click(
-    selector: string | ((state: State) => string | Promise<string>)
-  ): Flow<State> {
-    return createFlow(params, async (page, state, options) => {
-      const nextState = await func(page, state, options);
-
-      selector =
-        typeof selector === "function" ? await selector(nextState) : selector;
-
-      await page.click(selector);
-
-      return nextState;
-    });
-  }
-
-  function evaluate(
-    funcToEval: (page: Page, state: State) => Promise<void>
-  ): Flow<State> {
-    return createFlow(params, async (page, state, options) => {
-      const nextState = await func(page, state, options);
-      await funcToEval(page, nextState);
-      return nextState;
-    });
-  }
-
-  function evaluateAndModifyState<NextState extends State>(
-    funcToEval: (page: Page, state: State) => Promise<NextState>
-  ) {
-    return createFlow(params, async (page, state, options) => {
-      const nextState = await func(page, state, options);
-      const modifiedState = await funcToEval(page, nextState);
-      return modifiedState;
-    });
-  }
-
-  function expectUrl(
-    url:
-      | string
-      | URL
-      | ((state: State) => string | URL | Promise<string> | Promise<URL>)
-  ) {
-    return createFlow(params, async (page, state, options) => {
-      const nextState = await func(page, state, options);
-      url = (typeof url === "function" ? await url(nextState) : url).toString();
-
-      if (options.baseURL) {
-        url = new URL(url.toString(), options.baseURL);
-      }
-
-      if (page.url() !== url.toString()) {
-        console.error("Expected to be at '%s', but at '%s'", url, page.url());
-      }
-
-      return nextState;
-    });
-  }
-
-  function generate<Key extends string, Value>(
-    key: Key,
-    generator: (state: State) => Value | Promise<Value>
-  ): Flow<State & { [K in Key]: Value }> {
-    return createFlow(params, async (page, state, options) => {
-      const nextState: State = await func(page, state, options);
-      const value: Value = await generator(nextState);
-      return { ...nextState, [key]: value };
-    }) as Flow<State & { [K in Key]: Value }>;
-  }
-
-  function passTo<OtherState>(
-    otherFlow: Flow<OtherState>
-  ): Flow<State & OtherState> {
-    return createFlow(params, async (page, state, options) => {
-      const nextState = await func(page, state, options);
-      const otherState = await otherFlow.run({
-        ...params,
-        ...options,
-        page,
-      });
-      return {
-        ...nextState,
-        ...otherState,
-      };
-    }).evaluate(async (page) => {
-      await page.waitForNetworkIdle();
-    });
-  }
-
-  function skipNavigation(): Flow<State> {
-    return createFlow(params, (page, state, options) =>
-      func(page, state, {
-        ...options,
-        skipNavigation: true,
-      })
-    );
-  }
-
-  function submit(
-    selector?: string | ((state: State) => string | Promise<string>)
-  ): Flow<State> {
-    return createFlow(params, async (page, state, options) => {
-      const nextState = await func(page, state, options);
-
-      selector = selector ?? "button[type=submit]";
-      selector =
-        typeof selector === "function" ? await selector(nextState) : selector;
-
-      await Promise.all([page.click(selector), page.waitForNavigation()]);
-      await page.waitForNetworkIdle();
-
-      return nextState;
-    });
-  }
-
-  function type(
-    selector: string | ((state: State) => string | Promise<string>),
-    text: string | ((state: State) => string | Promise<string>)
-  ): Flow<State> {
-    return createFlow(params, async (page, state, options) => {
-      const nextState = await func(page, state, options);
-
-      text = typeof text === "function" ? await text(nextState) : text;
-      selector =
-        typeof selector === "function" ? await selector(nextState) : selector;
-
-      await page.waitForSelector(selector, {
-        timeout: 3000,
-      });
-
-      await page.type(selector, text);
-
-      return nextState;
-    });
-  }
-
-  function upload(
-    selector: string | ((state: State) => string | Promise<string>),
-    filename: string | ((state: State) => string | Promise<string>),
-    contents?: string | ((state: State) => string | Promise<string>)
-  ) {
-    return createFlow(params, async (page, state, options) => {
-      const nextState = await func(page, state, options);
-
-      selector =
-        typeof selector === "function" ? await selector(nextState) : selector;
-      filename =
-        typeof filename === "function" ? await filename(nextState) : filename;
-      if (contents) {
-        contents =
-          typeof contents === "function" ? await contents(nextState) : contents;
-      }
-
-      const tempFile = path.join(".tmp", filename);
-      await fs
-        .mkdir(path.dirname(tempFile), {
-          recursive: true,
-        })
-        .catch((err) => {
-          console.error(err);
-        });
-      await fs.writeFile(tempFile, contents ?? "");
-
-      await page.waitForSelector(selector, { timeout: 3000 });
-      await page.click(selector);
-
-      const [fileChooser] = await Promise.all([
-        page.waitForFileChooser(),
-        page.click(selector),
-      ]);
-
-      await fileChooser.accept([path.resolve(tempFile)]);
-
-      return nextState;
-    });
-  }
+export function navigateTo(
+  url: string | URL
+): FlowInterface<{}, FlowRunOptions> {
+  return createFlow().navigateTo(url);
 }

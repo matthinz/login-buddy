@@ -1,5 +1,5 @@
 import { Browser, launch, Page } from "puppeteer";
-import readline from "node:readline";
+import * as readline from "node:readline";
 
 import { CommandFunctions } from "./types";
 import { screenshot, signUp, verify } from "./commands";

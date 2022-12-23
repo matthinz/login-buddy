@@ -16,12 +16,13 @@ export function parse(line: string): Options | undefined {
 
 export async function run(
   options: Options,
-  { getPage }: CommandFunctions
+  { getBrowser, getPage }: CommandFunctions
 ): Promise<void> {
   const page = await getPage();
   const state = await SIGN_UP_FLOW.run({
     baseURL: "http://localhost:3000",
-    page,
+    page: getPage,
+    browser: getBrowser,
   });
 
   console.log(
