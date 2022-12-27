@@ -1,3 +1,4 @@
+import { P, ParsedType } from "p-block";
 import { Browser, Page } from "puppeteer";
 
 export type User = {
@@ -15,6 +16,14 @@ export type CommandFunctions = {
 export type Command = {
   runFromUserInput(
     input: string,
-    functions: CommandFunctions
+    functions: CommandFunctions,
+    programOptions: ProgramOptions
   ): Promise<void> | undefined;
 };
+
+export const ProgramOptionsParser = P.object().withProperties({
+  baseURL: P.url().optional(),
+  env: P.string().optional(),
+});
+
+export type ProgramOptions = ParsedType<typeof ProgramOptionsParser>;

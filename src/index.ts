@@ -1,17 +1,39 @@
+import getopts from "getopts";
 import { Browser, launch, Page } from "puppeteer";
 import * as readline from "node:readline";
 
-import { CommandFunctions } from "./types";
+import {
+  CommandFunctions,
+  ProgramOptions,
+  ProgramOptionsParser,
+} from "./types";
 import { screenshot, signUp, verify } from "./commands";
 
 const ALL_COMMANDS = [screenshot, signUp, verify];
 
-run().catch((err) => {
+run(process.argv.slice(2)).catch((err) => {
   console.error(err);
   process.exitCode = 1;
 });
 
-async function run() {
+async function run(args: string[]) {
+  const parsedOptions = ProgramOptionsParser.parse(getopts(args));
+  if (!parsedOptions.success) {
+    throw new Error(parsedOptions.errors.map((err) => err.message).join("\n"));
+  }
+
+  const options = parsedOptions.parsed;
+
+  if (!options.baseURL) {
+    if (options.env) {
+      options.baseURL = new URL(
+        `https://idp.${options.env}.identitysandbox.gov`
+      );
+    } else {
+      options.baseURL = new URL("http://localhost:3000");
+    }
+  }
+
   let browserPromise: Promise<Browser> | undefined;
   let pagePromise: Promise<Page> | undefined;
 
@@ -40,12 +62,15 @@ async function run() {
     getLastSignup: () => undefined,
   };
 
-  const rl = createInterface(funcs);
-  welcome();
+  const rl = createInterface(funcs, options);
+  welcome(options);
   rl.prompt();
 }
 
-function createInterface(funcs: CommandFunctions): readline.Interface {
+function createInterface(
+  funcs: CommandFunctions,
+  options: ProgramOptions
+): readline.Interface {
   let currentPromise: Promise<void> | undefined;
 
   const rl = readline.createInterface({
@@ -60,7 +85,7 @@ function createInterface(funcs: CommandFunctions): readline.Interface {
       return;
     }
 
-    currentPromise = handleCommand(line, rl, funcs).finally(() => {
+    currentPromise = handleCommand(line, rl, funcs, options).finally(() => {
       currentPromise = undefined;
       rl.prompt();
     });
@@ -76,12 +101,13 @@ function createInterface(funcs: CommandFunctions): readline.Interface {
 async function handleCommand(
   line: string,
   rl: readline.Interface,
-  funcs: CommandFunctions
+  funcs: CommandFunctions,
+  options: ProgramOptions
 ): Promise<void> {
   let promise: Promise<void> | undefined;
 
   for (let i = 0; i < ALL_COMMANDS.length; i++) {
-    promise = ALL_COMMANDS[i].runFromUserInput(line, funcs);
+    promise = ALL_COMMANDS[i].runFromUserInput(line, funcs, options);
     if (promise) {
       break;
     }
@@ -96,7 +122,7 @@ async function handleCommand(
   await promise;
 }
 
-async function welcome() {
+async function welcome(options: ProgramOptions) {
   console.log(`
 Welcome to the Login Assistant!
 
@@ -107,6 +133,8 @@ Some commands:
 - 'signup' to create a new account
 - 'verify' to create a verified account (or verify the one you just created)
 - 'screenshot' to take screenshots
+
+We are using <${options.baseURL?.toString()}>
 
 `);
 }

@@ -1,4 +1,4 @@
-import { CommandFunctions } from "../../types";
+import { CommandFunctions, ProgramOptions } from "../../types";
 import { SIGN_UP_FLOW } from "./flow";
 
 export type Options = {};
@@ -18,9 +18,8 @@ export async function run(
   options: Options,
   { getBrowser, getPage }: CommandFunctions
 ): Promise<void> {
-  const page = await getPage();
   const state = await SIGN_UP_FLOW.run({
-    baseURL: "http://localhost:3000",
+    ...options,
     page: getPage,
     browser: getBrowser,
   });
@@ -39,8 +38,19 @@ Backup codes:
 
 export function runFromUserInput(
   line: string,
-  funcs: CommandFunctions
+  funcs: CommandFunctions,
+  programOptions: ProgramOptions
 ): Promise<void> | undefined {
   const options = parse(line);
-  return options ? run(options, funcs) : undefined;
+  if (!options) {
+    return;
+  }
+
+  return run(
+    {
+      ...programOptions,
+      ...options,
+    },
+    funcs
+  );
 }

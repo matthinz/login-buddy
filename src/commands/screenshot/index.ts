@@ -1,5 +1,5 @@
 import { promises as fs } from "fs";
-import { CommandFunctions } from "../../types";
+import { CommandFunctions, ProgramOptions } from "../../types";
 
 const LANGUAGES = ["en", "fr", "es"] as const;
 
@@ -65,8 +65,19 @@ export async function run(
 
 export function runFromUserInput(
   line: string,
-  funcs: CommandFunctions
+  funcs: CommandFunctions,
+  programOptions: ProgramOptions
 ): Promise<void> | undefined {
   const options = parse(line);
-  return options ? run(options, funcs) : undefined;
+  if (!options) {
+    return;
+  }
+
+  return run(
+    {
+      ...programOptions,
+      ...parse(line),
+    },
+    funcs
+  );
 }

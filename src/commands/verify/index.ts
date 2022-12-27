@@ -1,6 +1,6 @@
 import getopts from "getopts";
 
-import { CommandFunctions } from "../../types";
+import { CommandFunctions, ProgramOptions } from "../../types";
 import { VERIFY_FLOW } from "./flow";
 import { Options, optionsParser } from "./types";
 
@@ -33,9 +33,8 @@ export async function run(
   options: Options,
   { getBrowser, getPage }: CommandFunctions
 ): Promise<void> {
-  const page = await getPage();
   await VERIFY_FLOW.run({
-    baseURL: "http://localhost:3000",
+    ...options,
     page: getPage,
     browser: getBrowser,
   });
@@ -43,8 +42,18 @@ export async function run(
 
 export function runFromUserInput(
   line: string,
-  funcs: CommandFunctions
+  funcs: CommandFunctions,
+  programOptions: ProgramOptions
 ): Promise<void> | undefined {
   const options = parse(line);
-  return options ? run(options, funcs) : undefined;
+  if (!options) {
+    return;
+  }
+  return run(
+    {
+      ...programOptions,
+      ...options,
+    },
+    funcs
+  );
 }
