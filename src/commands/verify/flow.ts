@@ -1,4 +1,6 @@
-import { navigateTo } from "../../dsl";
+import { createFlow } from "../../dsl";
+import { VerifyOptions } from "./types";
+import { SignUpState } from "../sign-up";
 
 const PROOFING_YAML = `
 document:
@@ -18,7 +20,8 @@ document:
   state_id_jurisdiction: 'NY'
 `.trim();
 
-export const VERIFY_FLOW = navigateTo("/verify")
+export const VERIFY_FLOW = createFlow<SignUpState, VerifyOptions>()
+  .navigateTo("/verify")
   .expectUrl("/verify/doc_auth/welcome")
   .submit()
 
@@ -29,7 +32,7 @@ export const VERIFY_FLOW = navigateTo("/verify")
 
   // "How would you like to upload your state-issued ID?"
   .expectUrl("/verify/doc_auth/upload")
-  .click(
+  .submit(
     'form[action="/verify/doc_auth/upload?type=desktop"] button[type=submit]'
   )
 
@@ -44,4 +47,39 @@ export const VERIFY_FLOW = navigateTo("/verify")
   // "Enter your Social Security number"
   .expectUrl("/verify/doc_auth/ssn")
   .type('[name="doc_auth[ssn]"]', "666123456")
-  .click(".password-toggle__toggle-label");
+  .evaluate(async (page, state, options) => {
+    await page.select("[name=mock_profiling_result]", options.threatMetrix);
+  })
+  .click(".password-toggle__toggle-label")
+  .submit()
+
+  // "Verify your information"
+  .expectUrl("/verify/doc_auth/verify")
+  .submit('form[action="/verify/doc_auth/verify"] button[type=submit]')
+
+  // "Enter your phone number"
+  .expectUrl("/verify/phone")
+  .generate("phone", () => "3602345678")
+  .type('[name="idv_phone_form[phone]"]', (state) => state.phone)
+  .submit()
+
+  // "Enter your one-time code"
+  .expectUrl("/verify/phone_confirmation")
+  .submit('form[action="/verify/phone_confirmation"] button[type=submit]')
+
+  // "Re-enter your Login.gov password to protect your data"
+  .expectUrl("/verify/review")
+  .type('[name="user[password]"]', (state) => state.password)
+  .submit('form[action="/verify/review"] button[type=submit]')
+
+  // "Save your personal key"
+  .expectUrl("/verify/personal_key")
+  .evaluateAndModifyState(async (page, state) => {
+    const personalKey = (await page.evaluate(() => {
+      // @ts-ignore
+      return document.querySelector(".personal-key-block").innerText;
+    })) as string;
+    return { ...state, personalKey };
+  })
+  .click("label[for=acknowledgment]")
+  .submit();

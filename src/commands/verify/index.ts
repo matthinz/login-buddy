@@ -1,12 +1,13 @@
 import getopts from "getopts";
+import { ensureCurrentPage } from "../../browser";
 
-import { CommandFunctions, ProgramOptions } from "../../types";
+import { GlobalState, ProgramOptions } from "../../types";
 import { VERIFY_FLOW } from "./flow";
-import { Options, optionsParser } from "./types";
+import { VerifyOptions, verifyOptionsParser } from "./types";
 
 const REGEX = /^verify\b(.*)/i;
 
-export function parse(line: string): Options | undefined {
+export function parse(line: string): VerifyOptions | undefined {
   const m = REGEX.exec(line);
   if (!m) {
     return;
@@ -18,7 +19,7 @@ export function parse(line: string): Options | undefined {
     },
   });
 
-  const parsed = optionsParser.parse(raw);
+  const parsed = verifyOptionsParser.parse(raw);
 
   if (parsed.success) {
     return parsed.parsed;
@@ -30,30 +31,34 @@ export function parse(line: string): Options | undefined {
 }
 
 export async function run(
-  options: Options,
-  { getBrowser, getPage }: CommandFunctions
-): Promise<void> {
-  await VERIFY_FLOW.run({
+  options: VerifyOptions,
+  globalState: GlobalState
+): Promise<GlobalState> {
+  const { lastSignup } = globalState;
+  if (!lastSignup) {
+    throw new Error("No signup");
+  }
+
+  const newGlobalState = await ensureCurrentPage(globalState);
+  const { browser, page } = newGlobalState;
+
+  await VERIFY_FLOW.run(lastSignup, {
+    ...globalState.programOptions,
     ...options,
-    page: getPage,
-    browser: getBrowser,
+    browser,
+    page,
   });
+
+  return globalState;
 }
 
 export function runFromUserInput(
   line: string,
-  funcs: CommandFunctions,
-  programOptions: ProgramOptions
-): Promise<void> | undefined {
+  globalState: GlobalState
+): Promise<GlobalState> | undefined {
   const options = parse(line);
   if (!options) {
     return;
   }
-  return run(
-    {
-      ...programOptions,
-      ...options,
-    },
-    funcs
-  );
+  return run(options, globalState);
 }

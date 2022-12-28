@@ -1,24 +1,12 @@
 import { P, ParsedType } from "p-block";
 import { Browser, Page } from "puppeteer";
-
-export type User = {
-  email: string;
-  password: string;
-  backupCodes: string[];
-};
-
-export type CommandFunctions = {
-  getBrowser: () => Promise<Browser>;
-  getPage: () => Promise<Page>;
-  getLastSignup: () => User | undefined;
-};
+import { SignUpState } from "./commands/sign-up";
 
 export type Command = {
   runFromUserInput(
     input: string,
-    functions: CommandFunctions,
-    programOptions: ProgramOptions
-  ): Promise<void> | undefined;
+    globalState: GlobalState
+  ): Promise<GlobalState> | undefined;
 };
 
 export const ProgramOptionsParser = P.object().withProperties({
@@ -27,3 +15,10 @@ export const ProgramOptionsParser = P.object().withProperties({
 });
 
 export type ProgramOptions = ParsedType<typeof ProgramOptionsParser>;
+
+export type GlobalState = {
+  browser?: Browser;
+  lastSignup?: SignUpState | undefined;
+  page?: Page;
+  programOptions: ProgramOptions;
+};

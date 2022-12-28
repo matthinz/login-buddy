@@ -1,5 +1,5 @@
 import { promises as fs } from "fs";
-import { CommandFunctions, ProgramOptions } from "../../types";
+import { GlobalState } from "../../types";
 
 const LANGUAGES = ["en", "fr", "es"] as const;
 
@@ -22,9 +22,13 @@ export function parse(line: string): Options | undefined {
 
 export async function run(
   options: Options,
-  { getPage }: CommandFunctions
-): Promise<void> {
-  const page = await getPage();
+  globalState: GlobalState
+): Promise<GlobalState> {
+  const { page } = globalState;
+  if (!page) {
+    throw new Error("No current page.");
+  }
+
   const originalUrl = page.url();
 
   await LANGUAGES.reduce<Promise<void>>(function (promise, lang) {
@@ -61,13 +65,14 @@ export async function run(
     console.log("restore to %s", originalUrl);
     await page.goto(originalUrl.toString());
   }
+
+  return globalState;
 }
 
 export function runFromUserInput(
   line: string,
-  funcs: CommandFunctions,
-  programOptions: ProgramOptions
-): Promise<void> | undefined {
+  globalState: GlobalState
+): Promise<GlobalState> | undefined {
   const options = parse(line);
   if (!options) {
     return;
@@ -75,9 +80,9 @@ export function runFromUserInput(
 
   return run(
     {
-      ...programOptions,
-      ...parse(line),
+      ...globalState.programOptions,
+      ...options,
     },
-    funcs
+    globalState
   );
 }

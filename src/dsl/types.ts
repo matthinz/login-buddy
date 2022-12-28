@@ -5,61 +5,80 @@ import { Browser, Page } from "puppeteer";
  */
 export type FlowRunOptions = {
   baseURL: string | URL;
-  browser: () => Promise<Browser>;
-  page: () => Promise<Page>;
+  browser: Browser;
+  page: Page;
 };
 
 /**
  * A Flow is a series of steps executed in a browser.
  */
-export interface FlowInterface<State, Options> {
+export interface FlowInterface<
+  InputState,
+  OutputState extends InputState,
+  Options
+> {
   /**
    * Runs this flow and returns the generated state.
    */
-  run(options?: Partial<FlowRunOptions & Options>): Promise<State>;
+  run(
+    state: InputState,
+    options?: Partial<FlowRunOptions & Options>
+  ): Promise<OutputState>;
 
   /**
-   * Evaluates a function, passing in a Puppeteer page and
-   * the current state.
-   * @param func Evaluation function. Can return a new state.
+   * Evaluates a function, passing in a Puppeteer page, the current state,
+   * and the original options.
    */
   evaluate(
-    func: (page: Page, state: State) => Promise<void>
-  ): FlowInterface<State, Options>;
+    func: (page: Page, state: OutputState, options: Options) => Promise<void>
+  ): FlowInterface<InputState, OutputState, Options>;
 
   /**
-   * Evaluates a function and allows modifying state.
-   * @param func
+   * Evaluates a function, passing in a Puppeteer page, the current state,
+   * and the original options.
+   * <func> can return a new state.
    */
-  evaluateAndModifyState<NextState extends State>(
-    func: (page: Page, state: State) => Promise<NextState>
-  ): FlowInterface<NextState, Options>;
+  evaluateAndModifyState<NextOutputState extends OutputState>(
+    func: (
+      page: Page,
+      state: OutputState,
+      options: Options
+    ) => Promise<NextOutputState>
+  ): FlowInterface<InputState, NextOutputState, Options>;
 
-  expectUrl(url: string | URL): FlowInterface<State, Options>;
+  expectUrl(
+    url: FromState<string | URL, OutputState>
+  ): FlowInterface<InputState, OutputState, Options>;
 
   generate<Key extends string, Value>(
     key: Key,
-    generator: FromState<Value, State>
-  ): FlowInterface<State & { [K in Key]: Value }, Options>;
+    generator: FromState<Value, OutputState>
+  ): FlowInterface<InputState, OutputState & { [K in Key]: Value }, Options>;
 
-  navigateTo: (url: string | URL) => FlowInterface<State, Options>;
+  navigateTo: (
+    url: FromState<string | URL, OutputState>
+  ) => FlowInterface<InputState, OutputState, Options>;
 
   // Actions that can be taken
 
-  click(selector: string): FlowInterface<State, Options>;
+  click(
+    selector: FromState<string, OutputState>
+  ): FlowInterface<InputState, OutputState, Options>;
 
-  submit(selector?: string): FlowInterface<State, Options>;
+  submit(
+    selector?: FromState<string, OutputState>
+  ): FlowInterface<InputState, OutputState, Options>;
 
   type(
-    selector: string | ((state: State) => string | Promise<string>),
-    text: string | ((state: State) => string | Promise<string>)
-  ): FlowInterface<State, Options>;
+    selector: FromState<string, OutputState>,
+    text: FromState<string, OutputState>
+  ): FlowInterface<InputState, OutputState, Options>;
 
   upload(
-    selector: string | ((state: State) => string | Promise<string>),
-    filename: string | ((state: State) => string | Promise<string>),
-    contents?: string | ((state: State) => string | Promise<string>)
-  ): FlowInterface<State, Options>;
+    selector: FromState<string, OutputState>,
+    filename: FromState<string, OutputState>,
+    contents?: FromState<string, OutputState>
+  ): FlowInterface<InputState, OutputState, Options>;
 }
 
 export type FromState<T, State> = T extends () => void

@@ -1,7 +1,10 @@
-import { CommandFunctions, ProgramOptions } from "../../types";
+import { ensureBrowserLaunched, ensureCurrentPage } from "../../browser";
+import { GlobalState, ProgramOptions } from "../../types";
 import { SIGN_UP_FLOW } from "./flow";
 
 export type Options = {};
+
+export type SignUpState = Awaited<ReturnType<typeof SIGN_UP_FLOW["run"]>>;
 
 const REGEX = /^sign\s*up\b(.*)/i;
 
@@ -16,13 +19,21 @@ export function parse(line: string): Options | undefined {
 
 export async function run(
   options: Options,
-  { getBrowser, getPage }: CommandFunctions
-): Promise<void> {
-  const state = await SIGN_UP_FLOW.run({
-    ...options,
-    page: getPage,
-    browser: getBrowser,
-  });
+  globalState: GlobalState
+): Promise<GlobalState> {
+  const newGlobalState = await ensureCurrentPage(globalState);
+
+  const { browser, page } = newGlobalState;
+
+  const state = await SIGN_UP_FLOW.run(
+    {},
+    {
+      ...globalState.programOptions,
+      ...options,
+      browser,
+      page,
+    }
+  );
 
   console.log(
     `
@@ -34,23 +45,21 @@ Backup codes:
   ${state.backupCodes.join("\n  ")}
   `.trimEnd()
   );
+
+  return {
+    ...newGlobalState,
+    lastSignup: state,
+  };
 }
 
 export function runFromUserInput(
   line: string,
-  funcs: CommandFunctions,
-  programOptions: ProgramOptions
-): Promise<void> | undefined {
+  globalState: GlobalState
+): Promise<GlobalState> | undefined {
   const options = parse(line);
   if (!options) {
     return;
   }
 
-  return run(
-    {
-      ...programOptions,
-      ...options,
-    },
-    funcs
-  );
+  return run(options, globalState);
 }
