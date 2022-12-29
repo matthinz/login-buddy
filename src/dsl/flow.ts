@@ -33,6 +33,39 @@ export class Flow<
     );
   }
 
+  branch<
+    TrueOutputState extends OutputState,
+    FalseOutputState extends OutputState
+  >(
+    check: (
+      page: Page,
+      state: OutputState,
+      options: Options
+    ) => boolean | Promise<boolean>,
+    trueBranch: (
+      start: FlowInterface<InputState, OutputState, Options>
+    ) => FlowInterface<OutputState, TrueOutputState, Options>,
+    falseBranch: (
+      start: FlowInterface<InputState, OutputState, Options>
+    ) => FlowInterface<OutputState, FalseOutputState, Options>
+  ): FlowInterface<InputState, TrueOutputState | FalseOutputState, Options> {
+    return this.derive<TrueOutputState | FalseOutputState>(
+      async (state, options) => {
+        const { page } = options;
+        const result = await check(page, state, options);
+
+        const start = new Flow<InputState, OutputState, Options>(() =>
+          Promise.resolve(state)
+        );
+
+        const flow = result ? trueBranch(start) : falseBranch(start);
+
+        const nextState = await flow.run(state, options);
+        return nextState;
+      }
+    );
+  }
+
   click(selector: FromState<string, OutputState>) {
     return this.derive(async (state, options) => {
       const { page } = options;

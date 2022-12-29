@@ -57,11 +57,15 @@ export function createInterface(
 
     if (!promise) {
       console.log("Huh?");
-      rl.prompt();
+      prompt();
       return;
     }
 
-    globalState = await promise;
+    try {
+      globalState = await promise;
+    } catch (err) {
+      console.error(err);
+    }
   }
 
   function welcome() {

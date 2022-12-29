@@ -25,6 +25,23 @@ export interface FlowInterface<
     options?: Partial<FlowRunOptions & Options>
   ): Promise<OutputState>;
 
+  branch<
+    TrueOutputState extends OutputState,
+    FalseOutputState extends OutputState
+  >(
+    check: (
+      page: Page,
+      state: OutputState,
+      options: Options
+    ) => boolean | Promise<boolean>,
+    trueBranch: (
+      start: FlowInterface<InputState, OutputState, Options>
+    ) => FlowInterface<InputState, TrueOutputState, Options>,
+    falseBranch: (
+      start: FlowInterface<InputState, OutputState, Options>
+    ) => FlowInterface<InputState, FalseOutputState, Options>
+  ): FlowInterface<InputState, TrueOutputState | FalseOutputState, Options>;
+
   /**
    * Evaluates a function, passing in a Puppeteer page, the current state,
    * and the original options.

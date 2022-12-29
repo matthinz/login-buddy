@@ -1,6 +1,7 @@
-import { createFlow } from "../../dsl";
+import { createFlow, navigateTo } from "../../dsl";
 import { VerifyOptions } from "./types";
 import { SignUpState } from "../sign-up";
+import { FlowInterface } from "../../dsl/types";
 
 const PROOFING_YAML = `
 document:
@@ -57,15 +58,27 @@ export const VERIFY_FLOW = createFlow<SignUpState, VerifyOptions>()
   .expectUrl("/verify/doc_auth/verify")
   .submit('form[action="/verify/doc_auth/verify"] button[type=submit]')
 
-  // "Enter your phone number"
-  .expectUrl("/verify/phone")
-  .generate("phone", () => "3602345678")
-  .type('[name="idv_phone_form[phone]"]', (state) => state.phone)
-  .submit()
+  .branch(
+    (_page, _state, options) => options.gpo,
+    // Branch: Use GPO
+    (useGpo) =>
+      // "Want a letter?"
+      useGpo
+        .navigateTo("/verify/usps")
+        .submit('form[action="/verify/usps"] button[type=submit]'),
+    // Branch: Don't use GPO
+    (noGpo) =>
+      noGpo
+        // "Enter your phone number"
+        .expectUrl("/verify/phone")
+        .generate("phone", () => "3602345678")
+        .type('[name="idv_phone_form[phone]"]', (state) => state.phone)
+        .submit()
 
-  // "Enter your one-time code"
-  .expectUrl("/verify/phone_confirmation")
-  .submit('form[action="/verify/phone_confirmation"] button[type=submit]')
+        // "Enter your one-time code"
+        .expectUrl("/verify/phone_confirmation")
+        .submit('form[action="/verify/phone_confirmation"] button[type=submit]')
+  )
 
   // "Re-enter your Login.gov password to protect your data"
   .expectUrl("/verify/review")
