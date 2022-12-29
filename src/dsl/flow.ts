@@ -113,16 +113,20 @@ export class Flow<
 
   expectUrl(url: FromState<string | URL, OutputState>) {
     return this.derive(async (state: OutputState, options: Options) => {
-      url = await resolveFromState(url, state);
+      let resolvedUrl = await resolveFromState(url, state);
 
       if (options.baseURL) {
-        url = new URL(url.toString(), options.baseURL);
+        resolvedUrl = new URL(resolvedUrl.toString(), options.baseURL);
       }
 
       const { page } = options;
 
-      if (page.url() !== url.toString()) {
-        console.error("Expected to be at '%s', but at '%s'", url, page.url());
+      if (page.url() !== resolvedUrl.toString()) {
+        console.error(
+          "Expected to be at '%s', but at '%s'",
+          resolvedUrl,
+          page.url()
+        );
       }
 
       return state;
@@ -147,9 +151,9 @@ export class Flow<
     return this.derive(async (state, options) => {
       const { page } = options;
 
-      url = await resolveFromState(url, state);
-      url = new URL(url, options.baseURL);
-      await page.goto(url.toString());
+      let resolvedUrl = await resolveFromState(url, state);
+      resolvedUrl = new URL(resolvedUrl, options.baseURL);
+      await page.goto(resolvedUrl.toString());
 
       return state;
     });
@@ -164,13 +168,13 @@ export class Flow<
     value: FromState<string, OutputState>
   ): FlowInterface<InputState, OutputState, Options> {
     return this.derive(async (state, options) => {
-      [selector, value] = await Promise.all([
+      const [resolvedSelector, resolvedValue] = await Promise.all([
         resolveFromState(selector, state),
         resolveFromState(value, state),
       ]);
       const { page } = options;
 
-      await page.select(selector, value);
+      await page.select(resolvedSelector, resolvedValue);
 
       return state;
     });
@@ -178,14 +182,17 @@ export class Flow<
 
   submit(selector?: FromState<string, OutputState>) {
     return this.derive(async (state, options) => {
-      selector =
+      const resolvedSelector =
         selector == null
           ? "button[type=submit]"
           : await resolveFromState(selector, state);
 
       const { page } = options;
 
-      await Promise.all([page.click(selector), page.waitForNavigation()]);
+      await Promise.all([
+        page.click(resolvedSelector),
+        page.waitForNavigation(),
+      ]);
 
       await page.waitForNetworkIdle();
 
@@ -198,18 +205,18 @@ export class Flow<
     text: FromState<string, OutputState>
   ) {
     return this.derive(async (state, options) => {
-      [text, selector] = await Promise.all([
+      const [resolvedText, resolvedSelector] = await Promise.all([
         resolveFromState(text, state),
         resolveFromState(selector, state),
       ]);
 
       const { page } = options;
 
-      await page.waitForSelector(selector, {
+      await page.waitForSelector(resolvedSelector, {
         timeout: 3000,
       });
 
-      await page.type(selector, text);
+      await page.type(resolvedSelector, resolvedText);
 
       return state;
     });
@@ -221,15 +228,16 @@ export class Flow<
     contents?: FromState<string, OutputState>
   ) {
     return this.derive(async (state, options) => {
-      [selector, filename, contents] = await Promise.all([
-        resolveFromState(selector, state),
-        resolveFromState(filename, state),
-        contents == null
-          ? Promise.resolve(undefined)
-          : resolveFromState(contents, state),
-      ]);
+      const [resolvedSelector, resolvedFilename, resolvedContents] =
+        await Promise.all([
+          resolveFromState(selector, state),
+          resolveFromState(filename, state),
+          contents == null
+            ? Promise.resolve(undefined)
+            : resolveFromState(contents, state),
+        ]);
 
-      const tempFile = path.join(".tmp", filename);
+      const tempFile = path.join(".tmp", resolvedFilename);
       await fs
         .mkdir(path.dirname(tempFile), {
           recursive: true,
@@ -237,15 +245,15 @@ export class Flow<
         .catch((err) => {
           console.error(err);
         });
-      await fs.writeFile(tempFile, contents ?? "");
+      await fs.writeFile(tempFile, resolvedContents ?? "");
 
       const { page } = options;
 
-      await page.waitForSelector(selector, { timeout: 3000 });
+      await page.waitForSelector(resolvedSelector, { timeout: 3000 });
 
       const [fileChooser] = await Promise.all([
         page.waitForFileChooser(),
-        page.click(selector),
+        page.click(resolvedSelector),
       ]);
 
       await fileChooser.accept([path.resolve(tempFile)]);
