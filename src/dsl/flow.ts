@@ -43,10 +43,14 @@ export class Flow<
       options: Options
     ) => boolean | Promise<boolean>,
     trueBranch: (
-      start: FlowInterface<InputState, OutputState, Options>
+      start: FlowInterface<InputState, OutputState, Options>,
+      state: OutputState,
+      options: Options
     ) => FlowInterface<OutputState, TrueOutputState, Options>,
     falseBranch: (
-      start: FlowInterface<InputState, OutputState, Options>
+      start: FlowInterface<InputState, OutputState, Options>,
+      state: OutputState,
+      options: Options
     ) => FlowInterface<OutputState, FalseOutputState, Options>
   ): FlowInterface<InputState, TrueOutputState | FalseOutputState, Options> {
     return this.derive<TrueOutputState | FalseOutputState>(
@@ -58,7 +62,9 @@ export class Flow<
           Promise.resolve(state)
         );
 
-        const flow = result ? trueBranch(start) : falseBranch(start);
+        const flow = result
+          ? trueBranch(start, state, options)
+          : falseBranch(start, state, options);
 
         const nextState = await flow.run(state, options);
         return nextState;
@@ -151,6 +157,23 @@ export class Flow<
 
   run(initialState: InputState, options: Options): Promise<OutputState> {
     return this._getState(initialState, options);
+  }
+
+  select(
+    selector: FromState<string, OutputState>,
+    value: FromState<string, OutputState>
+  ): FlowInterface<InputState, OutputState, Options> {
+    return this.derive(async (state, options) => {
+      [selector, value] = await Promise.all([
+        resolveFromState(selector, state),
+        resolveFromState(value, state),
+      ]);
+      const { page } = options;
+
+      await page.select(selector, value);
+
+      return state;
+    });
   }
 
   submit(selector?: FromState<string, OutputState>) {

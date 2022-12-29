@@ -1,8 +1,33 @@
-import { navigateTo } from "../../dsl";
+import { createFlow } from "../../dsl";
+import { SignupOptions } from "./types";
 
 const DEFAULT_PASSWORD = "reallygoodpassword";
 
-export const SIGN_UP_FLOW = navigateTo("/sign_up/enter_email")
+export const SIGN_UP_FLOW = createFlow<{}, SignupOptions>()
+  .branch(
+    (_page, _state, options) => options.sp,
+    (useSp, _state, options) => {
+      const { spUrl } = options;
+      if (!spUrl) {
+        throw new Error(
+          "Signup via SP was requested but no SP url is available"
+        );
+      }
+      return (
+        useSp
+          .navigateTo(spUrl)
+          .select("[name=ial]", "2")
+          .submit('form[action="/auth/request"] button[type=submit]')
+          // Example Sinatra App is using Login.gov...
+          .expectUrl("/")
+          .click("#new_user .usa-button--outline")
+
+          // "Create your account"
+          .expectUrl("/sign_up/enter_email")
+      );
+    },
+    (noSp) => noSp.navigateTo("/sign_up/enter_email")
+  )
   .generate("email", () => {
     const now = new Date();
     return [

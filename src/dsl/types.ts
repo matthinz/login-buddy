@@ -35,10 +35,14 @@ export interface FlowInterface<
       options: Options
     ) => boolean | Promise<boolean>,
     trueBranch: (
-      start: FlowInterface<InputState, OutputState, Options>
+      start: FlowInterface<InputState, OutputState, Options>,
+      state: OutputState,
+      options: Options
     ) => FlowInterface<InputState, TrueOutputState, Options>,
     falseBranch: (
-      start: FlowInterface<InputState, OutputState, Options>
+      start: FlowInterface<InputState, OutputState, Options>,
+      state: OutputState,
+      options: Options
     ) => FlowInterface<InputState, FalseOutputState, Options>
   ): FlowInterface<InputState, TrueOutputState | FalseOutputState, Options>;
 
@@ -80,6 +84,12 @@ export interface FlowInterface<
 
   click(
     selector: FromState<string, OutputState>
+  ): FlowInterface<InputState, OutputState, Options>;
+
+  // Selects a value in a drop-down
+  select(
+    selector: FromState<string, OutputState>,
+    value: FromState<string, OutputState>
   ): FlowInterface<InputState, OutputState, Options>;
 
   submit(
