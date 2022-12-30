@@ -71,17 +71,18 @@ export function createInterface(
   function welcome() {
     const { baseURL } = globalState.programOptions;
     console.log(`
-  Welcome to the Login Assistant!
+  Welcome to Login Buddy!
   
   This is a little helper for you if you're doing work on the Login.gov frontend.
   
   Some commands:
   
   - 'signup' to create a new account
-  - 'verify' to create a verified account (or verify the one you just created)
+  - 'verify' to verify the account you just created
   - 'screenshot' to take screenshots
   
-  We are using <${baseURL?.toString()}>
+  We are using <${baseURL?.toString()}> 
+  (You can change this with the --env option.)
   
   `);
   }
