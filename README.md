@@ -5,7 +5,7 @@ Login Buddy is an assistant for working on Login.gov. It automates many common t
 ## Requirements
 
 - Login.gov codebase installed and running on <http://localhost:3000>
-- Node.js 18.5.0
+- Node.js (see [`.nvmrc`](./.nvmrc) for version)
 - Yarn
 
 ## Getting started:
