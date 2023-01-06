@@ -47,7 +47,8 @@ export const VERIFY_FLOW = createFlow<SignUpState, VerifyOptions>()
 
   // "Enter your Social Security number"
   .expectUrl("/verify/doc_auth/ssn")
-  .type('[name="doc_auth[ssn]"]', "666123456")
+  .generate("ssn", generateSsn)
+  .type('[name="doc_auth[ssn]"]', (state) => state.ssn)
   .evaluate(async (page, state, options) => {
     await page.select("[name=mock_profiling_result]", options.threatMetrix);
   })
@@ -96,3 +97,11 @@ export const VERIFY_FLOW = createFlow<SignUpState, VerifyOptions>()
   })
   .click("label[for=acknowledgment]")
   .submit();
+
+function generateSsn(): string {
+  let result = "666";
+  while (result.length < 9) {
+    result += String(Math.floor(Math.random() * 10));
+  }
+  return result;
+}
