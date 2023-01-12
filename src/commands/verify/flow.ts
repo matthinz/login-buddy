@@ -50,7 +50,15 @@ export const VERIFY_FLOW = createFlow<SignUpState, VerifyOptions>()
   .generate("ssn", generateSsn)
   .type('[name="doc_auth[ssn]"]', (state) => state.ssn)
   .evaluate(async (page, state, options) => {
-    await page.select("[name=mock_profiling_result]", options.threatMetrix);
+    const $mockProfilingResult = await page.$("[name=mock_profiling_result]");
+    if (!$mockProfilingResult) {
+      if (options.threatMetrix !== "no_result") {
+        throw new Error("ThreatMetrix mock not found on the page");
+      }
+      return;
+    }
+
+    await $mockProfilingResult.select(options.threatMetrix);
   })
   .click(".password-toggle__toggle-label")
   .submit()
