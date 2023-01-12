@@ -1,6 +1,5 @@
 import { P, ParsedType } from "p-block";
 import { Browser, Page } from "puppeteer";
-import { SignUpState } from "./commands/sign-up";
 
 export type Command = {
   runFromUserInput(
@@ -16,6 +15,12 @@ export const ProgramOptionsParser = P.object().withProperties({
 });
 
 export type ProgramOptions = ParsedType<typeof ProgramOptionsParser>;
+
+export type SignUpState = {
+  email: string;
+  password: string;
+  backupCodes: string[];
+};
 
 export type GlobalState = {
   browser?: Browser;

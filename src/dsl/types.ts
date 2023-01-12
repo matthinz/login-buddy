@@ -9,6 +9,11 @@ export type FlowRunOptions = {
   page: Page;
 };
 
+export type Stopper<InputState, OutputState, Options> = (
+  state: InputState & Partial<OutputState>,
+  options: Options
+) => Promise<boolean>;
+
 /**
  * A Flow is a series of steps executed in a browser.
  */
@@ -24,6 +29,15 @@ export interface FlowInterface<
     state: InputState,
     options?: Partial<FlowRunOptions & Options>
   ): Promise<OutputState>;
+
+  /**
+   * Runs this flow, optionally stopping & returning early.
+   */
+  run(
+    state: InputState,
+    options: Partial<FlowRunOptions & Options>,
+    shouldStop: Stopper<InputState, OutputState, Options>
+  ): Promise<InputState & Partial<OutputState>>;
 
   branch<
     TrueOutputState extends OutputState,

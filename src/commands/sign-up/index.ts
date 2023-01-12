@@ -1,10 +1,9 @@
 import getopts from "getopts";
 import { ensureCurrentPage } from "../../browser";
+import { until } from "../../dsl";
 import { GlobalState } from "../../types";
 import { SIGN_UP_FLOW } from "./flow";
 import { SignupOptions, signupOptionsParser } from "./types";
-
-export type SignUpState = Awaited<ReturnType<typeof SIGN_UP_FLOW["run"]>>;
 
 const REGEX = /^sign\s*up\b(.*)/i;
 
@@ -47,30 +46,44 @@ export async function run(
     }
   }
 
-  const state = await SIGN_UP_FLOW.run(
-    {},
-    {
-      ...globalState.programOptions,
-      ...options,
-      browser,
-      page,
-    }
-  );
+  const initialState = {};
+
+  const runOptions = {
+    ...globalState.programOptions,
+    ...options,
+    browser,
+    page,
+  };
+
+  const state = await (options.until
+    ? SIGN_UP_FLOW.run(initialState, runOptions, until(options.until))
+    : SIGN_UP_FLOW.run(initialState, runOptions));
+
+  const { email, password, backupCodes } = state;
+
+  if (!(email && password && backupCodes)) {
+    return globalState;
+  }
 
   console.log(
     `
 
 Signup complete!
-User: ${state.email}
-Pass: ${state.password}
+User: ${email}
+Pass: ${password}
 Backup codes:
-  ${state.backupCodes.join("\n  ")}
+  ${backupCodes.join("\n  ")}
   `.trimEnd()
   );
 
   return {
     ...newGlobalState,
-    lastSignup: state,
+    lastSignup: {
+      ...state,
+      email,
+      password,
+      backupCodes,
+    },
   };
 }
 

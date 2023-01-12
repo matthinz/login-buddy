@@ -1,7 +1,10 @@
-import { createFlow, navigateTo } from "../../dsl";
+import { createFlow } from "../../dsl";
 import { VerifyOptions } from "./types";
-import { SignUpState } from "../sign-up";
-import { FlowInterface } from "../../dsl/types";
+
+type InputState = {
+  email: string;
+  password: string;
+};
 
 const PROOFING_YAML = `
 document:
@@ -21,7 +24,7 @@ document:
   state_id_jurisdiction: 'NY'
 `.trim();
 
-export const VERIFY_FLOW = createFlow<SignUpState, VerifyOptions>()
+export const VERIFY_FLOW = createFlow<InputState, VerifyOptions>()
   .navigateTo("/verify")
   .expectUrl("/verify/doc_auth/welcome")
   .submit()
@@ -49,7 +52,7 @@ export const VERIFY_FLOW = createFlow<SignUpState, VerifyOptions>()
   .expectUrl("/verify/doc_auth/ssn")
   .generate("ssn", generateSsn)
   .type('[name="doc_auth[ssn]"]', (state) => state.ssn)
-  .evaluate(async (page, state, options) => {
+  .evaluate(async (page, _state, options) => {
     const $mockProfilingResult = await page.$("[name=mock_profiling_result]");
     if (!$mockProfilingResult) {
       if (options.threatMetrix !== "no_result") {

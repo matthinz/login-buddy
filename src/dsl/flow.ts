@@ -2,7 +2,7 @@ import { promises as fs } from "fs";
 import * as path from "path";
 import { Page } from "puppeteer";
 
-import { FlowInterface, FlowRunOptions, FromState } from "./types";
+import { FlowInterface, FlowRunOptions, FromState, Stopper } from "./types";
 import { resolveFromState } from "./util";
 
 type GetState<InputState, OutputState extends InputState, Options> = (
@@ -159,8 +159,22 @@ export class Flow<
     });
   }
 
-  run(initialState: InputState, options: Options): Promise<OutputState> {
-    return this._getState(initialState, options);
+  run(
+    initialState: InputState,
+    options: Options,
+    shouldStop: Stopper<InputState, OutputState, Options>
+  ): Promise<InputState & Partial<OutputState>>;
+  run(initialState: InputState, options: Options): Promise<OutputState>;
+  run(
+    initialState: InputState,
+    options: Options,
+    shouldStop?: Stopper<InputState, OutputState, Options>
+  ): Promise<OutputState> | Promise<InputState & Partial<OutputState>> {
+    if (!shouldStop) {
+      return this._getState(initialState, options);
+    }
+
+    throw new Error("shouldStop not supported");
   }
 
   select(
