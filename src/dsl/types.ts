@@ -9,7 +9,7 @@ export type FlowRunOptions = {
   page: Page;
 };
 
-export type Stopper<InputState, OutputState, Options> = (
+export type Stopper<InputState, OutputState extends InputState, Options> = (
   state: InputState & Partial<OutputState>,
   options: Options
 ) => Promise<boolean>;

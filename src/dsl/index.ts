@@ -7,7 +7,8 @@ export function createFlow<InputState, Options>(): FlowInterface<
   Options & FlowRunOptions
 > {
   return new Flow<InputState, InputState, Options & FlowRunOptions>(
-    (prevState) => Promise.resolve(prevState)
+    (prevState) => Promise.resolve(prevState),
+    (prevState) => Promise.resolve({ state: prevState, isPartial: false })
   );
 }
 
@@ -21,9 +22,11 @@ export function navigateTo(
   return createFlow<{}, {}>().navigateTo(url);
 }
 
-export function until<InputState, OutputState, Options extends FlowRunOptions>(
-  expr: string
-): Stopper<InputState, OutputState, Options> {
+export function until<
+  InputState,
+  OutputState extends InputState,
+  Options extends FlowRunOptions
+>(expr: string): Stopper<InputState, OutputState, Options> {
   return async (_state, options) => {
     const page = options.page;
     if (!page) {

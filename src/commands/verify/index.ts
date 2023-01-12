@@ -1,5 +1,6 @@
 import getopts from "getopts";
 import { ensureCurrentPage } from "../../browser";
+import { until } from "../../dsl";
 
 import { GlobalState, ProgramOptions } from "../../types";
 import { VERIFY_FLOW } from "./flow";
@@ -42,12 +43,18 @@ export async function run(
   const newGlobalState = await ensureCurrentPage(globalState);
   const { browser, page } = newGlobalState;
 
-  await VERIFY_FLOW.run(lastSignup, {
+  const runOptions = {
     ...globalState.programOptions,
     ...options,
     browser,
     page,
-  });
+  };
+
+  if (options.until) {
+    await VERIFY_FLOW.run(lastSignup, runOptions, until(options.until));
+  } else {
+    await VERIFY_FLOW.run(lastSignup, runOptions);
+  }
 
   return globalState;
 }

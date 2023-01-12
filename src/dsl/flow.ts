@@ -10,6 +10,15 @@ type GetState<InputState, OutputState extends InputState, Options> = (
   options: Options
 ) => Promise<OutputState>;
 
+type GetPartialState<InputState, OutputState extends InputState, Options> = (
+  prevState: InputState,
+  options: Options,
+  shouldStop: Stopper<InputState, OutputState, Options>
+) => Promise<{
+  isPartial: boolean;
+  state: InputState & Partial<OutputState>;
+}>;
+
 export class Flow<
   InputState,
   OutputState extends InputState,
@@ -17,18 +26,70 @@ export class Flow<
 > implements FlowInterface<InputState, OutputState, Options>
 {
   private readonly _getState: GetState<InputState, OutputState, Options>;
+  private readonly _getPartialState: GetPartialState<
+    InputState,
+    OutputState,
+    Options
+  >;
 
-  constructor(getState: GetState<InputState, OutputState, Options>) {
+  constructor(
+    getState: GetState<InputState, OutputState, Options>,
+    getPartialState: GetPartialState<InputState, OutputState, Options>
+  ) {
     this._getState = getState;
+    this._getPartialState = getPartialState;
   }
 
   derive<NextOutputState extends OutputState>(
     func: (state: OutputState, options: Options) => Promise<NextOutputState>
   ): FlowInterface<InputState, NextOutputState, Options> {
     return new Flow<InputState, NextOutputState, Options>(
-      async (prevState, options: Options) => {
+      async (prevState, options) => {
         const state = await this._getState(prevState, options);
         return func(state, options);
+      },
+      async (
+        prevState,
+        options,
+        shouldStop
+      ): Promise<{
+        isPartial: boolean;
+        state: InputState & Partial<NextOutputState>;
+      }> => {
+        // First, we need to make sure our state is ok _up to this point_.
+        const { state, isPartial } = await this._getPartialState(
+          prevState,
+          options,
+          shouldStop as Stopper<InputState, OutputState, Options>
+        );
+
+        if (isPartial) {
+          // Partial state indicates that we've been told to stop.
+          return {
+            state: state as InputState & Partial<NextOutputState>,
+            isPartial: true,
+          };
+        }
+
+        // Now see if we should stop.
+        const stop = await shouldStop(
+          state as InputState & Partial<NextOutputState>,
+          options
+        );
+
+        if (stop) {
+          return {
+            state: state as InputState & Partial<NextOutputState>,
+            isPartial: true,
+          };
+        }
+
+        // Since the state is not partial, we can safely treat it as though
+        // it's been returned to us by this._getState
+        return {
+          state: await func(state as OutputState, options),
+          isPartial: false,
+        };
       }
     );
   }
@@ -58,8 +119,9 @@ export class Flow<
         const { page } = options;
         const result = await check(page, state, options);
 
-        const start = new Flow<InputState, OutputState, Options>(() =>
-          Promise.resolve(state)
+        const start = new Flow<InputState, OutputState, Options>(
+          () => Promise.resolve(state),
+          () => Promise.resolve({ state, isPartial: false })
         );
 
         const flow = result
@@ -170,11 +232,13 @@ export class Flow<
     options: Options,
     shouldStop?: Stopper<InputState, OutputState, Options>
   ): Promise<OutputState> | Promise<InputState & Partial<OutputState>> {
-    if (!shouldStop) {
+    if (shouldStop) {
+      return this._getPartialState(initialState, options, shouldStop).then(
+        ({ state }) => state
+      );
+    } else {
       return this._getState(initialState, options);
     }
-
-    throw new Error("shouldStop not supported");
   }
 
   select(

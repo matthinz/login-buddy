@@ -6,6 +6,7 @@ export const verifyOptionsParser = P.object()
   .withProperties({
     threatMetrix: P.string().isIn(THREATMETRIX_OPTIONS),
     gpo: P.boolean(),
+    until: P.string().optional(),
   })
   .defaultedTo({
     threatMetrix: "no_result",
