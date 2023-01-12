@@ -18,4 +18,23 @@ $ yarn && yarn start
 
 Login Buddy presents an interactive shell session you can use to enter commands to run.
 
-TODO: What are the available commands? What options do they have?
+### Command: `signup`
+
+Create a new account with a random email address.
+
+| Option             | Description                                                                                                      |
+| ------------------ | ---------------------------------------------------------------------------------------------------------------- |
+| `--sp`             | Create the account after redirecting from a service provider. Requires [OIDC Sinatra app][oidc-sinatra] running. |
+| `--until <string>` | Stop when the page title or URL contains `<string>`                                                              |
+
+### Command: `verify`
+
+Take the account created via `signup` through the Identity Verification (IdV) flow.
+
+| Option                     | Description                                         |
+| -------------------------- | --------------------------------------------------- | ------ | ------ | -------------------------------------------- |
+| `--gpo`                    | Verify using GPO (the "send me a letter" flow).     |
+| `--threatMetrix <no_result | review                                              | reject | pass>` | Simulate the given result from ThreatMetrix. |
+| `--until <string>`         | Stop when the page title or URL contains `<string>` |
+
+[oidc-sinatra]: https://github.com/18F/identity-oidc-sinatra
