@@ -28,20 +28,7 @@ export const SIGN_UP_FLOW = createFlow<{}, SignupOptions>()
     },
     (noSp) => noSp.navigateTo("/sign_up/enter_email")
   )
-  .generate("email", () => {
-    const now = new Date();
-    return [
-      "test-",
-      now.getFullYear(),
-      now.getMonth() + 1,
-      now.getDate(),
-      "-",
-      now.getHours(),
-      now.getMinutes(),
-      now.getSeconds(),
-      "@example.org",
-    ].join("");
-  })
+  .generate("email", generateEmail)
   .generate("password", () => DEFAULT_PASSWORD)
   .type('[name="user\\[email\\]"]', (state) => state.email)
   .click("label[for=user_terms_accepted]")
@@ -79,3 +66,17 @@ export const SIGN_UP_FLOW = createFlow<{}, SignupOptions>()
   .submit('form[action="/auth_method_confirmation/skip"] button[type=submit]')
 
   .expectUrl("/account");
+
+function generateEmail(): string {
+  const now = new Date();
+  return [
+    "test-",
+    now
+      .toISOString()
+      .replace(/\.\d+/, "")
+      .replace(/(Z|[+-]\d+(:\d+)?)$/, "")
+      .replace(/[:-]/g, "")
+      .replace(/T/g, ""),
+    "@example.org",
+  ].join("");
+}
