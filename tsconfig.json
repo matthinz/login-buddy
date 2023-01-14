@@ -1,6 +1,10 @@
 {
+  "include": ["src"],
   "compilerOptions": {
+    "outDir": "dist",
     "esModuleInterop": true,
-    "strict": true
+    "moduleResolution": "node",
+    "strict": true,
+    "target": "ESNext"
   }
 }
