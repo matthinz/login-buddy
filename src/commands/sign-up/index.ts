@@ -2,24 +2,19 @@ import getopts from "getopts";
 import { ensureCurrentPage } from "../../browser";
 import { until } from "../../dsl";
 import { GlobalState } from "../../types";
+import { makeRunner } from "../utils";
 import { SIGN_UP_FLOW } from "./flow";
-import { SignupOptions, signupOptionsParser } from "./types";
+import { SignupParameters, signupParametersParser } from "./types";
 
-const REGEX = /^sign\s*up\b(.*)/i;
-
-export function parse(line: string): SignupOptions | undefined {
-  const m = REGEX.exec(line);
-  if (!m) {
+export function parse(args: string[]): SignupParameters | undefined {
+  const cmd = args.shift();
+  if (cmd !== "signup") {
     return;
   }
 
-  const raw = getopts(m[1].split(/\s+/), {
-    alias: {
-      threatMetrix: ["threatmetrix"],
-    },
-  });
+  const raw = getopts(args);
 
-  const parsed = signupOptionsParser.parse(raw);
+  const parsed = signupParametersParser.parse(raw);
 
   if (!parsed.success) {
     parsed.errors.forEach((err) => {
@@ -31,42 +26,40 @@ export function parse(line: string): SignupOptions | undefined {
   return parsed.parsed;
 }
 
-export async function run(
-  options: SignupOptions,
-  globalState: GlobalState
-): Promise<GlobalState> {
-  const newGlobalState = await ensureCurrentPage(globalState);
+export const run = makeRunner(
+  async (params: SignupParameters, globalState: GlobalState) => {
+    const newGlobalState = await ensureCurrentPage(globalState);
 
-  const { browser, page } = newGlobalState;
+    const { browser, page } = newGlobalState;
 
-  if (!options.spUrl) {
-    // Discover an SP url
-    if (globalState.programOptions.baseURL.hostname === "localhost") {
-      options.spUrl = new URL("http://localhost:9292");
+    if (!params.spUrl) {
+      // Discover an SP url
+      if (globalState.programOptions.baseURL.hostname === "localhost") {
+        params.spUrl = new URL("http://localhost:9292");
+      }
     }
-  }
 
-  const initialState = {};
+    const initialState = {};
 
-  const runOptions = {
-    ...globalState.programOptions,
-    ...options,
-    browser,
-    page,
-  };
+    const runOptions = {
+      ...globalState.programOptions,
+      ...params,
+      browser,
+      page,
+    };
 
-  const state = await (options.until
-    ? SIGN_UP_FLOW.run(initialState, runOptions, until(options.until))
-    : SIGN_UP_FLOW.run(initialState, runOptions));
+    const state = await (params.until
+      ? SIGN_UP_FLOW.run(initialState, runOptions, until(params.until))
+      : SIGN_UP_FLOW.run(initialState, runOptions));
 
-  const { email, password, backupCodes } = state;
+    const { email, password, backupCodes } = state;
 
-  if (!(email && password && backupCodes)) {
-    return globalState;
-  }
+    if (!(email && password && backupCodes)) {
+      return globalState;
+    }
 
-  console.log(
-    `
+    console.log(
+      `
 
 Signup complete!
 User: ${email}
@@ -74,27 +67,16 @@ Pass: ${password}
 Backup codes:
   ${backupCodes.join("\n  ")}
   `.trimEnd()
-  );
+    );
 
-  return {
-    ...newGlobalState,
-    lastSignup: {
-      ...state,
-      email,
-      password,
-      backupCodes,
-    },
-  };
-}
-
-export function runFromUserInput(
-  line: string,
-  globalState: GlobalState
-): Promise<GlobalState> | undefined {
-  const options = parse(line);
-  if (!options) {
-    return;
+    return {
+      ...newGlobalState,
+      lastSignup: {
+        ...state,
+        email,
+        password,
+        backupCodes,
+      },
+    };
   }
-
-  return run(options, globalState);
-}
+);

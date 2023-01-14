@@ -1,5 +1,5 @@
 import { createFlow } from "../../dsl";
-import { VerifyOptions } from "./types";
+import { VerifyParameters } from "./types";
 
 type InputState = {
   email: string;
@@ -24,7 +24,7 @@ document:
   state_id_jurisdiction: 'NY'
 `.trim();
 
-export const VERIFY_FLOW = createFlow<InputState, VerifyOptions>()
+export const VERIFY_FLOW = createFlow<InputState, VerifyParameters>()
   .navigateTo("/verify")
   .expectUrl("/verify/doc_auth/welcome")
   .submit()

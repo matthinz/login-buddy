@@ -1,9 +1,9 @@
 import { createFlow } from "../../dsl";
-import { SignupOptions } from "./types";
+import { SignupParameters } from "./types";
 
 const DEFAULT_PASSWORD = "reallygoodpassword";
 
-export const SIGN_UP_FLOW = createFlow<{}, SignupOptions>()
+export const SIGN_UP_FLOW = createFlow<{}, SignupParameters>()
   .branch(
     (_page, _state, options) => options.sp,
     (useSp, _state, options) => {

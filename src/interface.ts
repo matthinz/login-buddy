@@ -1,18 +1,18 @@
 import * as readline from "node:readline";
+import { Command, CommandExecution } from "./commands";
 
-import { Command, GlobalState, ProgramOptions } from "./types";
+import { GlobalState, ProgramOptions } from "./types";
 
 export type Interface = {
   prompt(): void;
-  run(line: string): Promise<void>;
   welcome(): void;
 };
 
 export function createInterface(
-  commands: Command[],
+  commands: Command<unknown, GlobalState>[],
   programOptions: ProgramOptions
 ): Interface {
-  let currentCommandPromise: Promise<void> | undefined;
+  let currentExecution: CommandExecution<GlobalState> | undefined;
   let globalState: GlobalState = {
     programOptions,
   };
@@ -24,47 +24,52 @@ export function createInterface(
   });
 
   rl.on("line", (line) => {
-    if (currentCommandPromise) {
+    if (currentExecution) {
       console.error("Hold your 🐴🐴 please.");
       return;
     }
 
-    currentCommandPromise = run(line).finally(() => {
-      currentCommandPromise = undefined;
-      rl.prompt();
-    });
+    currentExecution = run(line);
+
+    if (!currentExecution) {
+      console.log("Huh?");
+      prompt();
+      return;
+    }
+
+    currentExecution.promise
+      .then((newGlobalState) => {
+        globalState = newGlobalState;
+      })
+      .catch((err) => {
+        console.error(err);
+      })
+      .finally(() => {
+        currentExecution = undefined;
+        rl.prompt();
+      });
   });
 
   rl.on("close", () => {
     process.exit();
   });
 
-  return { prompt, run, welcome };
+  return { prompt, welcome };
 
   function prompt() {
     rl.prompt();
   }
 
-  async function run(line: string): Promise<void> {
-    let promise: Promise<GlobalState> | undefined;
+  function run(line: string): CommandExecution<GlobalState> | undefined {
+    const args = line.split(/\s+/);
 
     for (let i = 0; i < commands.length; i++) {
-      promise = commands[i].runFromUserInput(line, globalState);
-      if (promise) {
-        break;
+      const params = commands[i].parse([...args], globalState);
+      if (!params) {
+        continue;
       }
-    }
 
-    if (!promise) {
-      console.log("Huh?");
-      prompt();
-      return;
-    }
-
-    try {
-      globalState = await promise;
-    } catch (err) {
-      console.error(err);
+      return commands[i].run(params, globalState);
     }
   }
 

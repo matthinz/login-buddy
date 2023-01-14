@@ -2,7 +2,7 @@ import { P, ParsedType } from "p-block";
 
 export const THREATMETRIX_OPTIONS = ["no_result", "pass", "reject", "review"];
 
-export const verifyOptionsParser = P.object()
+export const verifyParametersParser = P.object()
   .withProperties({
     threatMetrix: P.string().isIn(THREATMETRIX_OPTIONS),
     gpo: P.boolean(),
@@ -13,4 +13,4 @@ export const verifyOptionsParser = P.object()
     gpo: false,
   });
 
-export type VerifyOptions = ParsedType<typeof verifyOptionsParser>;
+export type VerifyParameters = ParsedType<typeof verifyParametersParser>;

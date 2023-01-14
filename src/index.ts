@@ -1,10 +1,15 @@
 import getopts from "getopts";
 
-import { ProgramOptions, ProgramOptionsParser } from "./types";
-import { screenshot, signOut, signUp, verify } from "./commands";
+import { GlobalState, ProgramOptions, ProgramOptionsParser } from "./types";
+import { Command, screenshot, signOut, signUp, verify } from "./commands";
 import { createInterface } from "./interface";
 
-const ALL_COMMANDS = [screenshot, signOut, signUp, verify];
+const ALL_COMMANDS: Command<unknown, GlobalState>[] = [
+  screenshot,
+  signOut,
+  signUp,
+  verify,
+];
 
 run(process.argv.slice(2)).catch((err) => {
   console.error(err);
