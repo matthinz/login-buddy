@@ -55,7 +55,7 @@ export const run = makeRunner(
     const { email, password, backupCodes } = state;
 
     if (!(email && password && backupCodes)) {
-      return globalState;
+      return newGlobalState;
     }
 
     console.log(
