@@ -7,7 +7,6 @@ export function createFlow<InputState, Options>(): FlowInterface<
   Options & FlowRunOptions
 > {
   return new Flow<InputState, InputState, Options & FlowRunOptions>(
-    (prevState) => Promise.resolve(prevState),
     (prevState) => Promise.resolve({ state: prevState, isPartial: false })
   );
 }
