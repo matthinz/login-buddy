@@ -17,7 +17,7 @@ export const SIGN_UP_FLOW = createFlow<{}, SignupParameters>()
         useSp
           .navigateTo(spUrl)
           .select("[name=ial]", "2")
-          .submit('form[action="/auth/request"] button[type=submit]')
+          .submit("form button[type=submit]")
           // Example Sinatra App is using Login.gov...
           .expectUrl("/")
           .click("#new_user .usa-button--outline")

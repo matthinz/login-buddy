@@ -35,7 +35,13 @@ export const run = makeRunner(
     if (!params.spUrl) {
       // Discover an SP url
       if (globalState.programOptions.baseURL.hostname === "localhost") {
-        params.spUrl = new URL("http://localhost:9292");
+        if (params.saml) {
+          // Use identity-saml-sinatra
+          params.spUrl = new URL("http://localhost:4567");
+        } else {
+          // Use identity-oidc-sinatra
+          params.spUrl = new URL("http://localhost:9292");
+        }
       }
     }
 
