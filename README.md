@@ -24,6 +24,7 @@ Create a new account with a random email address.
 
 | Option               | Description                                                                                                      |
 | -------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| `--saml`             | Signup using a SAML request from the [SAML Sinatra app][saml-sinatra]. Implies `--sp`                            |
 | `--sp`               | Create the account after redirecting from a service provider. Requires [OIDC Sinatra app][oidc-sinatra] running. |
 | `--until <string>`   | Stop when the page title or URL contains `<string>`                                                              |
 | `--use-backup-codes` | Use backup codes rather than a TOTP generator for MFA.                                                           |
@@ -39,3 +40,4 @@ Take the account created via `signup` through the Identity Verification (IdV) fl
 | `--until <string>`                                    | Stop when the page title or URL contains `<string>` |
 
 [oidc-sinatra]: https://github.com/18F/identity-oidc-sinatra
+[saml-sinator]: https://github.com/18F/identity-saml-sinatra
