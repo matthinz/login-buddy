@@ -6,6 +6,11 @@ import { makeRunner } from "../utils";
 import { SIGN_UP_FLOW } from "./flow";
 import { SignupParameters, signupParametersParser } from "./types";
 
+// I can never remember what urls what.
+const UNTIL_ALIASES: { [key: string]: string | undefined } = {
+  mfa: "/authentication_methods_setup",
+};
+
 export function parse(args: string[]): SignupParameters | undefined {
   const cmd = args.shift();
   if (cmd !== "signup") {
@@ -54,8 +59,12 @@ export const run = makeRunner(
       page,
     };
 
-    const state = await (params.until
-      ? SIGN_UP_FLOW.run(initialState, runOptions, until(params.until))
+    const untilArg = params.until
+      ? UNTIL_ALIASES[params.until] ?? params.until
+      : undefined;
+
+    const state = await (untilArg
+      ? SIGN_UP_FLOW.run(initialState, runOptions, until(untilArg))
       : SIGN_UP_FLOW.run(initialState, runOptions));
 
     const { email, password, backupCodes } = state;
