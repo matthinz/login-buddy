@@ -25,14 +25,22 @@ export function until<
   InputState,
   OutputState extends InputState,
   Options extends FlowRunOptions
->(expr: string): Stopper<InputState, OutputState, Options> {
-  return async (_state, options) => {
-    const page = options.page;
+>(expr: string | RegExp): Stopper<InputState, OutputState, Options> {
+  return async (_state, { page }) => {
     if (!page) {
       return false;
     }
 
     const url = page.url();
+
+    if (expr instanceof RegExp) {
+      if (expr.test(url)) {
+        console.error("Page url matches %s. Stopping.", expr);
+        return true;
+      }
+      return false;
+    }
+
     if (url.includes(expr)) {
       console.error("Page url includes '%s'. Stopping.", expr);
       return true;
