@@ -1,29 +1,18 @@
 import { createFlow } from "../../dsl";
+import { getOtp } from "../../state";
+import { SignUpState } from "../../types";
 
-type State = {
-  email: string;
-  password: string;
-  backupCodes: string[];
-};
-
-export const LOG_IN = createFlow<State, {}>()
+export const LOG_IN = createFlow<SignUpState, {}>()
   .type('[name="user[email]"]', (state) => state.email)
   .type('[name="user[password]"]', (state) => state.password)
   .submit()
 
   .expectUrl("/login/two_factor/backup_code")
-  .evaluateAndModifyState(async (page, state) => {
-    const backupCodes = [...state.backupCodes];
-    const code = backupCodes.shift();
-
-    if (!code) {
-      throw new Error("no more codes");
-    }
-
+  .evaluateAndModifyState(async (_page, state) => {
+    const { code, newState } = getOtp(state);
     return {
-      ...state,
+      ...newState,
       code,
-      backupCodes,
     };
   })
   .type(

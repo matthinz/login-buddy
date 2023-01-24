@@ -1,3 +1,5 @@
+import totp from "totp-generator";
+
 import { createFlow } from "../../dsl";
 import { SignupParameters } from "./types";
 
@@ -42,25 +44,60 @@ export const SIGN_UP_FLOW = createFlow<{}, SignupParameters>()
   .submit("button[type=submit]")
 
   .expectUrl("/authentication_methods_setup")
-  .click("label[for=two_factor_options_form_selection_backup_code]")
-  .submit("button[type=submit]")
 
-  .expectUrl("/backup_code_setup")
-  .submit("button[type=submit]")
+  .branch(
+    (_page, _state, options) => options.useBackupCodes,
 
-  .expectUrl("/backup_code_setup")
-  .evaluateAndModifyState(async (page, state) => {
-    const backupCodes = await page.evaluate((): string[] => {
-      return [].map.call(
-        // @ts-ignore
-        document.querySelectorAll("main code"),
-        // @ts-ignore
-        (el): string => el.innerText
-      ) as string[];
-    });
-    return { ...state, backupCodes };
-  })
-  .submit('form[action="/backup_code_continue"] button[type=submit]')
+    // Use backup codes
+    (flow) =>
+      flow
+        .click("label[for=two_factor_options_form_selection_backup_code]")
+        .submit("button[type=submit]")
+        .expectUrl("/backup_code_setup")
+        .submit("button[type=submit]")
+
+        .expectUrl("/backup_code_setup")
+        .evaluateAndModifyState(async (page, state) => {
+          const backupCodes = await page.evaluate((): string[] => {
+            return [].map.call(
+              // @ts-ignore
+              document.querySelectorAll("main code"),
+              // @ts-ignore
+              (el): string => el.innerText
+            ) as string[];
+          });
+
+          return { ...state, backupCodes };
+        })
+        .submit('form[action="/backup_code_continue"] button[type=submit]'),
+
+    // Use TOTP
+    (flow) =>
+      flow
+        .click("label[for=two_factor_options_form_selection_auth_app]")
+        .submit("button[type=submit]")
+        .expectUrl("/authenticator_setup")
+        .type("input[name=name]", "Login Buddy")
+        .evaluateAndModifyState(async (page, state) => {
+          const code = (await page.evaluate(() => {
+            // @ts-ignore
+            return document.querySelector("#qr-code")?.innerText ?? "";
+          })) as string;
+
+          if (!code) {
+            throw new Error("No OTP setup code on page");
+          }
+
+          return {
+            ...state,
+            totpCode: code.trim(),
+          };
+        })
+        .type("input[autocomplete=one-time-code]", ({ totpCode }) =>
+          totp(totpCode)
+        )
+        .submit()
+  )
 
   .expectUrl("/auth_method_confirmation")
   .submit('form[action="/auth_method_confirmation/skip"] button[type=submit]')

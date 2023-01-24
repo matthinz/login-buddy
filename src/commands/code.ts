@@ -1,3 +1,4 @@
+import totp from "totp-generator";
 import { GlobalState } from "../types";
 import { makeRunner } from "./utils";
 
@@ -12,27 +13,36 @@ export function parse(args: string[]): Parameters | undefined {
 }
 
 export const run = makeRunner(
-  async (params: Parameters, state: GlobalState) => {
+  async (_params: Parameters, state: GlobalState) => {
     const { lastSignup } = state;
     if (!lastSignup) {
       throw new Error("No current signup");
     }
 
-    const backupCodes = [...lastSignup.backupCodes];
-    const code = backupCodes.shift();
+    let code: string | undefined;
+    let newState: GlobalState = state;
 
-    if (!code) {
-      throw new Error("No more backup codes");
+    if (lastSignup.backupCodes) {
+      const backupCodes = [...lastSignup.backupCodes];
+      code = backupCodes.shift();
+
+      if (!code) {
+        throw new Error("No more backup codes");
+      }
+
+      newState = {
+        ...state,
+        lastSignup: {
+          ...lastSignup,
+          backupCodes,
+        },
+      };
+    } else if (lastSignup.totpCode) {
+      code = totp(lastSignup.totpCode);
     }
 
     console.log("Your code is %s", code);
 
-    return {
-      ...state,
-      lastSignup: {
-        ...lastSignup,
-        backupCodes,
-      },
-    };
+    return newState;
   }
 );

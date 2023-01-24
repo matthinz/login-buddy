@@ -22,19 +22,20 @@ Login Buddy presents an interactive shell session you can use to enter commands 
 
 Create a new account with a random email address.
 
-| Option             | Description                                                                                                      |
-| ------------------ | ---------------------------------------------------------------------------------------------------------------- |
-| `--sp`             | Create the account after redirecting from a service provider. Requires [OIDC Sinatra app][oidc-sinatra] running. |
-| `--until <string>` | Stop when the page title or URL contains `<string>`                                                              |
+| Option               | Description                                                                                                      |
+| -------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| `--sp`               | Create the account after redirecting from a service provider. Requires [OIDC Sinatra app][oidc-sinatra] running. |
+| `--until <string>`   | Stop when the page title or URL contains `<string>`                                                              |
+| `--use-backup-codes` | Use backup codes rather than a TOTP generator for MFA.                                                           |
 
 ### Command: `verify`
 
 Take the account created via `signup` through the Identity Verification (IdV) flow.
 
-| Option                     | Description                                         |
-| -------------------------- | --------------------------------------------------- |
-| `--gpo`                    | Verify using GPO (the "send me a letter" flow).     |
-| `--threatMetrix <no_result / review / reject / pass>` | Simulate the given result from ThreatMetrix. |
-| `--until <string>`         | Stop when the page title or URL contains `<string>` |
+| Option                                                | Description                                         |
+| ----------------------------------------------------- | --------------------------------------------------- |
+| `--gpo`                                               | Verify using GPO (the "send me a letter" flow).     |
+| `--threatMetrix <no_result / review / reject / pass>` | Simulate the given result from ThreatMetrix.        |
+| `--until <string>`                                    | Stop when the page title or URL contains `<string>` |
 
 [oidc-sinatra]: https://github.com/18F/identity-oidc-sinatra

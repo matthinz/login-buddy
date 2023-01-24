@@ -5,6 +5,7 @@ export const signupParametersParser = P.object().withProperties({
   saml: P.boolean().defaultedTo(false),
   spUrl: P.url().optional(),
   until: P.string().optional(),
+  useBackupCodes: P.boolean().defaultedTo(false),
 });
 
 export type SignupParameters = ParsedType<typeof signupParametersParser>;

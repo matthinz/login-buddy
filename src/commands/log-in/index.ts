@@ -39,7 +39,7 @@ export const run = makeRunner(
       await page.goto(baseURL.toString());
     }
 
-    const state = await LOG_IN.run(
+    const updatedSignUpState = await LOG_IN.run(
       {
         ...lastSignup,
       },
@@ -53,8 +53,7 @@ export const run = makeRunner(
     return {
       ...newGlobalState,
       lastSignup: {
-        ...lastSignup,
-        backupCodes: state.backupCodes,
+        ...updatedSignUpState,
       },
     };
   }

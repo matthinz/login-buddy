@@ -12,8 +12,13 @@ export type ProgramOptions = ParsedType<typeof ProgramOptionsParser>;
 export type SignUpState = {
   email: string;
   password: string;
-  backupCodes: string[];
-};
+} & (
+  | {
+      backupCodes: string[];
+      totpCode?: undefined;
+    }
+  | { backupCodes?: undefined; totpCode: string }
+);
 
 export type GlobalState = {
   browser?: Browser;

@@ -17,7 +17,11 @@ export function parse(args: string[]): SignupParameters | undefined {
     return;
   }
 
-  const raw = getopts(args);
+  const raw = getopts(args, {
+    alias: {
+      useBackupCodes: ["use-backup-codes"],
+    },
+  });
 
   const parsed = signupParametersParser.parse(raw);
 
@@ -32,10 +36,18 @@ export function parse(args: string[]): SignupParameters | undefined {
 }
 
 export const run = makeRunner(
-  async (params: SignupParameters, globalState: GlobalState) => {
+  async (
+    params: SignupParameters,
+    globalState: GlobalState
+  ): Promise<GlobalState> => {
     const newGlobalState = await ensureCurrentPage(globalState);
 
     const { browser, page } = newGlobalState;
+
+    if (params.saml && !params.sp) {
+      // --saml implies --sp
+      params.sp = true;
+    }
 
     if (!params.spUrl) {
       // Discover an SP url
@@ -63,13 +75,16 @@ export const run = makeRunner(
       ? UNTIL_ALIASES[params.until] ?? params.until
       : undefined;
 
-    const state = await (untilArg
+    const signUpState = await (untilArg
       ? SIGN_UP_FLOW.run(initialState, runOptions, until(untilArg))
       : SIGN_UP_FLOW.run(initialState, runOptions));
 
-    const { email, password, backupCodes } = state;
+    const { email, password } = signUpState;
+    let backupCodes =
+      "backupCodes" in signUpState ? signUpState.backupCodes : undefined;
+    let totpCode = "totpCode" in signUpState ? signUpState.totpCode : undefined;
 
-    if (!(email && password && backupCodes)) {
+    if (!(email && password && (backupCodes || totpCode))) {
       return newGlobalState;
     }
 
@@ -78,20 +93,35 @@ export const run = makeRunner(
 
 Signup complete!
 User: ${email}
-Pass: ${password}
-Backup codes:
-  ${backupCodes.join("\n  ")}
-  `.trimEnd()
+Pass: ${password}`
     );
 
-    return {
-      ...newGlobalState,
-      lastSignup: {
-        ...state,
-        email,
-        password,
-        backupCodes,
-      },
-    };
+    if (backupCodes) {
+      console.log("Backup codes: %s", (backupCodes ?? []).join("\n  "));
+
+      return {
+        ...newGlobalState,
+        lastSignup: {
+          ...signUpState,
+          email,
+          password,
+          backupCodes,
+          totpCode: undefined,
+        },
+      };
+    } else if (totpCode) {
+      return {
+        ...newGlobalState,
+        lastSignup: {
+          ...signUpState,
+          email,
+          password,
+          backupCodes: undefined,
+          totpCode,
+        },
+      };
+    } else {
+      return newGlobalState;
+    }
   }
 );
