@@ -69,7 +69,7 @@ export const VERIFY_FLOW = createFlow<InputState, VerifyParameters>()
   // "Verify your information"
   .expectUrl("/verify/doc_auth/verify")
   .click(".usa-checkbox__label")
-  .submit('form[action="/verify/doc_auth/verify"] button[type=submit]')
+  .submit("button[type=submit].usa-button--big")
 
   .branch(
     (_page, _state, options) => options.gpo,
