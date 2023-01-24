@@ -1,31 +1,44 @@
-import { ensureCurrentPage } from "../../browser";
+import getopts from "getopts";
+import { P, ParsedType } from "p-block";
+import { Browser } from "puppeteer";
 import { GlobalState } from "../../types";
-import { makeRunner } from "../utils";
+import { runFromBrowser } from "../utils";
 
-type SignOutParameters = {};
+const signOutParametersParser = P.object().withProperties({
+  completely: P.boolean().defaultedTo(false),
+});
+
+type Parameters = ParsedType<typeof signOutParametersParser>;
 
 const ALIASES = ["signout", "logout"];
 
-export function parse(args: string[]): SignOutParameters | undefined {
+export function parse(args: string[]): Parameters | undefined {
   const cmd = args.shift();
   if (cmd == null || !ALIASES.includes(cmd)) {
     return;
   }
-  return {};
+
+  const raw = getopts(args);
+  const parsed = signOutParametersParser.parse(raw);
+  if (!parsed.success) {
+    parsed.errors.forEach((err) => console.error(err));
+    return;
+  }
+
+  return parsed.parsed;
 }
 
-export const run = makeRunner(
-  async (params: SignOutParameters, globalState: GlobalState) => {
-    const newGlobalState = await ensureCurrentPage(globalState);
-    const { page } = newGlobalState;
+export const run = runFromBrowser(
+  async (
+    browser: Browser,
+    params: Parameters,
+    { programOptions: { baseURL } }: GlobalState
+  ) => {
+    const url = new URL("/logout", baseURL);
 
-    const url = new URL("/logout", globalState.programOptions.baseURL);
-
+    const page = await browser.newPage();
     await page.goto(url.toString());
-
     await page.waitForNetworkIdle();
-
-    await page.deleteCookie({ name: "_identity_idp_session" });
 
     const message =
       (await page.evaluate(() => {
@@ -33,15 +46,36 @@ export const run = makeRunner(
         return document.querySelector(".usa-alert--info")?.innerText ?? "";
       })) ?? "";
 
+    if (params.completely) {
+      const cookies = await page.cookies();
+      await Promise.all(
+        cookies.map(async (cookie) => {
+          await page.deleteCookie({
+            name: cookie.name,
+          });
+        })
+      );
+    }
+
     if (message) {
       console.error(message);
     }
 
-    await page.close();
+    // Close every other page except the one we just opened
 
-    return {
-      ...newGlobalState,
-      page: undefined,
-    };
+    const pages = await browser.pages();
+
+    await Promise.all(
+      pages.map(async (p) => {
+        if (p === page) {
+          return;
+        }
+
+        const url = new URL(p.url());
+        if (url.hostname === baseURL.hostname) {
+          await p.close();
+        }
+      })
+    );
   }
 );

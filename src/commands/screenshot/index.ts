@@ -1,6 +1,7 @@
 import { promises as fs } from "fs";
+import { Browser } from "puppeteer";
 import { GlobalState } from "../../types";
-import { makeRunner } from "../utils";
+import { runFromBrowser } from "../utils";
 
 const LANGUAGES = ["en", "fr", "es"] as const;
 
@@ -19,11 +20,17 @@ export function parse(args: string[]): ScreenshotParameters | undefined {
   };
 }
 
-export const run = makeRunner(
-  async (params: ScreenshotParameters, state: GlobalState) => {
-    const { page } = state;
+export const run = runFromBrowser(
+  async (
+    browser: Browser,
+    params: ScreenshotParameters,
+    state: GlobalState
+  ): Promise<void> => {
+    const pages = await browser.pages();
+    const page = pages[0];
+
     if (!page) {
-      throw new Error("No current page.");
+      throw new Error("no current page.");
     }
 
     const originalUrl = page.url();

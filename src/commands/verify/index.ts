@@ -1,9 +1,9 @@
 import getopts from "getopts";
-import { ensureCurrentPage } from "../../browser";
+import { Page } from "puppeteer";
 import { until } from "../../dsl";
 
-import { GlobalState, ProgramOptions } from "../../types";
-import { makeRunner } from "../utils";
+import { GlobalState } from "../../types";
+import { runFromPage } from "../utils";
 import { VERIFY_FLOW } from "./flow";
 import { VerifyParameters, verifyParametersParser } from "./types";
 
@@ -30,20 +30,18 @@ export function parse(args: string[]): VerifyParameters | undefined {
   }
 }
 
-export const run = makeRunner(
-  async (params: VerifyParameters, globalState: GlobalState) => {
+export const run = runFromPage(
+  "/verify",
+  async (page: Page, params: VerifyParameters, globalState: GlobalState) => {
     const { lastSignup } = globalState;
+
     if (!lastSignup) {
       throw new Error("No signup");
     }
 
-    const newGlobalState = await ensureCurrentPage(globalState);
-    const { browser, page } = newGlobalState;
-
     const runOptions = {
       ...globalState.programOptions,
       ...params,
-      browser,
       page,
     };
 
@@ -52,7 +50,5 @@ export const run = makeRunner(
     } else {
       await VERIFY_FLOW.run(lastSignup, runOptions);
     }
-
-    return newGlobalState;
   }
 );

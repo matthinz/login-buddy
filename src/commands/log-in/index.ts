@@ -1,6 +1,6 @@
-import { ensureBrowserLaunched, getPageForUrl } from "../../browser";
+import { Page } from "puppeteer";
 import { GlobalState } from "../../types";
-import { makeRunner } from "../utils";
+import { runFromPage } from "../utils";
 import { LOG_IN } from "./flow";
 
 type Parameters = {};
@@ -13,45 +13,25 @@ export function parse(args: string[]): Parameters | void {
   return {};
 }
 
-export const run = makeRunner(
-  async (
-    _params: Parameters,
-    globalState: GlobalState
-  ): Promise<GlobalState> => {
-    let newGlobalState = {
-      ...(await ensureBrowserLaunched(globalState)),
-    };
-
+export const run = runFromPage(
+  "/",
+  async (page: Page, _params: Parameters, globalState: GlobalState) => {
     const {
-      browser,
       lastSignup,
       programOptions: { baseURL },
-    } = newGlobalState;
+    } = globalState;
 
     if (!lastSignup) {
       throw new Error("You haven't signed up yet");
     }
 
-    let page = await getPageForUrl("/", newGlobalState);
-
-    if (!page) {
-      page = await browser.newPage();
-      await page.goto(baseURL.toString());
-    }
-
-    const updatedSignUpState = await LOG_IN.run(
-      {
-        ...lastSignup,
-      },
-      {
-        browser,
-        page,
-        baseURL,
-      }
-    );
+    const updatedSignUpState = await LOG_IN.run(lastSignup, {
+      page,
+      baseURL,
+    });
 
     return {
-      ...newGlobalState,
+      ...globalState,
       lastSignup: {
         ...updatedSignUpState,
       },

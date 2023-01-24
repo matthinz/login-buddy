@@ -1,8 +1,8 @@
 import getopts from "getopts";
-import { ensureCurrentPage } from "../../browser";
+import { Page } from "puppeteer";
 import { until } from "../../dsl";
 import { GlobalState } from "../../types";
-import { makeRunner } from "../utils";
+import { runFromPage } from "../utils";
 import { SIGN_UP_FLOW } from "./flow";
 import { SignupParameters, signupParametersParser } from "./types";
 
@@ -35,15 +35,13 @@ export function parse(args: string[]): SignupParameters | undefined {
   return parsed.parsed;
 }
 
-export const run = makeRunner(
+export const run = runFromPage(
+  "/verify",
   async (
+    page: Page,
     params: SignupParameters,
     globalState: GlobalState
   ): Promise<GlobalState> => {
-    const newGlobalState = await ensureCurrentPage(globalState);
-
-    const { browser, page } = newGlobalState;
-
     if (params.saml && !params.sp) {
       // --saml implies --sp
       params.sp = true;
@@ -67,7 +65,6 @@ export const run = makeRunner(
     const runOptions = {
       ...globalState.programOptions,
       ...params,
-      browser,
       page,
     };
 
@@ -85,7 +82,7 @@ export const run = makeRunner(
     let totpCode = "totpCode" in signUpState ? signUpState.totpCode : undefined;
 
     if (!(email && password && (backupCodes || totpCode))) {
-      return newGlobalState;
+      return globalState;
     }
 
     console.log(
@@ -100,7 +97,7 @@ Pass: ${password}`
       console.log("Backup codes: %s", (backupCodes ?? []).join("\n  "));
 
       return {
-        ...newGlobalState,
+        ...globalState,
         lastSignup: {
           ...signUpState,
           email,
@@ -111,7 +108,7 @@ Pass: ${password}`
       };
     } else if (totpCode) {
       return {
-        ...newGlobalState,
+        ...globalState,
         lastSignup: {
           ...signUpState,
           email,
@@ -121,7 +118,7 @@ Pass: ${password}`
         },
       };
     } else {
-      return newGlobalState;
+      return globalState;
     }
   }
 );

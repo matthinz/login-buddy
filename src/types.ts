@@ -20,9 +20,7 @@ export type SignUpState = {
   | { backupCodes?: undefined; totpCode: string }
 );
 
-export type GlobalState = {
-  browser?: Browser;
+export type GlobalState = Record<string, unknown> & {
   lastSignup?: SignUpState | undefined;
-  page?: Page;
   programOptions: ProgramOptions;
 };
