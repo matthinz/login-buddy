@@ -18,6 +18,18 @@ $ yarn && yarn start
 
 Login Buddy presents an interactive shell session you can use to enter commands to run.
 
+### Command: `login`
+
+Logs in using the credentials established in `signup`
+
+### Command: `logout`
+
+Logs out your current session
+
+| Option         | Description                                                                    |
+| -------------- | ------------------------------------------------------------------------------ |
+| `--completely` | Delete _all_ login.gov cookies (including your "Remember this device" cookie). |
+
 ### Command: `signup`
 
 Create a new account with a random email address.
@@ -33,11 +45,11 @@ Create a new account with a random email address.
 
 Take the account created via `signup` through the Identity Verification (IdV) flow.
 
-| Option                                                | Description                                         |
-| ----------------------------------------------------- | --------------------------------------------------- |
-| `--gpo`                                               | Verify using GPO (the "send me a letter" flow).     |
-| `--threatMetrix <no_result / review / reject / pass>` | Simulate the given result from ThreatMetrix.        |
-| `--until <string>`                                    | Stop when the page title or URL contains `<string>` |
+| Option                                                 | Description                                         |
+| ------------------------------------------------------ | --------------------------------------------------- |
+| `--gpo`                                                | Verify using GPO (the "send me a letter" flow).     |
+| `--threatMetrix <no _result / review / reject / pass>` | Simulate the given result from ThreatMetrix.        |
+| `--until <string>`                                     | Stop when the page title or URL contains `<string>` |
 
 [oidc-sinatra]: https://github.com/18F/identity-oidc-sinatra
 [saml-sinator]: https://github.com/18F/identity-saml-sinatra
