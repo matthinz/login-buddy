@@ -34,3 +34,46 @@ export async function ensureCurrentPage(
     page,
   };
 }
+
+/**
+ * Tries to find an active tab in the browser for the given URL.
+ */
+export async function getPageForUrl(
+  urlOrChecker: string | URL,
+  globalState: GlobalState
+): Promise<Page | void> {
+  const { browser } = globalState;
+  if (!browser) {
+    return;
+  }
+
+  const pages = await browser.pages();
+
+  const checker = (page: Page): boolean => {
+    if (typeof urlOrChecker === "string") {
+      urlOrChecker = new URL(urlOrChecker, globalState.programOptions.baseURL);
+    }
+
+    if (urlOrChecker instanceof URL) {
+      return page.url() === urlOrChecker.toString();
+    }
+
+    return false;
+  };
+
+  let promise = Promise.resolve<Page | undefined>(undefined);
+
+  pages.forEach((page) => {
+    promise = promise.then(async (result: Page | undefined) => {
+      if (result) {
+        return result;
+      }
+
+      if (checker(page)) {
+        return page;
+      }
+    });
+  });
+
+  return await promise;
+}

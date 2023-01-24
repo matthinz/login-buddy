@@ -1,10 +1,20 @@
 import getopts from "getopts";
 
 import { GlobalState, ProgramOptions, ProgramOptionsParser } from "./types";
-import { Command, screenshot, signOut, signUp, verify } from "./commands";
+import {
+  backupCode,
+  Command,
+  login,
+  screenshot,
+  signOut,
+  signUp,
+  verify,
+} from "./commands";
 import { createInterface } from "./interface";
 
 const ALL_COMMANDS: Command<unknown, GlobalState>[] = [
+  backupCode,
+  login,
   screenshot,
   signOut,
   signUp,

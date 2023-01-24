@@ -41,7 +41,6 @@ export const run = makeRunner(
 
     return {
       ...newGlobalState,
-      lastSignup: undefined,
       page: undefined,
     };
   }
