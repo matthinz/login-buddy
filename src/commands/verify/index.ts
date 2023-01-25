@@ -3,7 +3,7 @@ import { Page } from "puppeteer";
 import { until } from "../../dsl";
 
 import { GlobalState } from "../../types";
-import { runFromPage } from "../utils";
+import { runFromPageFancy } from "../utils";
 import { VERIFY_FLOW } from "./flow";
 import { VerifyParameters, verifyParametersParser } from "./types";
 
@@ -34,8 +34,9 @@ export function parse(args: string[]): VerifyParameters | undefined {
   }
 }
 
-export const run = runFromPage(
-  "/verify",
+export const run = runFromPageFancy(
+  ["/verify", "/account"],
+  async (browser) => browser.newPage(),
   async (page: Page, params: VerifyParameters, globalState: GlobalState) => {
     const { lastSignup } = globalState;
 

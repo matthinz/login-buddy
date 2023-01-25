@@ -53,8 +53,8 @@ export function runFromPage<
 
 export function runFromPageFancy<Params, State extends {}>(
   shouldUsePage:
-    | ((page: Page, state: State) => Promise<boolean>)
-    | ((page: Page, state: State) => Promise<boolean>)[],
+    | (((page: Page, state: State) => Promise<boolean>) | string)
+    | (((page: Page, state: State) => Promise<boolean>) | string)[],
   createPage: (browser: Browser, state: State) => Promise<Page>,
   func: (page: Page, params: Params, state: State) => Promise<void | State>
 ): (params: Params, state: State) => CommandExecution<State> {
@@ -73,12 +73,19 @@ export function runFromPageFancy<Params, State extends {}>(
       const pages = await browser.pages();
 
       shouldUsePage.forEach((shouldUse) => {
+        const test = async (page: Page, state: State): Promise<boolean> => {
+          if (typeof shouldUse === "string") {
+            return pageMatches(shouldUse, page);
+          }
+          return shouldUse(page, state);
+        };
+
         pages.forEach((page) => {
           promise = promise.then(async (result) => {
             if (result) {
               return result;
             }
-            if (await shouldUse(page, state)) {
+            if (await test(page, state)) {
               return page;
             }
           });
