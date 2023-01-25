@@ -24,8 +24,8 @@ export const run = runFromBrowser(
   async (
     browser: Browser,
     params: ScreenshotParameters,
-    state: GlobalState
-  ): Promise<void> => {
+    globalState: GlobalState
+  ) => {
     const pages = await browser.pages();
     const page = pages[0];
 
@@ -69,5 +69,7 @@ export const run = runFromBrowser(
       console.log("restore to %s", originalUrl);
       await page.goto(originalUrl.toString());
     }
+
+    return globalState;
   }
 );

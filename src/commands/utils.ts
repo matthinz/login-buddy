@@ -8,11 +8,7 @@ type StateWithBaseUrlInProgramOptions = {
 };
 
 export function runFromBrowser<Params, State extends {}>(
-  func: (
-    browser: Browser,
-    params: Params,
-    state: State
-  ) => Promise<void | State>
+  func: (browser: Browser, params: Params, state: State) => Promise<State>
 ): (params: Params, state: State) => CommandExecution<State> {
   return makeRunner(async (params: Params, state: State) => {
     const newState = await ensureBrowserLaunched(state);
@@ -33,7 +29,7 @@ export function runFromPage<
   State extends StateWithBaseUrlInProgramOptions
 >(
   url: string | URL,
-  func: (page: Page, params: Params, state: State) => Promise<void | State>
+  func: (page: Page, params: Params, state: State) => Promise<State>
 ): (params: Params, state: State) => CommandExecution<State> {
   async function shouldUsePage(page: Page): Promise<boolean> {
     return pageMatches(url, page);
@@ -56,14 +52,10 @@ export function runFromPageFancy<Params, State extends {}>(
     | (((page: Page, state: State) => Promise<boolean>) | string)
     | (((page: Page, state: State) => Promise<boolean>) | string)[],
   createPage: (browser: Browser, state: State) => Promise<Page>,
-  func: (page: Page, params: Params, state: State) => Promise<void | State>
+  func: (page: Page, params: Params, state: State) => Promise<State>
 ): (params: Params, state: State) => CommandExecution<State> {
   return runFromBrowser(
-    async (
-      browser: Browser,
-      params: Params,
-      state: State
-    ): Promise<void | State> => {
+    async (browser: Browser, params: Params, state: State): Promise<State> => {
       shouldUsePage = Array.isArray(shouldUsePage)
         ? shouldUsePage
         : [shouldUsePage];
@@ -100,7 +92,7 @@ export function runFromPageFancy<Params, State extends {}>(
 }
 
 export function makeRunner<Params, State>(
-  func: (params: Params, state: State) => Promise<void | State>
+  func: (params: Params, state: State) => Promise<State>
 ): (params: Params, state: State) => CommandExecution<State> {
   return function run(params: Params, state: State): CommandExecution<State> {
     let resolve: (state: State) => void;

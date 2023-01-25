@@ -59,5 +59,7 @@ export const run = runFromPageFancy(
     } else {
       await VERIFY_FLOW.run(lastSignup, runOptions);
     }
+
+    return globalState;
   }
 );

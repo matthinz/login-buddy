@@ -1,8 +1,8 @@
 import getopts from "getopts";
-import { Page } from "puppeteer";
+import { Browser, Page } from "puppeteer";
 import { until } from "../../dsl";
 import { GlobalState } from "../../types";
-import { runFromPage } from "../utils";
+import { runFromPage, runFromPageFancy } from "../utils";
 import { SIGN_UP_FLOW } from "./flow";
 import { SignupParameters, signupParametersParser } from "./types";
 
@@ -35,8 +35,15 @@ export function parse(args: string[]): SignupParameters | undefined {
   return parsed.parsed;
 }
 
-export const run = runFromPage(
-  "/verify",
+export const run = runFromPageFancy(
+  [
+    async (page, state) => {
+      return (
+        new URL(page.url()).hostname === state.programOptions.baseURL.hostname
+      );
+    },
+  ],
+  (browser) => browser.newPage(),
   async (
     page: Page,
     params: SignupParameters,

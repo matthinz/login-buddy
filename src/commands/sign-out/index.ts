@@ -29,11 +29,11 @@ export function parse(args: string[]): Parameters | undefined {
 }
 
 export const run = runFromBrowser(
-  async (
-    browser: Browser,
-    params: Parameters,
-    { programOptions: { baseURL } }: GlobalState
-  ) => {
+  async (browser: Browser, params: Parameters, globalState: GlobalState) => {
+    const {
+      programOptions: { baseURL },
+    } = globalState;
+
     const url = new URL("/logout", baseURL);
 
     const page = await browser.newPage();
@@ -77,5 +77,7 @@ export const run = runFromBrowser(
         }
       })
     );
+
+    return globalState;
   }
 );
