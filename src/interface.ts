@@ -69,7 +69,11 @@ export function createInterface(
         continue;
       }
 
-      return commands[i].run(params, globalState);
+      const updateState = (newState: GlobalState) => {
+        globalState = newState;
+      };
+
+      return commands[i].run(params, globalState, updateState);
     }
   }
 

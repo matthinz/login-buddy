@@ -7,14 +7,24 @@ type StateWithBaseUrlInProgramOptions = {
   };
 };
 
+type StateUpdater<State> = (newState: State) => void;
+
 export function runFromBrowser<Params, State extends {}>(
   func: (browser: Browser, params: Params, state: State) => Promise<State>
-): (params: Params, state: State) => CommandExecution<State> {
-  return makeRunner(async (params: Params, state: State) => {
-    const newState = await ensureBrowserLaunched(state);
-    const { browser } = newState;
-    return await func(browser, params, newState);
-  });
+): (
+  params: Params,
+  state: State,
+  updateState: StateUpdater<State>
+) => CommandExecution<State> {
+  return makeRunner(
+    async (params: Params, state: State, updateState: StateUpdater<State>) => {
+      const newState = await ensureBrowserLaunched(state);
+      updateState(newState); // Ensure we save the browser we launched
+
+      const { browser } = newState;
+      return await func(browser, params, newState);
+    }
+  );
 }
 
 /**
@@ -30,7 +40,11 @@ export function runFromPage<
 >(
   url: string | URL,
   func: (page: Page, params: Params, state: State) => Promise<State>
-): (params: Params, state: State) => CommandExecution<State> {
+): (
+  params: Params,
+  state: State,
+  updateState: StateUpdater<State>
+) => CommandExecution<State> {
   async function shouldUsePage(page: Page): Promise<boolean> {
     return pageMatches(url, page);
   }
@@ -53,7 +67,11 @@ export function runFromPageFancy<Params, State extends {}>(
     | (((page: Page, state: State) => Promise<boolean>) | string)[],
   createPage: (browser: Browser, state: State) => Promise<Page>,
   func: (page: Page, params: Params, state: State) => Promise<State>
-): (params: Params, state: State) => CommandExecution<State> {
+): (
+  params: Params,
+  state: State,
+  updateState: StateUpdater<State>
+) => CommandExecution<State> {
   return runFromBrowser(
     async (browser: Browser, params: Params, state: State): Promise<State> => {
       shouldUsePage = Array.isArray(shouldUsePage)
@@ -92,9 +110,21 @@ export function runFromPageFancy<Params, State extends {}>(
 }
 
 export function makeRunner<Params, State>(
-  func: (params: Params, state: State) => Promise<State>
-): (params: Params, state: State) => CommandExecution<State> {
-  return function run(params: Params, state: State): CommandExecution<State> {
+  func: (
+    params: Params,
+    state: State,
+    updateState: (newState: State) => void
+  ) => Promise<State>
+): (
+  params: Params,
+  state: State,
+  updateState: (newState: State) => void
+) => CommandExecution<State> {
+  return function run(
+    params: Params,
+    state: State,
+    updateState: StateUpdater<State>
+  ): CommandExecution<State> {
     let resolve: (state: State) => void;
     let reject: (err: Error) => void;
     let didAbort = false;
@@ -108,7 +138,7 @@ export function makeRunner<Params, State>(
       reject(new Error("Aborted"));
     };
 
-    func(params, state).then(
+    func(params, state, updateState).then(
       (newState) => {
         resolve(newState ?? state);
       },

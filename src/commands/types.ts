@@ -1,5 +1,3 @@
-import { GlobalState } from "../types";
-
 export interface Command<Parameters, State> {
   /**
    * Called to parse user input into parameters for the command.
@@ -9,7 +7,11 @@ export interface Command<Parameters, State> {
   /**
    * Runs the command.
    */
-  run(params: Parameters, state: State): CommandExecution<State>;
+  run(
+    params: Parameters,
+    state: State,
+    updateState: (newState: State) => void
+  ): CommandExecution<State>;
 }
 
 export interface CommandExecution<State> {
