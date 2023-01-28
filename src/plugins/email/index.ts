@@ -1,28 +1,14 @@
 import fs from "node:fs/promises";
-import path, { parse } from "node:path";
+import path from "node:path";
 import chokidar from "chokidar";
-import { Message, parseEmail, parseMultipleEmails } from "./parser";
+import { Message, parseMultipleEmails } from "./parser";
+import { ProgramOptions } from "../../types";
+import chalk from "chalk";
 
-type Options = {
-  idpDirectory?: string;
-  emailsDirectory?: string;
-  onNewEmail?: (message: Message) => void;
-};
-
-export function watchForEmails({
-  idpDirectory,
-  emailsDirectory,
-  onNewEmail,
-}: Options = {}) {
-  idpDirectory = idpDirectory ?? process.env.IDP_ROOT;
-
-  if (!emailsDirectory) {
-    if (!idpDirectory) {
-      throw new Error("IDP not found. Set IDP_ROOT");
-    }
-
-    emailsDirectory = path.join(idpDirectory ?? ".", "tmp", "mails");
-  }
+export function emailsPlugin({
+  idpRoot,
+}: ProgramOptions & { idpRoot: string }) {
+  const emailsDirectory = path.join(idpRoot, "tmp", "mails");
 
   const filesToReview = new Set<string>();
   const emailCountsByFile = new Map<string, number>();
@@ -78,6 +64,17 @@ export function watchForEmails({
     });
   }
 
+  function reportNewEmail(message: Message) {
+    console.log(
+      chalk.dim("\nNew email to %s: %s"),
+      message.to.join(","),
+      message.subject
+    );
+    getLinksInEmail(message).forEach((link) => {
+      console.log(chalk.blue("  %s"), link);
+    });
+  }
+
   function reviewUpdatedFiles() {
     if (reviewInProgress) {
       if (timer) {
@@ -99,11 +96,7 @@ export function watchForEmails({
 
         const newMessages = messages.slice(prevCount);
         emailCountsByFile.set(file, messages.length);
-        newMessages.forEach((message) => {
-          if (onNewEmail) {
-            setImmediate(onNewEmail, message);
-          }
-        });
+        newMessages.forEach(reportNewEmail);
       })
     ).finally(() => {
       reviewInProgress = false;
@@ -122,4 +115,33 @@ export function watchForEmails({
 async function parseEmailFile(file: string): Promise<Message[]> {
   const data = await fs.readFile(file);
   return parseMultipleEmails(data.toString("utf-8"));
+}
+
+function getLinksInEmail(message: Message): string[] {
+  const REGEX = /https?:\/\/[^\s]+/g;
+  const urls = new Set<string>();
+
+  while (true) {
+    const m = REGEX.exec(message.body["text/plain"]);
+    if (!m) {
+      break;
+    }
+
+    let url: URL;
+    try {
+      url = new URL(m[0]);
+    } catch (err) {
+      console.error(err);
+      continue;
+    }
+
+    // Some simple heuristics to ignore boring URLs
+    const isDeep = /\/.*?\//.test(url.pathname);
+    const hasQueryString = url.search.length > 1;
+    if (isDeep || hasQueryString) {
+      urls.add(url.toString());
+    }
+  }
+
+  return Array.from(urls);
 }

@@ -7,6 +7,7 @@ export type FlowRunOptions = {
   baseURL: string | URL;
   browser: Browser;
   page: Page;
+  warn: (message: string) => void;
 };
 
 export type Stopper<InputState, OutputState extends InputState, Options> = (

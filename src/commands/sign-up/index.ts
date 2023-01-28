@@ -1,3 +1,4 @@
+import chalk from "chalk";
 import getopts from "getopts";
 import { Browser, Page } from "puppeteer";
 import { until } from "../../dsl";
@@ -72,6 +73,9 @@ export const run = runFromPageFancy(
     const runOptions = {
       ...globalState.programOptions,
       ...params,
+      warn: (message: string) => {
+        console.error(chalk.dim(message));
+      },
       page,
     };
 

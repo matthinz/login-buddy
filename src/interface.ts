@@ -1,3 +1,4 @@
+import chalk from "chalk";
 import * as readline from "node:readline";
 import { Command, CommandExecution } from "./commands";
 
@@ -80,17 +81,17 @@ export function createInterface(
   function welcome() {
     const { baseURL } = globalState.programOptions;
     console.log(`
-  Welcome to Login Buddy!
+  ${chalk.bold("Welcome to Login Buddy!")}
   
   This is a little helper for you if you're doing work on the Login.gov frontend.
   
   Some commands:
   
-  - 'signup' to create a new account
-  - 'verify' to verify the account you just created
-  - 'screenshot' to take screenshots
+  - ${chalk.bold("signup")} to create a new account
+  - ${chalk.bold("verify")} to verify the account you just created
+  - ${chalk.bold("screenshot")} to take screenshots
   
-  We are using <${baseURL?.toString()}> 
+  We are using ${chalk.blue(`<${baseURL?.toString()}>`)} 
   (You can change this with the --env option.)
   
   `);

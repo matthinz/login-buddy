@@ -171,11 +171,7 @@ export class Flow<
       const { page } = options;
 
       if (page.url() !== resolvedUrl.toString()) {
-        console.error(
-          "Expected to be at '%s', but at '%s'",
-          resolvedUrl,
-          page.url()
-        );
+        options.warn(`Expected '${resolvedUrl}', got '${page.url()}'`);
       }
 
       return state;
