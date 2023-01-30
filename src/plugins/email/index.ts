@@ -66,13 +66,13 @@ export function emailsPlugin({
 
   function reportNewEmail(message: Message) {
     console.log(
-      chalk.dim("\nNew email to %s: %s"),
+      chalk.dim("\n💌 New email to %s: %s\n%s\n"),
       message.to.join(","),
-      message.subject
+      chalk.bold(message.subject),
+      getLinksInEmail(message)
+        .map((link) => chalk.blue(`   ${link}`))
+        .join("\n")
     );
-    getLinksInEmail(message).forEach((link) => {
-      console.log(chalk.blue("  %s"), link);
-    });
   }
 
   function reviewUpdatedFiles() {
