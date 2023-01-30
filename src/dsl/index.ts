@@ -1,5 +1,7 @@
 import { Flow } from "./flow";
-import { FlowInterface, FlowRunOptions, Stopper } from "./types";
+import { FlowInterface, FlowRunOptions } from "./types";
+
+export { FlowRunOptions } from "./types";
 
 export function createFlow<InputState, Options>(): FlowInterface<
   InputState,
@@ -25,7 +27,9 @@ export function until<
   InputState,
   OutputState extends InputState,
   Options extends FlowRunOptions
->(expr: string | RegExp): Stopper<InputState, OutputState, Options> {
+>(
+  expr: string | RegExp
+): (state: InputState, options: Options) => boolean | Promise<boolean> {
   return async (_state, { page }) => {
     if (!page) {
       return false;

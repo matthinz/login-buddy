@@ -1,18 +1,24 @@
 import getopts from "getopts";
 import { P, ParsedType } from "p-block";
 import { Browser } from "puppeteer";
+import { FlowRunOptions } from "../../dsl";
 import { GlobalState } from "../../types";
+import { CommandHooks } from "../types";
 import { runFromBrowser } from "../utils";
 
 const signOutParametersParser = P.object().withProperties({
   completely: P.boolean().defaultedTo(false),
 });
 
-type Parameters = ParsedType<typeof signOutParametersParser>;
+type SignOutOptions = Omit<FlowRunOptions, "page"> &
+  ParsedType<typeof signOutParametersParser>;
 
 const ALIASES = ["signout", "logout"];
 
-export function parse(args: string[]): Parameters | undefined {
+export function parseOptions(
+  args: string[],
+  { programOptions: { baseURL } }: GlobalState
+): SignOutOptions | undefined {
   const cmd = args.shift();
   if (cmd == null || !ALIASES.includes(cmd)) {
     return;
@@ -25,15 +31,20 @@ export function parse(args: string[]): Parameters | undefined {
     return;
   }
 
-  return parsed.parsed;
+  return {
+    ...parsed.parsed,
+    baseURL,
+  };
 }
 
 export const run = runFromBrowser(
-  async (browser: Browser, params: Parameters, globalState: GlobalState) => {
-    const {
-      programOptions: { baseURL },
-    } = globalState;
-
+  async (
+    browser: Browser,
+    globalState: GlobalState,
+    options: SignOutOptions,
+    hooks: CommandHooks<GlobalState>
+  ) => {
+    const { baseURL } = options;
     const url = new URL("/logout", baseURL);
 
     const page = await browser.newPage();
@@ -46,7 +57,7 @@ export const run = runFromBrowser(
         return document.querySelector(".usa-alert--info")?.innerText ?? "";
       })) ?? "";
 
-    if (params.completely) {
+    if (options.completely) {
       const cookies = await page.cookies();
       await Promise.all(
         cookies.map(async (cookie) => {
@@ -58,7 +69,7 @@ export const run = runFromBrowser(
     }
 
     if (message) {
-      console.error(message);
+      hooks.info(message);
     }
 
     // Close every other page except the one we just opened

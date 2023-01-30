@@ -1,5 +1,5 @@
 import { Browser, launch, Page } from "puppeteer";
-import { CommandExecution } from "./types";
+import { CommandExecution, CommandHooks } from "./types";
 
 type StateWithBaseUrlInProgramOptions = {
   programOptions: {
@@ -9,22 +9,29 @@ type StateWithBaseUrlInProgramOptions = {
 
 type StateUpdater<State> = (newState: State) => void;
 
-export function runFromBrowser<Params, State extends {}>(
-  func: (browser: Browser, params: Params, state: State) => Promise<State>
+/**
+ * Creates a run() function that manages tracking a browser instance
+ * in the global state.
+ */
+export function runFromBrowser<State extends {}, Options extends {}>(
+  func: (
+    browser: Browser,
+    state: State,
+    options: Options,
+    hooks: CommandHooks<State>
+  ) => Promise<State>
 ): (
-  params: Params,
   state: State,
-  updateState: StateUpdater<State>
+  options: Options,
+  hooks: CommandHooks<State>
 ) => CommandExecution<State> {
-  return makeRunner(
-    async (params: Params, state: State, updateState: StateUpdater<State>) => {
-      const newState = await ensureBrowserLaunched(state);
-      updateState(newState); // Ensure we save the browser we launched
+  return makeRunner(async (state, options, hooks) => {
+    const newState = await ensureBrowserLaunched(state);
+    hooks.updateState(newState); // Ensure we save the browser we launched
 
-      const { browser } = newState;
-      return await func(browser, params, newState);
-    }
-  );
+    const { browser } = newState;
+    return await func(browser, newState, options, hooks);
+  });
 }
 
 /**
@@ -35,15 +42,20 @@ export function runFromBrowser<Params, State extends {}>(
  * @param func
  */
 export function runFromPage<
-  Params,
-  State extends StateWithBaseUrlInProgramOptions
+  State extends StateWithBaseUrlInProgramOptions,
+  Options extends {}
 >(
   url: string | URL,
-  func: (page: Page, params: Params, state: State) => Promise<State>
+  func: (
+    page: Page,
+    state: State,
+    options: Options,
+    hooks: CommandHooks<State>
+  ) => Promise<State>
 ): (
-  params: Params,
   state: State,
-  updateState: StateUpdater<State>
+  options: Options,
+  hooks: CommandHooks<State>
 ) => CommandExecution<State> {
   async function shouldUsePage(page: Page): Promise<boolean> {
     return pageMatches(url, page);
@@ -61,19 +73,29 @@ export function runFromPage<
   return runFromPageFancy(shouldUsePage, createPage, func);
 }
 
-export function runFromPageFancy<Params, State extends {}>(
+export function runFromPageFancy<State extends {}, Options extends {}>(
   shouldUsePage:
     | (((page: Page, state: State) => Promise<boolean>) | string)
     | (((page: Page, state: State) => Promise<boolean>) | string)[],
   createPage: (browser: Browser, state: State) => Promise<Page>,
-  func: (page: Page, params: Params, state: State) => Promise<State>
+  func: (
+    page: Page,
+    state: State,
+    options: Options,
+    hooks: CommandHooks<State>
+  ) => Promise<State>
 ): (
-  params: Params,
   state: State,
-  updateState: StateUpdater<State>
+  options: Options,
+  hooks: CommandHooks<State>
 ) => CommandExecution<State> {
   return runFromBrowser(
-    async (browser: Browser, params: Params, state: State): Promise<State> => {
+    async (
+      browser: Browser,
+      state: State,
+      options: Options,
+      hooks: CommandHooks<State>
+    ): Promise<State> => {
       shouldUsePage = Array.isArray(shouldUsePage)
         ? shouldUsePage
         : [shouldUsePage];
@@ -104,30 +126,30 @@ export function runFromPageFancy<Params, State extends {}>(
 
       const page = (await promise) ?? (await createPage(browser, state));
 
-      return await func(page, params, state);
+      return await func(page, state, options, hooks);
     }
   );
 }
 
-export function makeRunner<Params, State>(
+/**
+ * Creates an appropriate run() function for a command.
+ */
+export function makeRunner<State extends {}, Options extends {}>(
   func: (
-    params: Params,
     state: State,
-    updateState: (newState: State) => void
+    options: Options,
+    hooks: CommandHooks<State>
   ) => Promise<State>
 ): (
-  params: Params,
   state: State,
-  updateState: (newState: State) => void
+  options: Options,
+  hooks: CommandHooks<State>
 ) => CommandExecution<State> {
-  return function run(
-    params: Params,
-    state: State,
-    updateState: StateUpdater<State>
-  ): CommandExecution<State> {
+  return function run(state, options, hooks): CommandExecution<State> {
     let resolve: (state: State) => void;
     let reject: (err: Error) => void;
     let didAbort = false;
+
     const promise = new Promise<State>((_resolve, _reject) => {
       resolve = _resolve;
       reject = _reject;
@@ -138,7 +160,7 @@ export function makeRunner<Params, State>(
       reject(new Error("Aborted"));
     };
 
-    func(params, state, updateState).then(
+    func(state, options, hooks).then(
       (newState) => {
         resolve(newState ?? state);
       },

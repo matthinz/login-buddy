@@ -1,11 +1,11 @@
 import totp from "totp-generator";
 
 import { createFlow } from "../../dsl";
-import { SignupParameters } from "./types";
+import { SignupOptions } from "./types";
 
 const DEFAULT_PASSWORD = "reallygoodpassword";
 
-export const SIGN_UP_FLOW = createFlow<{}, SignupParameters>()
+export const SIGN_UP_FLOW = createFlow<{}, SignupOptions>()
   .branch(
     (_page, _state, options) => options.sp,
     (useSp, _state, options) => {

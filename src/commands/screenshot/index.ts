@@ -1,15 +1,15 @@
-import { promises as fs } from "fs";
+import fs from "node:fs/promises";
 import { Browser } from "puppeteer";
 import { GlobalState } from "../../types";
 import { runFromBrowser } from "../utils";
 
 const LANGUAGES = ["en", "fr", "es"] as const;
 
-export type ScreenshotParameters = {
+export type ScreenshotOptions = {
   name?: string;
 };
 
-export function parse(args: string[]): ScreenshotParameters | undefined {
+export function parseOptions(args: string[]): ScreenshotOptions | undefined {
   const cmd = args.shift();
   if (cmd !== "screenshot") {
     return;
@@ -23,14 +23,14 @@ export function parse(args: string[]): ScreenshotParameters | undefined {
 export const run = runFromBrowser(
   async (
     browser: Browser,
-    params: ScreenshotParameters,
-    globalState: GlobalState
+    globalState: GlobalState,
+    options: ScreenshotOptions
   ) => {
     const pages = await browser.pages();
     const page = pages[0];
 
     if (!page) {
-      throw new Error("no current page.");
+      throw new Error("No current page.");
     }
 
     const originalUrl = page.url();
@@ -51,7 +51,7 @@ export const run = runFromBrowser(
 
         await page.goto(url);
 
-        const name = params.name === "" ? "screenshot" : "";
+        const name = options.name === "" ? "screenshot" : "";
         const file = `${name}-${lang}.png`;
 
         await fs.rm(file).catch(() => {});

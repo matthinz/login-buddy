@@ -1,19 +1,45 @@
-import { Browser, Page } from "puppeteer";
+import { Page } from "puppeteer";
 
 /**
  * Options passed into a flow when it is being run.
  */
 export type FlowRunOptions = {
-  baseURL: string | URL;
-  browser: Browser;
+  /**
+   * URL used as a base for other URLs in the flow.
+   */
+  baseURL: URL;
+
+  /**
+   * Puppeteer page in which to operate.
+   */
   page: Page;
-  warn: (message: string) => void;
 };
 
-export type Stopper<InputState, OutputState extends InputState, Options> = (
-  state: InputState & Partial<OutputState>,
-  options: Options
-) => Promise<boolean>;
+/**
+ * Hooks are extension points used to customize the
+ * behavior of a Flow.
+ */
+export type FlowHooks<
+  InputState,
+  OutputState extends InputState,
+  Options extends FlowRunOptions
+> = {
+  info(message: string): void;
+
+  /**
+   * Returns `true` if the flow should stop processing at this point.
+   */
+  shouldStop(
+    state: InputState & Partial<OutputState>,
+    options: Options
+  ): boolean | Promise<boolean>;
+
+  /**
+   * Called to emit a warning message.
+   * @param message
+   */
+  warning(message: string): void;
+};
 
 /**
  * A Flow is a series of steps executed in a browser.
@@ -21,23 +47,22 @@ export type Stopper<InputState, OutputState extends InputState, Options> = (
 export interface FlowInterface<
   InputState,
   OutputState extends InputState,
-  Options
+  Options extends FlowRunOptions
 > {
   /**
    * Runs this flow and returns the generated state.
    */
-  run(
-    state: InputState,
-    options?: Partial<FlowRunOptions & Options>
-  ): Promise<OutputState>;
+  run(state: InputState, options: Options): Promise<OutputState>;
 
   /**
-   * Runs this flow, optionally stopping & returning early.
+   * Runs this flow, incorporating the given hooks, and returns
+   * the generated state.
+   * (Note that this could result in a partial run.)
    */
   run(
     state: InputState,
-    options: Partial<FlowRunOptions & Options>,
-    shouldStop: Stopper<InputState, OutputState, Options>
+    options: Options,
+    hooks: Partial<FlowHooks<InputState, OutputState, Options>>
   ): Promise<InputState & Partial<OutputState>>;
 
   branch<

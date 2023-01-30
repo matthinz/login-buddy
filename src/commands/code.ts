@@ -2,9 +2,9 @@ import totp from "totp-generator";
 import { GlobalState } from "../types";
 import { makeRunner } from "./utils";
 
-type Parameters = {};
+type BackupCodeOptions = {};
 
-export function parse(args: string[]): Parameters | undefined {
+export function parseOptions(args: string[]): BackupCodeOptions | undefined {
   const cmd = args.shift();
   if (cmd !== "code") {
     return;
@@ -13,7 +13,7 @@ export function parse(args: string[]): Parameters | undefined {
 }
 
 export const run = makeRunner(
-  async (_params: Parameters, state: GlobalState) => {
+  async (_options: BackupCodeOptions, state: GlobalState) => {
     const { lastSignup } = state;
     if (!lastSignup) {
       throw new Error("No current signup");

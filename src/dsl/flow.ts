@@ -2,10 +2,16 @@ import { promises as fs } from "fs";
 import * as path from "path";
 import { Page } from "puppeteer";
 
-import { FlowInterface, FlowRunOptions, FromState, Stopper } from "./types";
+import { FlowHooks, FlowInterface, FlowRunOptions, FromState } from "./types";
 import { resolveFromState } from "./util";
 
-const NEVER_STOP = () => Promise.resolve(false);
+const DEFAULT_HOOKS = {
+  info(message: string) {},
+  shouldStop() {
+    return false;
+  },
+  warning(message: string) {},
+};
 
 type BuiltState<InputState, OutputState extends InputState> =
   | {
@@ -17,10 +23,14 @@ type BuiltState<InputState, OutputState extends InputState> =
       state: OutputState;
     };
 
-type StateBuilder<InputState, OutputState extends InputState, Options> = (
+type StateBuilder<
+  InputState,
+  OutputState extends InputState,
+  Options extends FlowRunOptions
+> = (
   prevState: InputState,
   options: Options,
-  shouldStop: Stopper<InputState, OutputState, Options>
+  hooks: FlowHooks<InputState, OutputState, Options>
 ) => Promise<BuiltState<InputState, OutputState>>;
 
 export class Flow<
@@ -36,19 +46,23 @@ export class Flow<
   }
 
   derive<NextOutputState extends OutputState>(
-    func: (state: OutputState, options: Options) => Promise<NextOutputState>
+    func: (
+      state: OutputState,
+      options: Options,
+      hooks: FlowHooks<InputState, OutputState, Options>
+    ) => Promise<NextOutputState>
   ): FlowInterface<InputState, NextOutputState, Options> {
     return new Flow<InputState, NextOutputState, Options>(
       async (
         prevState,
         options,
-        shouldStop
+        hooks
       ): Promise<BuiltState<InputState, NextOutputState>> => {
         // First, we need to make sure our state is ok _up to this point_.
         const { state, isPartial } = await this._buildState(
           prevState,
           options,
-          shouldStop as Stopper<InputState, OutputState, Options>
+          hooks as FlowHooks<InputState, OutputState, Options>
         );
 
         if (isPartial) {
@@ -60,7 +74,7 @@ export class Flow<
         }
 
         // Now see if we should stop.
-        const stop = await shouldStop(
+        const stop = await hooks.shouldStop(
           state as InputState & Partial<NextOutputState>,
           options
         );
@@ -75,7 +89,7 @@ export class Flow<
         // Since the state is not partial, we can safely treat it as though
         // it's been returned to us by this._getState
         return {
-          state: await func(state as OutputState, options),
+          state: await func(state as OutputState, options, hooks),
           isPartial: false,
         };
       }
@@ -161,7 +175,7 @@ export class Flow<
   }
 
   expectUrl(url: FromState<string | URL, OutputState>) {
-    return this.derive(async (state: OutputState, options: Options) => {
+    return this.derive(async (state: OutputState, options: Options, hooks) => {
       let resolvedUrl = await resolveFromState(url, state);
 
       if (options.baseURL) {
@@ -171,7 +185,7 @@ export class Flow<
       const { page } = options;
 
       if (page.url() !== resolvedUrl.toString()) {
-        options.warn(`Expected '${resolvedUrl}', got '${page.url()}'`);
+        hooks.warning(`Expected '${resolvedUrl}', got '${page.url()}'`);
       }
 
       return state;
@@ -207,19 +221,18 @@ export class Flow<
   run(
     initialState: InputState,
     options: Options,
-    shouldStop: Stopper<InputState, OutputState, Options>
+    hooks: FlowHooks<InputState, OutputState, Options>
   ): Promise<InputState & Partial<OutputState>>;
   run(initialState: InputState, options: Options): Promise<OutputState>;
   run(
     initialState: InputState,
     options: Options,
-    shouldStop?: Stopper<InputState, OutputState, Options>
+    hooks?: Partial<FlowHooks<InputState, OutputState, Options>>
   ): Promise<OutputState> | Promise<InputState & Partial<OutputState>> {
-    return this._buildState(
-      initialState,
-      options,
-      shouldStop ?? NEVER_STOP
-    ).then(({ state }) => state);
+    return this._buildState(initialState, options, {
+      ...DEFAULT_HOOKS,
+      ...(hooks ?? {}),
+    }).then(({ state }) => state);
   }
 
   select(

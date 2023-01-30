@@ -1,18 +1,21 @@
-import chalk from "chalk";
 import getopts from "getopts";
-import { Browser, Page } from "puppeteer";
+import { Page } from "puppeteer";
 import { until } from "../../dsl";
 import { GlobalState } from "../../types";
-import { runFromPage, runFromPageFancy } from "../utils";
+import { CommandHooks } from "../types";
+import { runFromPageFancy } from "../utils";
 import { SIGN_UP_FLOW } from "./flow";
-import { SignupParameters, signupParametersParser } from "./types";
+import { SignupOptions, signupOptionsParser } from "./types";
 
-// I can never remember what urls what.
+// I can never remember what urls are what.
 const UNTIL_ALIASES: { [key: string]: string | undefined } = {
   mfa: "/authentication_methods_setup",
 };
 
-export function parse(args: string[]): SignupParameters | undefined {
+export function parseOptions(
+  args: string[],
+  { programOptions: { baseURL } }: GlobalState
+): SignupOptions | undefined {
   const cmd = args.shift();
   if (cmd !== "signup") {
     return;
@@ -24,7 +27,7 @@ export function parse(args: string[]): SignupParameters | undefined {
     },
   });
 
-  const parsed = signupParametersParser.parse(raw);
+  const parsed = signupOptionsParser.parse(raw);
 
   if (!parsed.success) {
     parsed.errors.forEach((err) => {
@@ -33,7 +36,10 @@ export function parse(args: string[]): SignupParameters | undefined {
     return;
   }
 
-  return parsed.parsed;
+  return {
+    ...parsed.parsed,
+    baseURL,
+  };
 }
 
 export const run = runFromPageFancy(
@@ -47,45 +53,42 @@ export const run = runFromPageFancy(
   (browser) => browser.newPage(),
   async (
     page: Page,
-    params: SignupParameters,
-    globalState: GlobalState
+    globalState: GlobalState,
+    options: SignupOptions,
+    hooks: CommandHooks<GlobalState>
   ): Promise<GlobalState> => {
-    if (params.saml && !params.sp) {
+    if (options.saml && !options.sp) {
       // --saml implies --sp
-      params.sp = true;
+      options.sp = true;
     }
 
-    if (!params.spUrl) {
+    if (!options.spUrl) {
       // Discover an SP url
-      if (globalState.programOptions.baseURL.hostname === "localhost") {
-        if (params.saml) {
+      if (options.baseURL.hostname === "localhost") {
+        if (options.saml) {
           // Use identity-saml-sinatra
-          params.spUrl = new URL("http://localhost:4567");
+          options.spUrl = new URL("http://localhost:4567");
         } else {
           // Use identity-oidc-sinatra
-          params.spUrl = new URL("http://localhost:9292");
+          options.spUrl = new URL("http://localhost:9292");
         }
       }
     }
 
     const initialState = {};
 
-    const runOptions = {
-      ...globalState.programOptions,
-      ...params,
-      warn: (message: string) => {
-        console.error(chalk.dim(message));
-      },
-      page,
-    };
-
-    const untilArg = params.until
-      ? UNTIL_ALIASES[params.until] ?? params.until
+    const untilArg = options.until
+      ? UNTIL_ALIASES[options.until] ?? options.until
       : undefined;
 
-    const signUpState = await (untilArg
-      ? SIGN_UP_FLOW.run(initialState, runOptions, until(untilArg))
-      : SIGN_UP_FLOW.run(initialState, runOptions));
+    const signUpState = await SIGN_UP_FLOW.run(
+      initialState,
+      { ...options, page },
+      {
+        ...hooks,
+        shouldStop: untilArg ? until(untilArg) : () => false,
+      }
+    );
 
     const { email, password } = signUpState;
     let backupCodes =

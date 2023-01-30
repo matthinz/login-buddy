@@ -10,7 +10,7 @@ export type Interface = {
 };
 
 export function createInterface(
-  commands: Command<unknown, GlobalState>[],
+  commands: Command<GlobalState, {}>[],
   programOptions: ProgramOptions
 ): Interface {
   let currentExecution: CommandExecution<GlobalState> | undefined;
@@ -64,17 +64,29 @@ export function createInterface(
   function run(line: string): CommandExecution<GlobalState> | undefined {
     const args = line.split(/\s+/);
 
+    const info = (message: string) => {
+      console.log(message);
+    };
+
+    const updateState = (newState: GlobalState) => {
+      globalState = newState;
+    };
+
+    const warning = (message: string) => {
+      console.error("🙀 %s", chalk.dim(message));
+    };
+
     for (let i = 0; i < commands.length; i++) {
-      const params = commands[i].parse([...args], globalState);
-      if (!params) {
+      const options = commands[i].parseOptions([...args], globalState);
+      if (!options) {
         continue;
       }
 
-      const updateState = (newState: GlobalState) => {
-        globalState = newState;
-      };
-
-      return commands[i].run(params, globalState, updateState);
+      return commands[i].run(globalState, options, {
+        info,
+        updateState,
+        warning,
+      });
     }
   }
 

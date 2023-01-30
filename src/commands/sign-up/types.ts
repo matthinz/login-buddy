@@ -1,6 +1,7 @@
 import { P, ParsedType } from "p-block";
+import { FlowRunOptions } from "../../dsl";
 
-export const signupParametersParser = P.object().withProperties({
+export const signupOptionsParser = P.object().withProperties({
   sp: P.boolean().defaultedTo(false),
   saml: P.boolean().defaultedTo(false),
   spUrl: P.url().optional(),
@@ -8,4 +9,5 @@ export const signupParametersParser = P.object().withProperties({
   useBackupCodes: P.boolean().defaultedTo(false),
 });
 
-export type SignupParameters = ParsedType<typeof signupParametersParser>;
+export type SignupOptions = ParsedType<typeof signupOptionsParser> &
+  Omit<FlowRunOptions, "page">;

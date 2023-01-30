@@ -13,7 +13,7 @@ import { createInterface } from "./interface";
 import { emailsPlugin } from "./plugins/email";
 import { resolveOptions } from "./options";
 
-const ALL_COMMANDS: Command<unknown, GlobalState>[] = [
+const ALL_COMMANDS: Command<GlobalState, {}>[] = [
   backupCode,
   login,
   screenshot,
