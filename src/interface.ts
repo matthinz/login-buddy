@@ -68,6 +68,10 @@ export function createInterface(
       console.log(message);
     };
 
+    const prompt = (message: string): Promise<string> => {
+      throw new Error("prompt() not implemented");
+    };
+
     const updateState = (newState: GlobalState) => {
       globalState = newState;
     };
@@ -84,6 +88,7 @@ export function createInterface(
 
       return commands[i].run(globalState, options, {
         info,
+        prompt,
         updateState,
         warning,
       });

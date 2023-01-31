@@ -27,6 +27,11 @@ export type FlowHooks<
   info(message: string): void;
 
   /**
+   * Hook to prompt the user for the given state key.
+   */
+  prompt(key: string, message: string): Promise<string>;
+
+  /**
    * Returns `true` if the flow should stop processing at this point.
    */
   shouldStop(
@@ -91,7 +96,12 @@ export interface FlowInterface<
    * and the original options.
    */
   evaluate(
-    func: (page: Page, state: OutputState, options: Options) => Promise<void>
+    func: (
+      page: Page,
+      state: OutputState,
+      options: Options,
+      hooks: FlowHooks<InputState, OutputState, Options>
+    ) => Promise<void>
   ): FlowInterface<InputState, OutputState, Options>;
 
   /**
@@ -103,7 +113,8 @@ export interface FlowInterface<
     func: (
       page: Page,
       state: OutputState,
-      options: Options
+      options: Options,
+      hooks: FlowHooks<InputState, OutputState, Options>
     ) => Promise<NextOutputState>
   ): FlowInterface<InputState, NextOutputState, Options>;
 

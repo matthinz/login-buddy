@@ -37,7 +37,18 @@ export const SIGN_UP_FLOW = createFlow<{}, SignupOptions>()
   .submit("button[type=submit]")
 
   .expectUrl("/sign_up/verify_email")
-  .submit("#confirm-now")
+
+  .branch(
+    async (page) => !!(await page.$("#confirm-now")),
+    // We can just confirm right away
+    (flow) => flow.submit("#confirm-now"),
+
+    // We have to click a link in an email
+    (flow) =>
+      flow.evaluateAndModifyState(async (page, state, options) => {
+        return state;
+      })
+  )
 
   .expectUrl("/sign_up/enter_password")
   .type('[name="password_form\\[password\\]"]', (state) => state.password)

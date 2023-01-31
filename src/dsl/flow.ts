@@ -7,6 +7,9 @@ import { resolveFromState } from "./util";
 
 const DEFAULT_HOOKS = {
   info(message: string) {},
+  async prompt(key: string) {
+    throw new Error(`key not available: ${key}`);
+  },
   shouldStop() {
     return false;
   },
@@ -156,12 +159,13 @@ export class Flow<
     funcToEval: (
       page: Page,
       state: OutputState,
-      options: Options
+      options: Options,
+      hooks: FlowHooks<InputState, OutputState, Options>
     ) => Promise<void>
   ) {
-    return this.derive(async (state, options) => {
+    return this.derive(async (state, options, hooks) => {
       const { page } = options;
-      await funcToEval(page, state, options);
+      await funcToEval(page, state, options, hooks);
       return state;
     });
   }
@@ -170,12 +174,13 @@ export class Flow<
     funcToEval: (
       page: Page,
       state: OutputState,
-      options: Options
+      options: Options,
+      hooks: FlowHooks<InputState, OutputState, Options>
     ) => Promise<NextState>
   ) {
-    return this.derive(async (state: OutputState, options: Options) => {
+    return this.derive(async (state: OutputState, options: Options, hooks) => {
       const { page } = options;
-      const modifiedState = await funcToEval(page, state, options);
+      const modifiedState = await funcToEval(page, state, options, hooks);
       return modifiedState;
     });
   }
