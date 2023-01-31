@@ -1,7 +1,7 @@
 import { Flow } from "./flow";
 import { FlowInterface, FlowRunOptions } from "./types";
 
-export { FlowRunOptions } from "./types";
+export { FlowInterface, FlowRunOptions } from "./types";
 
 export function createFlow<InputState, Options>(): FlowInterface<
   InputState,

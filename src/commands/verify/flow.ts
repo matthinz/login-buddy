@@ -1,5 +1,6 @@
+import { Page } from "puppeteer";
 import { VerifyOptions } from ".";
-import { createFlow } from "../../dsl";
+import { createFlow, FlowInterface, FlowRunOptions } from "../../dsl";
 
 type InputState = {
   email: string;
@@ -98,6 +99,9 @@ export const VERIFY_FLOW = createFlow<InputState, VerifyOptions>()
   .type('[name="user[password]"]', (state) => state.password)
   .submit('form[action="/verify/review"] button[type=submit]')
 
+  // Handle OTP before and after personal key
+  .branch(isComeBackLaterScreen, enterOtp, doNothing)
+
   // "Save your personal key"
   .expectUrl("/verify/personal_key")
   .evaluateAndModifyState(async (page, state) => {
@@ -108,7 +112,9 @@ export const VERIFY_FLOW = createFlow<InputState, VerifyOptions>()
     return { ...state, personalKey };
   })
   .click("label[for=acknowledgment]")
-  .submit();
+  .submit()
+
+  .branch(isComeBackLaterScreen, enterOtp, doNothing);
 
 function generateSsn(): string {
   let result = "666";
@@ -116,4 +122,49 @@ function generateSsn(): string {
     result += String(Math.floor(Math.random() * 10));
   }
   return result;
+}
+
+async function isComeBackLaterScreen(page: Page): Promise<boolean> {
+  return new URL(page.url()).pathname === "/verify/come_back_later";
+}
+
+function doNothing<
+  InputState,
+  OutputState extends InputState,
+  Options extends FlowRunOptions
+>(
+  flow: FlowInterface<InputState, OutputState, Options>
+): FlowInterface<InputState, OutputState, Options> {
+  return flow;
+}
+
+function enterOtp<
+  InputState,
+  OutputState extends InputState,
+  Options extends FlowRunOptions
+>(
+  flow: FlowInterface<InputState, OutputState, Options>
+): FlowInterface<InputState, OutputState & { otp: string }, Options> {
+  return (
+    flow
+      .expectUrl("/verify/come_back_later")
+      .navigateTo("/account/verify")
+      // "Welcome back"
+      .evaluateAndModifyState(async (page, state) => {
+        let otp = await page.evaluate(
+          () =>
+            // @ts-ignore
+            document.querySelector('[name="gpo_verify_form[otp]"]')?.value
+        );
+
+        if (!otp) {
+          // TODO: Prompt for OTP
+          throw new Error("No OTP present on the page");
+        }
+
+        return { ...state, otp };
+      })
+      .type('[name="gpo_verify_form[otp]"]', (state) => state.otp)
+      .submit()
+  );
 }
