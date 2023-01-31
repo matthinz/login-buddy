@@ -7,7 +7,12 @@ type StateWithBaseUrlInProgramOptions = {
   };
 };
 
-type StateUpdater<State> = (newState: State) => void;
+type RunFunction<State extends {}, Options extends {}> = (
+  state: State,
+  options: Options,
+  hooks: CommandHooks<State>
+) => CommandExecution<State>;
+
 
 /**
  * Creates a run() function that manages tracking a browser instance
@@ -20,11 +25,7 @@ export function runFromBrowser<State extends {}, Options extends {}>(
     options: Options,
     hooks: CommandHooks<State>
   ) => Promise<State>
-): (
-  state: State,
-  options: Options,
-  hooks: CommandHooks<State>
-) => CommandExecution<State> {
+): RunFunction<State, Options> {
   return makeRunner(async (state, options, hooks) => {
     const newState = await ensureBrowserLaunched(state);
     hooks.updateState(newState); // Ensure we save the browser we launched
@@ -52,11 +53,7 @@ export function runFromPage<
     options: Options,
     hooks: CommandHooks<State>
   ) => Promise<State>
-): (
-  state: State,
-  options: Options,
-  hooks: CommandHooks<State>
-) => CommandExecution<State> {
+): RunFunction<State, Options> {
   async function shouldUsePage(page: Page): Promise<boolean> {
     return pageMatches(url, page);
   }
@@ -84,11 +81,7 @@ export function runFromPageFancy<State extends {}, Options extends {}>(
     options: Options,
     hooks: CommandHooks<State>
   ) => Promise<State>
-): (
-  state: State,
-  options: Options,
-  hooks: CommandHooks<State>
-) => CommandExecution<State> {
+): RunFunction<State, Options> {
   return runFromBrowser(
     async (
       browser: Browser,
@@ -140,11 +133,7 @@ export function makeRunner<State extends {}, Options extends {}>(
     options: Options,
     hooks: CommandHooks<State>
   ) => Promise<State>
-): (
-  state: State,
-  options: Options,
-  hooks: CommandHooks<State>
-) => CommandExecution<State> {
+): RunFunction<State, Options> {
   return function run(state, options, hooks): CommandExecution<State> {
     let resolve: (state: State) => void;
     let reject: (err: Error) => void;
