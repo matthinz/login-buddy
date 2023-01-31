@@ -66,6 +66,8 @@ export const run = runFromBrowser(
           });
         })
       );
+
+      await page.reload();
     }
 
     if (message) {
