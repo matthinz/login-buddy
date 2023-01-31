@@ -70,7 +70,7 @@ export function emailsPlugin({
       message.to.join(","),
       chalk.bold(message.subject),
       getLinksInEmail(message)
-        .map((link) => chalk.blue(`   ${link}`))
+        .map((link) => chalk.blueBright(`   ${link}`))
         .join("\n")
     );
   }

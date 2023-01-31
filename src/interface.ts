@@ -95,7 +95,8 @@ export function createInterface(
     console.log(`
   ${chalk.bold("Welcome to Login Buddy!")}
   
-  This is a little helper for you if you're doing work on the Login.gov frontend.
+  This is a little helper for you if you're doing work on the 
+  Login.gov frontend.
   
   Some commands:
   
