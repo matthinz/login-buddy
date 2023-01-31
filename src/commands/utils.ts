@@ -13,6 +13,46 @@ type RunFunction<State extends {}, Options extends {}> = (
   hooks: CommandHooks<State>
 ) => CommandExecution<State>;
 
+/**
+ * Creates a run() function that discovers the active page in the browser
+ * and passes it in.
+ */
+export function runFromActivePage<State extends {}, Options extends {}>(
+  func: (
+    page: Page,
+    state: State,
+    options: Options,
+    hooks: CommandHooks<State>
+  ) => Promise<State>
+): RunFunction<State, Options> {
+  return runFromBrowser(async (browser, state, options, hooks) => {
+    const pages = await browser.pages();
+    const page = await pages.reduce<Promise<Page | undefined>>(
+      (promise, page) => {
+        return promise.then(async (result) => {
+          if (result) {
+            return result;
+          }
+
+          const isVisible = await page.evaluate(
+            () => document.visibilityState === "visible"
+          );
+
+          if (isVisible) {
+            return page;
+          }
+        });
+      },
+      Promise.resolve(undefined)
+    );
+
+    if (!page) {
+      throw new Error("No current page.");
+    }
+
+    return func(page, state, options, hooks);
+  });
+}
 
 /**
  * Creates a run() function that manages tracking a browser instance

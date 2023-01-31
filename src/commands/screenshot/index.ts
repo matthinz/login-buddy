@@ -1,7 +1,7 @@
 import fs from "node:fs/promises";
-import { Browser } from "puppeteer";
+import { Browser, Page, Target } from "puppeteer";
 import { GlobalState } from "../../types";
-import { runFromBrowser } from "../utils";
+import { runFromActivePage, runFromBrowser } from "../utils";
 
 const LANGUAGES = ["en", "fr", "es"] as const;
 
@@ -20,19 +20,8 @@ export function parseOptions(args: string[]): ScreenshotOptions | undefined {
   };
 }
 
-export const run = runFromBrowser(
-  async (
-    browser: Browser,
-    globalState: GlobalState,
-    options: ScreenshotOptions
-  ) => {
-    const pages = await browser.pages();
-    const page = pages[0];
-
-    if (!page) {
-      throw new Error("No current page.");
-    }
-
+export const run = runFromActivePage(
+  async (page: Page, globalState: GlobalState, options: ScreenshotOptions) => {
     const originalUrl = page.url();
 
     await LANGUAGES.reduce<Promise<void>>(function (promise, lang) {
