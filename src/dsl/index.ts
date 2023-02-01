@@ -3,7 +3,7 @@ import { FlowInterface, FlowRunOptions } from "./types";
 
 export { FlowInterface, FlowRunOptions } from "./types";
 
-export function createFlow<InputState, Options>(): FlowInterface<
+export function createFlow<InputState extends {}, Options>(): FlowInterface<
   InputState,
   InputState,
   Options & FlowRunOptions

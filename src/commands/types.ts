@@ -1,9 +1,9 @@
 import { FlowRunOptions } from "../dsl";
 
 export type CommandHooks<GlobalState> = {
-  info(message: string): void;
+  ask(message: string): Promise<string | undefined>;
 
-  prompt(message: string): Promise<string>;
+  info(message: string): void;
 
   /**
    * Called to synchronously update global state.

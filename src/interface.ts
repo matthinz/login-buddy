@@ -68,10 +68,6 @@ export function createInterface(
       console.log(message);
     };
 
-    const prompt = (message: string): Promise<string> => {
-      throw new Error("prompt() not implemented");
-    };
-
     const updateState = (newState: GlobalState) => {
       globalState = newState;
     };
@@ -87,12 +83,26 @@ export function createInterface(
       }
 
       return commands[i].run(globalState, options, {
+        ask,
         info,
-        prompt,
         updateState,
         warning,
       });
     }
+  }
+
+  function ask(message: string): Promise<string | undefined> {
+    return new Promise((resolve) => {
+      message = message.trim().replace(/:$/, "") + ":";
+
+      if (message.length > 25) {
+        message += "\n\n";
+      }
+
+      rl.question(message, (answer: string) => {
+        resolve(answer);
+      });
+    });
   }
 
   function welcome() {

@@ -7,8 +7,8 @@ import { resolveFromState } from "./util";
 
 const DEFAULT_HOOKS = {
   info(message: string) {},
-  async prompt(key: string) {
-    throw new Error(`key not available: ${key}`);
+  async ask(message: string) {
+    return undefined;
   },
   shouldStop() {
     return false;
@@ -37,7 +37,7 @@ type StateBuilder<
 ) => Promise<BuiltState<InputState, OutputState>>;
 
 export class Flow<
-  InputState,
+  InputState extends {},
   OutputState extends InputState,
   Options extends FlowRunOptions
 > implements FlowInterface<InputState, OutputState, Options>
@@ -95,6 +95,49 @@ export class Flow<
           state: await func(state as OutputState, options, hooks),
           isPartial: false,
         };
+      }
+    );
+  }
+
+  askIfNeeded<Key extends string>(
+    key: FromState<Key, OutputState>,
+    message: FromState<string, OutputState>,
+    normalizer?: (
+      input: string
+    ) => string | undefined | Promise<string | undefined>
+  ): FlowInterface<InputState, OutputState & { [K in Key]: string }, Options> {
+    return this.derive(
+      async (
+        state,
+        _options,
+        hooks
+      ): Promise<OutputState & { [K in Key]: string }> => {
+        let value: string | undefined;
+        const resolvedKey = await resolveFromState(key, state);
+
+        if (state) {
+          const existingValue = (state as Record<string, unknown>)[resolvedKey];
+          if (existingValue != null) {
+            value = String(existingValue);
+          }
+        }
+
+        const resolvedMessage = await resolveFromState(message, state);
+
+        while (true) {
+          if (value != null && normalizer) {
+            value = await normalizer(value);
+          }
+
+          if (value != null) {
+            return {
+              ...state,
+              [resolvedKey]: value,
+            } as OutputState & { [K in Key]: string };
+          }
+
+          value = await hooks.ask(resolvedMessage);
+        }
       }
     );
   }

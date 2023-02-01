@@ -41,13 +41,30 @@ export const SIGN_UP_FLOW = createFlow<{}, SignupOptions>()
   .branch(
     async (page) => !!(await page.$("#confirm-now")),
     // We can just confirm right away
+    // This route is available when enable_load_testing_mode is set
     (flow) => flow.submit("#confirm-now"),
 
     // We have to click a link in an email
     (flow) =>
-      flow.evaluateAndModifyState(async (page, state, options) => {
-        return state;
-      })
+      flow
+        .askIfNeeded(
+          "confirmEmailToken",
+          "Check your email and paste your confirmation link here",
+          (token) => {
+            token = (token ?? "").trim();
+
+            try {
+              const url = new URL(token);
+              token = url.searchParams.get("confirmation_token") ?? "";
+            } catch (err) {}
+
+            return token;
+          }
+        )
+        .navigateTo(
+          (state) =>
+            `/sign_up/email/confirm?confirmation_token=${state.confirmEmailToken}`
+        )
   )
 
   .expectUrl("/sign_up/enter_password")

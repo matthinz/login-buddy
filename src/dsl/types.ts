@@ -24,12 +24,12 @@ export type FlowHooks<
   OutputState extends InputState,
   Options extends FlowRunOptions
 > = {
-  info(message: string): void;
-
   /**
-   * Hook to prompt the user for the given state key.
+   * Hook to prompt the user for input.
    */
-  prompt(key: string, message: string): Promise<string>;
+  ask(message: string): Promise<string | undefined>;
+
+  info(message: string): void;
 
   /**
    * Returns `true` if the flow should stop processing at this point.
@@ -69,6 +69,14 @@ export interface FlowInterface<
     options: Options,
     hooks: Partial<FlowHooks<InputState, OutputState, Options>>
   ): Promise<InputState & Partial<OutputState>>;
+
+  askIfNeeded<Key extends string>(
+    key: FromState<Key, OutputState>,
+    message: FromState<string, OutputState>,
+    normalizer?: (
+      input: string
+    ) => string | undefined | Promise<string | undefined>
+  ): FlowInterface<InputState, OutputState & { [K in Key]: string }, Options>;
 
   branch<
     TrueOutputState extends OutputState,
@@ -127,9 +135,9 @@ export interface FlowInterface<
     generator: FromState<Value, OutputState>
   ): FlowInterface<InputState, OutputState & { [K in Key]: Value }, Options>;
 
-  navigateTo: (
+  navigateTo(
     url: FromState<string | URL, OutputState>
-  ) => FlowInterface<InputState, OutputState, Options>;
+  ): FlowInterface<InputState, OutputState, Options>;
 
   // Actions that can be taken
 

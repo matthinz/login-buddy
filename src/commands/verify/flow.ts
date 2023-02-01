@@ -151,20 +151,29 @@ function enterOtp<
       .navigateTo("/account/verify")
       // "Welcome back"
       .evaluateAndModifyState(async (page, state) => {
-        let otp = await page.evaluate(
-          () =>
-            // @ts-ignore
-            document.querySelector('[name="gpo_verify_form[otp]"]')?.value
-        );
+        // Locally, IDP will put the OTP on the page for us to read.
+        let gpoOtp = await page.evaluate(() =>
+          // @ts-ignore
+          {
+            const otpInput = document.querySelector(
+              '[name="gpo_verify_form[otp]"]'
+            ) as HTMLInputElement | undefined;
 
-        if (!otp) {
-          // TODO: Prompt for OTP
-          throw new Error("No OTP present on the page");
-        }
+            if (!otpInput) {
+              return;
+            }
+
+            const result = otpInput.value;
+            otpInput.value = "";
+
+            return result;
+          }
+        );
 
         return { ...state, otp };
       })
-      .type('[name="gpo_verify_form[otp]"]', (state) => state.otp)
+      .askIfNeeded("gpoOtp", "Please enter your GPO one-time password")
+      .type('[name="gpo_verify_form[otp]"]', (state) => state.gpoOtp)
       .submit()
   );
 }
