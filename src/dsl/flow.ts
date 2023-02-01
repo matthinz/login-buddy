@@ -108,16 +108,18 @@ export class Flow<
     trueBranch: (
       start: FlowInterface<InputState, OutputState, Options>,
       state: OutputState,
-      options: Options
+      options: Options,
+      hooks: FlowHooks<InputState, OutputState, Options>
     ) => FlowInterface<OutputState, TrueOutputState, Options>,
     falseBranch: (
       start: FlowInterface<InputState, OutputState, Options>,
       state: OutputState,
-      options: Options
+      options: Options,
+      hooks: FlowHooks<InputState, OutputState, Options>
     ) => FlowInterface<OutputState, FalseOutputState, Options>
   ): FlowInterface<InputState, TrueOutputState | FalseOutputState, Options> {
     return this.derive<TrueOutputState | FalseOutputState>(
-      async (state, options) => {
+      async (state, options, hooks) => {
         const { page } = options;
         const result = await check(page, state, options);
 
@@ -126,11 +128,15 @@ export class Flow<
         );
 
         const flow = result
-          ? trueBranch(start, state, options)
-          : falseBranch(start, state, options);
+          ? trueBranch(start, state, options, hooks)
+          : falseBranch(start, state, options, hooks);
 
-        const nextState = await flow.run(state, options);
-        return nextState;
+        // XXX: Types get a little wishy-washy here due
+        //      to .shouldStop()
+
+        return (await flow.run(state, options, hooks)) as
+          | TrueOutputState
+          | FalseOutputState;
       }
     );
   }
