@@ -144,7 +144,7 @@ function enterOtp<
   Options extends FlowRunOptions
 >(
   flow: FlowInterface<InputState, OutputState, Options>
-): FlowInterface<InputState, OutputState & { otp: string }, Options> {
+): FlowInterface<InputState, OutputState & { gpoOtp: string }, Options> {
   return (
     flow
       .expectUrl("/verify/come_back_later")
@@ -170,7 +170,7 @@ function enterOtp<
           }
         );
 
-        return { ...state, otp };
+        return { ...state, gpoOtp };
       })
       .askIfNeeded("gpoOtp", "Please enter your GPO one-time password")
       .type('[name="gpo_verify_form[otp]"]', (state) => state.gpoOtp)
