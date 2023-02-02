@@ -13,7 +13,7 @@ export const LOG_IN = createFlow<SignUpState, {}>()
     (flow) =>
       flow
         .expectUrl("/login/two_factor/backup_code")
-        .evaluateAndModifyState(async (_page, state) => {
+        .evaluate(async (_page, state) => {
           const { code, newState } = getOtp(state);
           return {
             ...newState,

@@ -198,33 +198,18 @@ export class Flow<
     });
   }
 
-  evaluate(
+  evaluate<NextOutputState extends OutputState>(
     funcToEval: (
       page: Page,
       state: OutputState,
       options: Options,
       hooks: FlowHooks<InputState, OutputState, Options>
-    ) => Promise<void>
+    ) => Promise<NextOutputState>
   ) {
     return this.derive(async (state, options, hooks) => {
       const { page } = options;
-      await funcToEval(page, state, options, hooks);
-      return state;
-    });
-  }
-
-  evaluateAndModifyState<NextState extends OutputState>(
-    funcToEval: (
-      page: Page,
-      state: OutputState,
-      options: Options,
-      hooks: FlowHooks<InputState, OutputState, Options>
-    ) => Promise<NextState>
-  ) {
-    return this.derive(async (state: OutputState, options: Options, hooks) => {
-      const { page } = options;
-      const modifiedState = await funcToEval(page, state, options, hooks);
-      return modifiedState;
+      const nextState = await funcToEval(page, state, options, hooks);
+      return nextState == null ? state : nextState;
     });
   }
 

@@ -85,7 +85,7 @@ export const SIGN_UP_FLOW = createFlow<{}, SignupOptions>()
         .submit("button[type=submit]")
 
         .expectUrl("/backup_code_setup")
-        .evaluateAndModifyState(async (page, state) => {
+        .evaluate(async (page, state) => {
           const backupCodes = await page.evaluate((): string[] => {
             return [].map.call(
               // @ts-ignore
@@ -106,7 +106,7 @@ export const SIGN_UP_FLOW = createFlow<{}, SignupOptions>()
         .submit("button[type=submit]")
         .expectUrl("/authenticator_setup")
         .type("input[name=name]", "Login Buddy")
-        .evaluateAndModifyState(async (page, state) => {
+        .evaluate(async (page, state) => {
           const code = (await page.evaluate(() => {
             // @ts-ignore
             return document.querySelector("#qr-code")?.innerText ?? "";

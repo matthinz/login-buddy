@@ -104,7 +104,7 @@ export const VERIFY_FLOW = createFlow<InputState, VerifyOptions>()
 
   // "Save your personal key"
   .expectUrl("/verify/personal_key")
-  .evaluateAndModifyState(async (page, state) => {
+  .evaluate(async (page, state) => {
     const personalKey = (await page.evaluate(() => {
       // @ts-ignore
       return document.querySelector(".personal-key-block").innerText;
@@ -150,7 +150,7 @@ function enterOtp<
       .expectUrl("/verify/come_back_later")
       .navigateTo("/account/verify")
       // "Welcome back"
-      .evaluateAndModifyState(async (page, state) => {
+      .evaluate(async (page, state) => {
         // Locally, IDP will put the OTP on the page for us to read.
         let gpoOtp = await page.evaluate(() =>
           // @ts-ignore

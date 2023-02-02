@@ -100,9 +100,17 @@ export interface FlowInterface<
   ): FlowInterface<InputState, TrueOutputState | FalseOutputState, Options>;
 
   /**
-   * Evaluates a function, passing in a Puppeteer page, the current state,
-   * and the original options.
+   * Evaluates a function and allows modifying state.
    */
+  evaluate<NextOutputState extends OutputState>(
+    func: (
+      page: Page,
+      state: OutputState,
+      options: Options,
+      hooks: FlowHooks<InputState, OutputState, Options>
+    ) => Promise<NextOutputState>
+  ): FlowInterface<InputState, NextOutputState, Options>;
+
   evaluate(
     func: (
       page: Page,
@@ -111,20 +119,6 @@ export interface FlowInterface<
       hooks: FlowHooks<InputState, OutputState, Options>
     ) => Promise<void>
   ): FlowInterface<InputState, OutputState, Options>;
-
-  /**
-   * Evaluates a function, passing in a Puppeteer page, the current state,
-   * and the original options.
-   * <func> can return a new state.
-   */
-  evaluateAndModifyState<NextOutputState extends OutputState>(
-    func: (
-      page: Page,
-      state: OutputState,
-      options: Options,
-      hooks: FlowHooks<InputState, OutputState, Options>
-    ) => Promise<NextOutputState>
-  ): FlowInterface<InputState, NextOutputState, Options>;
 
   expectUrl(
     url: FromState<string | URL, OutputState>
