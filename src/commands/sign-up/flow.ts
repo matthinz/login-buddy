@@ -3,21 +3,32 @@ import totp from "totp-generator";
 import { createFlow } from "../../dsl";
 import { SignupOptions } from "./types";
 
+type InitialSignupState = {
+  email?: string;
+  password?: string;
+  phone?: string;
+  totpCode?: string;
+  backupCodes?: string[];
+};
+
 const DEFAULT_PASSWORD = "reallygoodpassword";
 
-export const SIGN_UP_FLOW = createFlow<{}, SignupOptions>()
+export const SIGN_UP_FLOW = createFlow<InitialSignupState, SignupOptions>()
+  .generate("email", generateEmail)
+  .generate("password", () => DEFAULT_PASSWORD)
+  .generate("phone", () => "3602345678")
+
   .branch(
-    (_page, _state, options) => options.sp,
-    (useSp, _state, options) => {
-      const { spUrl } = options;
-      if (!spUrl) {
+    (_page, _state, options) => !!options.sp,
+    (useSp, _state, { sp }) => {
+      if (!sp) {
         throw new Error(
           "Signup via SP was requested but no SP url is available"
         );
       }
       return (
         useSp
-          .navigateTo(spUrl)
+          .navigateTo(sp.url)
           .select("[name=ial]", "2")
           .submit("form button[type=submit]")
           // Example Sinatra App is using Login.gov...
@@ -30,8 +41,6 @@ export const SIGN_UP_FLOW = createFlow<{}, SignupOptions>()
     },
     (noSp) => noSp.navigateTo("/sign_up/enter_email")
   )
-  .generate("email", generateEmail)
-  .generate("password", () => DEFAULT_PASSWORD)
   .type('[name="user\\[email\\]"]', (state) => state.email)
   .click("label[for=user_terms_accepted]")
   .submit("button[type=submit]")
@@ -73,10 +82,9 @@ export const SIGN_UP_FLOW = createFlow<{}, SignupOptions>()
 
   .expectUrl("/authentication_methods_setup")
 
+  // Use backup codes
   .branch(
-    (_page, _state, options) => options.useBackupCodes,
-
-    // Use backup codes
+    (_page, _state, options) => options.twoFactor === "backup_codes",
     (flow) =>
       flow
         .click("label[for=two_factor_options_form_selection_backup_code]")
@@ -97,9 +105,12 @@ export const SIGN_UP_FLOW = createFlow<{}, SignupOptions>()
 
           return { ...state, backupCodes };
         })
-        .submit('form[action="/backup_code_continue"] button[type=submit]'),
+        .submit('form[action="/backup_code_continue"] button[type=submit]')
+  )
 
-    // Use TOTP
+  // Use TOTP
+  .branch(
+    (_page, _state, options) => options.twoFactor === "totp",
     (flow) =>
       flow
         .click("label[for=two_factor_options_form_selection_auth_app]")
@@ -124,6 +135,38 @@ export const SIGN_UP_FLOW = createFlow<{}, SignupOptions>()
         .type("input[autocomplete=one-time-code]", ({ totpCode }) =>
           totp(totpCode)
         )
+        .submit()
+  )
+
+  // Use sms
+  .branch(
+    (_page, _state, options) => options.twoFactor === "sms",
+    (flow) =>
+      flow
+        .click("label[for=two_factor_options_form_selection_phone]")
+        .submit()
+
+        .askIfNeeded("phone", "Please enter your actual phone number here")
+
+        .type('input[name="new_phone_form[phone]"]', (state) => state.phone)
+        .submit()
+
+        .expectUrl(
+          "/login/two_factor/sms?otp_make_default_number=&reauthn=false"
+        )
+        .evaluate(async (page, state) => {
+          const otp = await page.$eval(
+            "[autocomplete=one-time-code]",
+            (el) => (el as HTMLInputElement).value
+          );
+          return {
+            ...state,
+            otp,
+          };
+        })
+        .askIfNeeded("otp", "Enter the OTP you received here")
+
+        .type("[autocomplete=one-time-code]", (state) => state.otp)
         .submit()
   )
 

@@ -92,7 +92,7 @@ export interface FlowInterface<
       state: OutputState,
       options: Options
     ) => FlowInterface<InputState, TrueOutputState, Options>,
-    falseBranch: (
+    falseBranch?: (
       start: FlowInterface<InputState, OutputState, Options>,
       state: OutputState,
       options: Options

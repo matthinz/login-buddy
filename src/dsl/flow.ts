@@ -157,7 +157,7 @@ export class Flow<
       options: Options,
       hooks: FlowHooks<InputState, OutputState, Options>
     ) => FlowInterface<OutputState, TrueOutputState, Options>,
-    falseBranch: (
+    falseBranch?: (
       start: FlowInterface<InputState, OutputState, Options>,
       state: OutputState,
       options: Options,
@@ -173,9 +173,23 @@ export class Flow<
           Promise.resolve({ state, isPartial: false })
         );
 
-        const flow = result
-          ? trueBranch(start, state, options, hooks)
-          : falseBranch(start, state, options, hooks);
+        let flow: FlowInterface<
+          InputState,
+          TrueOutputState | FalseOutputState,
+          Options
+        >;
+
+        if (result) {
+          flow = trueBranch(start, state, options, hooks);
+        } else if (falseBranch) {
+          flow = falseBranch(start, state, options, hooks);
+        } else {
+          flow = start as unknown as FlowInterface<
+            InputState,
+            FalseOutputState,
+            Options
+          >;
+        }
 
         // XXX: Types get a little wishy-washy here due
         //      to .shouldStop()
