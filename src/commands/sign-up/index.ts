@@ -1,3 +1,5 @@
+import chalk from "chalk";
+import { sign } from "crypto";
 import getopts from "getopts";
 import { Page } from "puppeteer";
 import { until } from "../../dsl";
@@ -6,6 +8,8 @@ import { CommandHooks } from "../types";
 import { runFromPageFancy } from "../utils";
 import { SIGN_UP_FLOW } from "./flow";
 import { SignupOptions, SpMethod, TwoFactorMethod } from "./types";
+
+export { SignupState } from "./types";
 
 // I can never remember what urls are what.
 const UNTIL_ALIASES: { [key: string]: string | undefined } = {
@@ -98,50 +102,45 @@ export const run = runFromPageFancy(
       }
     );
 
-    const { email, password } = signUpState;
-    let backupCodes =
-      "backupCodes" in signUpState ? signUpState.backupCodes : undefined;
-    let totpCode = "totpCode" in signUpState ? signUpState.totpCode : undefined;
+    const { email, password, totpCode, backupCodes, phone } = signUpState;
 
-    if (!(email && password && (backupCodes || totpCode))) {
+    if (!email || !password) {
       return globalState;
     }
+
+    const info = [
+      ["Email", email],
+      ["Password", password],
+      phone && ["Phone", phone],
+      backupCodes && ["Backup codes", backupCodes.join("\n")],
+    ].filter(Boolean) as [string, string][];
 
     console.log(
-      `
-
-Signup complete!
-User: ${email}
-Pass: ${password}`
+      [
+        chalk.bold("Signup complete!"),
+        ...info.map(([label, value]) => {
+          if (/\n/.test(value)) {
+            return `${chalk.dim(label)}:\n${value
+              .split("\n")
+              .map((line) => `  ${line}`)
+              .join("\n")}`;
+          } else {
+            return `${chalk.dim(label)}: ${value}`;
+          }
+        }),
+      ].join("\n")
     );
 
-    if (backupCodes) {
-      console.log("Backup codes: %s", (backupCodes ?? []).join("\n  "));
-
-      return {
-        ...globalState,
-        lastSignup: {
-          ...signUpState,
-          email,
-          password,
-          backupCodes,
-          totpCode: undefined,
-        },
-      };
-    } else if (totpCode) {
-      return {
-        ...globalState,
-        lastSignup: {
-          ...signUpState,
-          email,
-          password,
-          backupCodes: undefined,
-          totpCode,
-        },
-      };
-    } else {
-      return globalState;
-    }
+    return {
+      ...globalState,
+      lastSignup: {
+        email,
+        password,
+        totpCode,
+        phone,
+        backupCodes,
+      },
+    };
   }
 );
 

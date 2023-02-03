@@ -1,9 +1,9 @@
 import totp from "totp-generator";
-import { SignUpState } from "./types";
+import { SignupState } from "./commands/sign-up";
 
-export function getOtp(state: SignUpState): {
+export function getOtp(state: SignupState): {
   code: string;
-  newState: SignUpState;
+  newState: SignupState;
 } {
   if (state.backupCodes) {
     const backupCodes = [...state.backupCodes];

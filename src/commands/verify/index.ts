@@ -1,31 +1,19 @@
-import { P, ParsedType } from "p-block";
 import getopts from "getopts";
 import { Page } from "puppeteer";
-import { FlowRunOptions, until } from "../../dsl";
+import { until } from "../../dsl";
 
 import { GlobalState } from "../../types";
 import { runFromPageFancy } from "../utils";
 import { VERIFY_FLOW } from "./flow";
+import {
+  ThreatMetrixResult,
+  THREATMETRIX_RESULTS,
+  VerifyOptions,
+} from "./types";
 
 const UNTIL_ALIASES: { [key: string]: string | RegExp } = {
   verify: /(\/verify\/doc_auth\/verify|\/verify\/verify_info)/,
 };
-
-export const THREATMETRIX_OPTIONS = ["no_result", "pass", "reject", "review"];
-
-export const verifyParametersParser = P.object()
-  .withProperties({
-    threatMetrix: P.string().isIn(THREATMETRIX_OPTIONS),
-    gpo: P.boolean(),
-    until: P.string().optional(),
-  })
-  .defaultedTo({
-    gpo: false,
-    threatMetrix: "no_result",
-  });
-
-export type VerifyOptions = ParsedType<typeof verifyParametersParser> &
-  Omit<FlowRunOptions, "page">;
 
 export function parseOptions(
   args: string[],
@@ -42,18 +30,23 @@ export function parseOptions(
     },
   });
 
-  const parsed = verifyParametersParser.parse(raw);
-  if (!parsed.success) {
-    parsed.errors.forEach((err) => {
-      console.error(err.message);
-    });
-    return undefined;
+  let threatMetrix = raw.threatMetrix == null ? "no_result" : raw.threatMetrix;
+  if (!THREATMETRIX_RESULTS.includes(threatMetrix)) {
+    throw new Error("Invalid value for --threatmetrix");
   }
 
+  const gpo = !!raw.gpo;
+
+  const hybrid = !!raw.hybrid;
+
+  const until = raw.until;
+
   return {
-    ...parsed.parsed,
     baseURL,
-    onWarning(message: string) {},
+    hybrid,
+    gpo,
+    threatMetrix: threatMetrix as ThreatMetrixResult,
+    until,
   };
 }
 

@@ -1,8 +1,8 @@
 import { createFlow } from "../../dsl";
 import { getOtp } from "../../state";
-import { SignUpState } from "../../types";
+import { SignupState } from "../sign-up";
 
-export const LOG_IN = createFlow<SignUpState, {}>()
+export const LOG_IN = createFlow<SignupState, {}>()
   .type('[name="user[email]"]', (state) => state.email)
   .type('[name="user[password]"]', (state) => state.password)
   .submit()
@@ -35,7 +35,7 @@ export const LOG_IN = createFlow<SignUpState, {}>()
     (flow) =>
       flow
         .expectUrl("/login/two_factor/authenticator")
-        .generate("code", (state: SignUpState) => getOtp(state).code)
+        .generate("code", (state: SignupState) => getOtp(state).code)
         .type("input[autocomplete=one-time-code]", (state) => state.code)
         .submit(),
     (flow) => flow

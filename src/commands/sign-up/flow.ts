@@ -1,19 +1,11 @@
 import totp from "totp-generator";
 
 import { createFlow } from "../../dsl";
-import { SignupOptions } from "./types";
-
-type InitialSignupState = {
-  email?: string;
-  password?: string;
-  phone?: string;
-  totpCode?: string;
-  backupCodes?: string[];
-};
+import { SignupOptions, SignupState } from "./types";
 
 const DEFAULT_PASSWORD = "reallygoodpassword";
 
-export const SIGN_UP_FLOW = createFlow<InitialSignupState, SignupOptions>()
+export const SIGN_UP_FLOW = createFlow<Partial<SignupState>, SignupOptions>()
   .generate("email", generateEmail)
   .generate("password", () => DEFAULT_PASSWORD)
   .generate("phone", () => "3602345678")

@@ -1,5 +1,5 @@
 import { Page } from "puppeteer";
-import { VerifyOptions } from ".";
+import { VerifyOptions } from "./types";
 import { createFlow, FlowInterface, FlowRunOptions } from "../../dsl";
 
 type InputState = {
@@ -37,15 +37,30 @@ export const VERIFY_FLOW = createFlow<InputState, VerifyOptions>()
 
   // "How would you like to upload your state-issued ID?"
   .expectUrl("/verify/doc_auth/upload")
-  .submit(
-    'form[action="/verify/doc_auth/upload?type=desktop"] button[type=submit]'
-  )
+  .branch(
+    (_page, _state, options) => options.hybrid,
+    // Hybrid flow
+    (flow) =>
+      flow
+        .submit("button.usa-button--big[type=submit]")
 
-  // "Add your state-issued ID"
-  .expectUrl("/verify/doc_auth/document_capture")
-  .upload("#file-input-1", "proofing.yml", PROOFING_YAML)
-  .upload("#file-input-2", "proofing.yml", PROOFING_YAML)
-  .submit()
+        .expectUrl("/verify/doc_auth/send_link")
+        .evaluate(() => {
+          throw new Error("Complete hybrid flow not implemented");
+        }),
+
+    // Desktop flow
+    (flow) =>
+      flow
+        .submit(
+          'form[action="/verify/doc_auth/upload?type=desktop"] button[type=submit]'
+        )
+        // "Add your state-issued ID"
+        .expectUrl("/verify/doc_auth/document_capture")
+        .upload("#file-input-1", "proofing.yml", PROOFING_YAML)
+        .upload("#file-input-2", "proofing.yml", PROOFING_YAML)
+        .submit()
+  )
 
   // NOTE: Pause for processing documents
 

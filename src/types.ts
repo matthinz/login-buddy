@@ -1,4 +1,5 @@
 import { Browser } from "puppeteer";
+import { SignupState } from "./commands/sign-up";
 
 export type ProgramOptions = Readonly<
   {
@@ -34,19 +35,8 @@ export type ProgramOptions = Readonly<
   )
 >;
 
-export type SignUpState = {
-  email: string;
-  password: string;
-} & (
-  | {
-      backupCodes: string[];
-      totpCode?: undefined;
-    }
-  | { backupCodes?: undefined; totpCode: string }
-);
-
 export type GlobalState = {
   browser?: Browser;
-  lastSignup?: SignUpState | undefined;
+  lastSignup?: SignupState;
   programOptions: ProgramOptions;
 };

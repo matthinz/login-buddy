@@ -11,3 +11,11 @@ export type SignupOptions = {
   twoFactor: TwoFactorMethod;
   until?: string;
 };
+
+export type SignupState = {
+  email: string;
+  password: string;
+  phone?: string;
+  totpCode?: string;
+  backupCodes?: string[];
+};
