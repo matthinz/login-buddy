@@ -11,6 +11,8 @@ import { SignupOptions, SpMethod, TwoFactorMethod } from "./types";
 
 export { SignupState } from "./types";
 
+const DEFAULT_BASE_EMAIL_ADDRESS = "test@example.org";
+
 // I can never remember what urls are what.
 const UNTIL_ALIASES: { [key: string]: string | undefined } = {
   mfa: "/authentication_methods_setup",
@@ -48,6 +50,14 @@ export function parseOptions(
     },
   });
 
+  if (raw.email != null) {
+    if (typeof raw.email !== "string") {
+      throw new Error("Invalid --email");
+    }
+  }
+  const baseEmailAddress =
+    raw.email == null ? DEFAULT_BASE_EMAIL_ADDRESS : String(raw.email);
+
   const sp = resolveSpOptions(raw, environment, baseURL);
 
   const twoFactor = [
@@ -67,6 +77,7 @@ export function parseOptions(
   const until = raw.until == null ? undefined : String(raw.until);
 
   return {
+    baseEmailAddress,
     baseURL,
     sp,
     twoFactor: twoFactor[0] ?? "totp",

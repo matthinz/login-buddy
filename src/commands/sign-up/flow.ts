@@ -167,16 +167,24 @@ export const SIGN_UP_FLOW = createFlow<Partial<SignupState>, SignupOptions>()
 
   .expectUrl("/account");
 
-function generateEmail(): string {
+function generateEmail<State, Options extends SignupOptions>(
+  _state: State,
+  options: Options
+): string {
+  const [name, ...rest] = options.baseEmailAddress.split("@");
   const now = new Date();
+
   return [
-    "test-",
-    now
-      .toISOString()
-      .replace(/\.\d+/, "")
-      .replace(/(Z|[+-]\d+(:\d+)?)$/, "")
-      .replace(/[:-]/g, "")
-      .replace(/T/g, ""),
-    "@example.org",
+    name,
+    "+",
+    now.getUTCFullYear(),
+    String(now.getUTCMonth() + 1).padStart(2, "0"),
+    String(now.getUTCDate()).padStart(2, "0"),
+    "-",
+    String(now.getUTCHours()).padStart(2, "0"),
+    String(now.getUTCMinutes()).padStart(2, "0"),
+    String(now.getUTCSeconds()).padStart(2, "0"),
+    "@",
+    rest.join("@"),
   ].join("");
 }

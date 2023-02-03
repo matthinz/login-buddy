@@ -4,6 +4,10 @@ export type TwoFactorMethod = "sms" | "totp" | "backup_codes";
 
 export type SignupOptions = {
   baseURL: URL;
+  /**
+   * Email address used to generate addresses for new accounts.
+   */
+  baseEmailAddress: string;
   sp?: {
     method: SpMethod;
     url: URL;
