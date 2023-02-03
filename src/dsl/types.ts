@@ -71,8 +71,8 @@ export interface FlowInterface<
   ): Promise<InputState & Partial<OutputState>>;
 
   askIfNeeded<Key extends string>(
-    key: FromState<Key, OutputState>,
-    message: FromState<string, OutputState>,
+    key: FromStateAndOptions<Key, OutputState, Options>,
+    message: FromStateAndOptions<string, OutputState, Options>,
     normalizer?: (
       input: string
     ) => string | undefined | Promise<string | undefined>
@@ -121,46 +121,50 @@ export interface FlowInterface<
   ): FlowInterface<InputState, OutputState, Options>;
 
   expectUrl(
-    url: FromState<string | URL, OutputState>
+    url: FromStateAndOptions<string | URL, OutputState, Options>
   ): FlowInterface<InputState, OutputState, Options>;
 
   generate<Key extends string, Value>(
     key: Key,
-    generator: FromState<Value, OutputState>
+    generator: FromStateAndOptions<Value, OutputState, Options>
   ): FlowInterface<InputState, OutputState & { [K in Key]: Value }, Options>;
 
   navigateTo(
-    url: FromState<string | URL, OutputState>
+    url: FromStateAndOptions<string | URL, OutputState, Options>
   ): FlowInterface<InputState, OutputState, Options>;
 
   // Actions that can be taken
 
   click(
-    selector: FromState<string, OutputState>
+    selector: FromStateAndOptions<string, OutputState, Options>
   ): FlowInterface<InputState, OutputState, Options>;
 
   // Selects a value in a drop-down
   select(
-    selector: FromState<string, OutputState>,
-    value: FromState<string, OutputState>
+    selector: FromStateAndOptions<string, OutputState, Options>,
+    value: FromStateAndOptions<string, OutputState, Options>
   ): FlowInterface<InputState, OutputState, Options>;
 
   submit(
-    selector?: FromState<string, OutputState>
+    selector?: FromStateAndOptions<string, OutputState, Options>
   ): FlowInterface<InputState, OutputState, Options>;
 
   type(
-    selector: FromState<string, OutputState>,
-    text: FromState<string, OutputState>
+    selector: FromStateAndOptions<string, OutputState, Options>,
+    text: FromStateAndOptions<string, OutputState, Options>
   ): FlowInterface<InputState, OutputState, Options>;
 
   upload(
-    selector: FromState<string, OutputState>,
-    filename: FromState<string, OutputState>,
-    contents?: FromState<string, OutputState>
+    selector: FromStateAndOptions<string, OutputState, Options>,
+    filename: FromStateAndOptions<string, OutputState, Options>,
+    contents?: FromStateAndOptions<string, OutputState, Options>
   ): FlowInterface<InputState, OutputState, Options>;
 }
 
-export type FromState<T, State> = T extends () => void
+export type FromStateAndOptions<
+  T,
+  State,
+  Options extends FlowRunOptions
+> = T extends () => void
   ? never
-  : T | ((state: State) => T | Promise<T>);
+  : T | ((state: State, options: Options) => T | Promise<T>);

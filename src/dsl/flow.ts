@@ -2,8 +2,13 @@ import { promises as fs } from "fs";
 import * as path from "path";
 import { Page } from "puppeteer";
 
-import { FlowHooks, FlowInterface, FlowRunOptions, FromState } from "./types";
-import { resolveFromState } from "./util";
+import {
+  FlowHooks,
+  FlowInterface,
+  FlowRunOptions,
+  FromStateAndOptions,
+} from "./types";
+import { resolveFromStateAndOptions } from "./util";
 
 const DEFAULT_HOOKS = {
   info(message: string) {},
@@ -100,8 +105,8 @@ export class Flow<
   }
 
   askIfNeeded<Key extends string>(
-    key: FromState<Key, OutputState>,
-    message: FromState<string, OutputState>,
+    key: FromStateAndOptions<Key, OutputState, Options>,
+    message: FromStateAndOptions<string, OutputState, Options>,
     normalizer?: (
       input: string
     ) => string | undefined | Promise<string | undefined>
@@ -109,11 +114,15 @@ export class Flow<
     return this.derive(
       async (
         state,
-        _options,
+        options,
         hooks
       ): Promise<OutputState & { [K in Key]: string }> => {
         let value: string | undefined;
-        const resolvedKey = await resolveFromState(key, state);
+        const resolvedKey = await resolveFromStateAndOptions(
+          key,
+          state,
+          options
+        );
 
         if (state) {
           const existingValue = (state as Record<string, unknown>)[resolvedKey];
@@ -122,7 +131,11 @@ export class Flow<
           }
         }
 
-        const resolvedMessage = await resolveFromState(message, state);
+        const resolvedMessage = await resolveFromStateAndOptions(
+          message,
+          state,
+          options
+        );
 
         while (true) {
           if (value != null && normalizer) {
@@ -201,10 +214,10 @@ export class Flow<
     );
   }
 
-  click(selector: FromState<string, OutputState>) {
+  click(selector: FromStateAndOptions<string, OutputState, Options>) {
     return this.derive(async (state, options) => {
       const { page } = options;
-      selector = await resolveFromState(selector, state);
+      selector = await resolveFromStateAndOptions(selector, state, options);
 
       await page.click(selector);
 
@@ -227,9 +240,9 @@ export class Flow<
     });
   }
 
-  expectUrl(url: FromState<string | URL, OutputState>) {
+  expectUrl(url: FromStateAndOptions<string | URL, OutputState, Options>) {
     return this.derive(async (state: OutputState, options: Options, hooks) => {
-      let resolvedUrl = await resolveFromState(url, state);
+      let resolvedUrl = await resolveFromStateAndOptions(url, state, options);
 
       if (options.baseURL) {
         resolvedUrl = new URL(resolvedUrl.toString(), options.baseURL);
@@ -247,10 +260,14 @@ export class Flow<
 
   generate<Key extends string, Value>(
     key: Key,
-    value: FromState<Value, OutputState>
+    value: FromStateAndOptions<Value, OutputState, Options>
   ): FlowInterface<InputState, OutputState & { [K in Key]: Value }, Options> {
-    return this.derive(async (state) => {
-      const resolvedValue = await resolveFromState(value, state);
+    return this.derive(async (state, options) => {
+      const resolvedValue = await resolveFromStateAndOptions(
+        value,
+        state,
+        options
+      );
       return { ...state, [key]: resolvedValue };
     }) as FlowInterface<
       InputState,
@@ -259,11 +276,11 @@ export class Flow<
     >;
   }
 
-  navigateTo(url: FromState<string | URL, OutputState>) {
+  navigateTo(url: FromStateAndOptions<string | URL, OutputState, Options>) {
     return this.derive(async (state, options) => {
       const { page } = options;
 
-      let resolvedUrl = await resolveFromState(url, state);
+      let resolvedUrl = await resolveFromStateAndOptions(url, state, options);
       resolvedUrl = new URL(resolvedUrl, options.baseURL);
       await page.goto(resolvedUrl.toString());
 
@@ -289,13 +306,13 @@ export class Flow<
   }
 
   select(
-    selector: FromState<string, OutputState>,
-    value: FromState<string, OutputState>
+    selector: FromStateAndOptions<string, OutputState, Options>,
+    value: FromStateAndOptions<string, OutputState, Options>
   ): FlowInterface<InputState, OutputState, Options> {
     return this.derive(async (state, options) => {
       const [resolvedSelector, resolvedValue] = await Promise.all([
-        resolveFromState(selector, state),
-        resolveFromState(value, state),
+        resolveFromStateAndOptions(selector, state, options),
+        resolveFromStateAndOptions(value, state, options),
       ]);
       const { page } = options;
 
@@ -305,12 +322,12 @@ export class Flow<
     });
   }
 
-  submit(selector?: FromState<string, OutputState>) {
+  submit(selector?: FromStateAndOptions<string, OutputState, Options>) {
     return this.derive(async (state, options) => {
       const resolvedSelector =
         selector == null
           ? "button[type=submit]"
-          : await resolveFromState(selector, state);
+          : await resolveFromStateAndOptions(selector, state, options);
 
       const { page } = options;
 
@@ -326,13 +343,13 @@ export class Flow<
   }
 
   type(
-    selector: FromState<string, OutputState>,
-    text: FromState<string, OutputState>
+    selector: FromStateAndOptions<string, OutputState, Options>,
+    text: FromStateAndOptions<string, OutputState, Options>
   ) {
     return this.derive(async (state, options) => {
       const [resolvedText, resolvedSelector] = await Promise.all([
-        resolveFromState(text, state),
-        resolveFromState(selector, state),
+        resolveFromStateAndOptions(text, state, options),
+        resolveFromStateAndOptions(selector, state, options),
       ]);
 
       const { page } = options;
@@ -348,18 +365,18 @@ export class Flow<
   }
 
   upload(
-    selector: FromState<string, OutputState>,
-    filename: FromState<string, OutputState>,
-    contents?: FromState<string, OutputState>
+    selector: FromStateAndOptions<string, OutputState, Options>,
+    filename: FromStateAndOptions<string, OutputState, Options>,
+    contents?: FromStateAndOptions<string, OutputState, Options>
   ) {
     return this.derive(async (state, options) => {
       const [resolvedSelector, resolvedFilename, resolvedContents] =
         await Promise.all([
-          resolveFromState(selector, state),
-          resolveFromState(filename, state),
+          resolveFromStateAndOptions(selector, state, options),
+          resolveFromStateAndOptions(filename, state, options),
           contents == null
             ? Promise.resolve(undefined)
-            : resolveFromState(contents, state),
+            : resolveFromStateAndOptions(contents, state, options),
         ]);
 
       const tempFile = path.join(".tmp", resolvedFilename);
