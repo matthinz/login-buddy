@@ -22,6 +22,11 @@ Login Buddy presents an interactive shell session you can use to enter commands 
 
 Logs in using the credentials established in `signup`
 
+| Options  | Description                                                                                                      |
+| -------- | ---------------------------------------------------------------------------------------------------------------- |
+| `--saml` | Signup using a SAML request from the [SAML Sinatra app][saml-sinatra]. Implies `--sp`                            |
+| `--sp`   | Create the account after redirecting from a service provider. Requires [OIDC Sinatra app][oidc-sinatra] running. |
+
 ### Command: `logout`
 
 Logs out your current session
@@ -34,12 +39,12 @@ Logs out your current session
 
 Create a new account with a random email address.
 
-| Option               | Description                                                                                                      |
-| -------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| `--saml`             | Signup using a SAML request from the [SAML Sinatra app][saml-sinatra]. Implies `--sp`                            |
-| `--sp`               | Create the account after redirecting from a service provider. Requires [OIDC Sinatra app][oidc-sinatra] running. |
-| `--until <string>`   | Stop when the page title or URL contains `<string>`                                                              |
-| `--use-backup-codes` | Use backup codes rather than a TOTP generator for MFA.                                                           |
+| Option             | Description                                                                                                      |
+| ------------------ | ---------------------------------------------------------------------------------------------------------------- |
+| `--saml`           | Signup using a SAML request from the [SAML Sinatra app][saml-sinatra]. Implies `--sp`                            |
+| `--sp`             | Create the account after redirecting from a service provider. Requires [OIDC Sinatra app][oidc-sinatra] running. |
+| `--sms`            | Use SMS for 2 factor authentication                                                                              |
+| `--until <string>` | Stop when the page title or URL contains `<string>`                                                              |
 
 ### Command: `verify`
 
