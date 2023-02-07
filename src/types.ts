@@ -40,3 +40,9 @@ export type GlobalState = {
   lastSignup?: SignupState;
   programOptions: ProgramOptions;
 };
+
+export type SpMethod = "saml" | "oidc";
+
+export type TwoFactorMethod = "sms" | "totp" | "backup_codes";
+
+export type SpOptions = { method: SpMethod; url: URL };

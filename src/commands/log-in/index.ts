@@ -1,21 +1,26 @@
+import getopts from "getopts";
+import { env } from "process";
 import { Page } from "puppeteer";
+import { resolveSpOptions } from "../../sp";
 import { GlobalState } from "../../types";
 import { runFromPage } from "../utils";
 import { LOG_IN } from "./flow";
-
-type LogInOptions = {
-  baseURL: URL;
-};
+import { LogInOptions } from "./types";
 
 export function parseOptions(
   args: string[],
-  { programOptions: { baseURL } }: GlobalState
+  { programOptions: { baseURL, environment } }: GlobalState
 ): LogInOptions | undefined {
   const cmd = args.shift();
   if (cmd !== "login") {
     return;
   }
-  return { baseURL };
+
+  const raw = getopts(args);
+
+  const sp = resolveSpOptions(raw, environment, baseURL);
+
+  return { baseURL, sp };
 }
 
 export const run = runFromPage(

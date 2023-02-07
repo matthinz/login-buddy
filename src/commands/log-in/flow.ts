@@ -1,8 +1,24 @@
-import { createFlow } from "../../dsl";
+import { createFlow, navigateTo } from "../../dsl";
 import { getOtp } from "../../state";
 import { SignupState } from "../sign-up";
+import { LogInOptions } from "./types";
 
-export const LOG_IN = createFlow<SignupState, {}>()
+export const LOG_IN = createFlow<SignupState, LogInOptions>()
+  .branch(
+    (_p, _s, options) => !!options.sp,
+    (flow) =>
+      // Come from an SP
+      flow
+        .navigateTo((_, { sp }) => {
+          if (!sp) {
+            throw new Error("No SP");
+          }
+          return sp.url;
+        })
+        .select("[name=ial]", "2")
+        .submit("form button[type=submit]")
+  )
+
   .type('[name="user[email]"]', (state) => state.email)
   .type('[name="user[password]"]', (state) => state.password)
   .submit()
