@@ -41,10 +41,13 @@ export function parseOptions(
 
   const until = raw.until;
 
+  const ssn = raw.ssn == null ? undefined : String(raw.ssn);
+
   return {
     baseURL,
     hybrid,
     gpo,
+    ssn,
     threatMetrix: threatMetrix as ThreatMetrixResult,
     until,
   };

@@ -9,8 +9,9 @@ export type ThreatMetrixResult = typeof THREATMETRIX_RESULTS[number];
 
 export type VerifyOptions = {
   baseURL: URL;
+  gpo: boolean;
   hybrid: boolean;
   threatMetrix: ThreatMetrixResult;
-  gpo: boolean;
+  ssn?: string | undefined;
   until?: string;
 };

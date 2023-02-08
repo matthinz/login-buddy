@@ -50,11 +50,12 @@ Create a new account with a random email address.
 
 Take the account created via `signup` through the Identity Verification (IdV) flow.
 
-| Option                                                 | Description                                         |
-| ------------------------------------------------------ | --------------------------------------------------- |
-| `--gpo`                                                | Verify using GPO (the "send me a letter" flow).     |
-| `--threatMetrix <no _result / review / reject / pass>` | Simulate the given result from ThreatMetrix.        |
-| `--until <string>`                                     | Stop when the page title or URL contains `<string>` |
+| Option                                                 | Description                                          |
+| ------------------------------------------------------ | ---------------------------------------------------- |
+| `--gpo`                                                | Verify using GPO (the "send me a letter" flow).      |
+| `--ssn <string>`                                       | Social Security Number to enter during verification. |
+| `--threatMetrix <no _result / review / reject / pass>` | Simulate the given result from ThreatMetrix.         |
+| `--until <string>`                                     | Stop when the page title or URL contains `<string>`  |
 
 [oidc-sinatra]: https://github.com/18F/identity-oidc-sinatra
 [saml-sinator]: https://github.com/18F/identity-saml-sinatra

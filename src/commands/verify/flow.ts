@@ -66,7 +66,10 @@ export const VERIFY_FLOW = createFlow<InputState, VerifyOptions>()
 
   // "Enter your Social Security number"
   .expectUrl("/verify/doc_auth/ssn")
-  .generate("ssn", generateSsn)
+  .generate<"ssn", string>(
+    "ssn",
+    (_state, options) => options.ssn ?? generateSsn()
+  )
   .type('[name="doc_auth[ssn]"]', (state) => state.ssn)
   .evaluate(async (page, _state, options) => {
     const $mockProfilingResult = await page.$("[name=mock_profiling_result]");
