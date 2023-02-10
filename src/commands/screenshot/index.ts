@@ -40,7 +40,7 @@ export const run = runFromActivePage(
 
         await page.goto(url);
 
-        const name = options.name === "" ? "screenshot" : "";
+        const name = (options.name ?? "") === "" ? "screenshot" : options.name;
         const file = `${name}-${lang}.png`;
 
         await fs.rm(file).catch(() => {});
