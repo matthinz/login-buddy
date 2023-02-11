@@ -5,6 +5,15 @@ import { runFromActivePage, runFromBrowser } from "../utils";
 
 const LANGUAGES = ["en", "fr", "es"] as const;
 
+// These tweaks applied when taking screenshots.
+// This array is passed to Page.evaluate(), so it needs to be
+const TWEAKS = [
+  {
+    path: "^/(en|fr|es)/verify/doc_auth/ssn$",
+    remove: "[role=status].usa-alert--info",
+  },
+];
+
 export type ScreenshotOptions = {
   name?: string;
 };
@@ -46,6 +55,18 @@ export const run = runFromActivePage(
         await fs.rm(file).catch(() => {});
 
         console.log("Writing %s...", file);
+
+        await page.evaluate((TWEAKS) => {
+          TWEAKS.forEach(({ path, remove }) => {
+            const atPath = new RegExp(path).test(window.location.pathname);
+            if (!atPath) {
+              return;
+            }
+
+            const els = [].slice.call(document.querySelectorAll(remove));
+            els.forEach((el: Node) => el.parentNode?.removeChild(el));
+          });
+        }, TWEAKS);
 
         await page.screenshot({
           path: file,
