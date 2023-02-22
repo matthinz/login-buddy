@@ -12,8 +12,6 @@ import { SignupOptions } from "./types";
 
 export { SignupState } from "./types";
 
-const DEFAULT_BASE_EMAIL_ADDRESS = "test@example.org";
-
 // I can never remember what urls are what.
 const UNTIL_ALIASES: { [key: string]: string | undefined } = {
   mfa: "/authentication_methods_setup",
@@ -21,7 +19,7 @@ const UNTIL_ALIASES: { [key: string]: string | undefined } = {
 
 export function parseOptions(
   args: string[],
-  { programOptions: { baseURL, environment } }: GlobalState
+  { programOptions: { baseURL, email, environment } }: GlobalState
 ): SignupOptions | undefined {
   const cmd = args.shift();
   if (cmd !== "signup") {
@@ -41,8 +39,7 @@ export function parseOptions(
       throw new Error("Invalid --email");
     }
   }
-  const baseEmailAddress =
-    raw.email == null ? DEFAULT_BASE_EMAIL_ADDRESS : String(raw.email);
+  const baseEmailAddress = raw.email == null ? email : String(raw.email);
 
   const sp = resolveSpOptions(raw, environment, baseURL);
 

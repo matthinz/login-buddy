@@ -31,12 +31,18 @@ export async function resolveOptions(argv: string[]): Promise<ProgramOptions> {
       throw new Error(`Invalid value for --env: ${environment}`);
   }
 
+  let email = options.email ?? process.env["LOGIN_BUDDY_EMAIL"];
+  if (email == null) {
+    email = "test@example.org";
+  }
+
   if (environment === "local") {
     idpRoot = await findIdpRoot();
 
     if (idpRoot) {
       return {
         baseURL,
+        email,
         environment,
         idpRoot,
         watchForEmails: true,
@@ -46,6 +52,7 @@ export async function resolveOptions(argv: string[]): Promise<ProgramOptions> {
 
   return {
     baseURL,
+    email,
     environment,
     idpRoot,
     watchForEmails: false,

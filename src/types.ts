@@ -10,6 +10,11 @@ export type ProgramOptions = Readonly<
     baseURL: URL;
 
     /**
+     * Base email address used when creating account.
+     */
+    email: string;
+
+    /**
      * What kind of IDP environment are we working in?
      */
     environment: "local" | "dev" | "int" | string;
