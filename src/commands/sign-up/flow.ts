@@ -8,7 +8,7 @@ const DEFAULT_PASSWORD = "reallygoodpassword";
 export const SIGN_UP_FLOW = createFlow<Partial<SignupState>, SignupOptions>()
   .generate("email", generateEmail)
   .generate("password", () => DEFAULT_PASSWORD)
-  .generate("phone", () => "3602345678")
+  .generate("phone", generatePhone)
 
   .branch(
     (_page, _state, options) => !!options.sp,
@@ -171,7 +171,7 @@ function generateEmail<State, Options extends SignupOptions>(
   _state: State,
   options: Options
 ): string {
-  const [name, ...rest] = options.baseEmailAddress.split("@");
+  const [name, ...rest] = options.baseEmail.split("@");
   const now = new Date();
 
   return [
@@ -187,4 +187,25 @@ function generateEmail<State, Options extends SignupOptions>(
     "@",
     rest.join("@"),
   ].join("");
+}
+
+function generatePhone<
+  State extends { phone?: any },
+  Options extends SignupOptions
+>(state: State, options: Options): string {
+  let { phone } = state;
+
+  let digits = String(phone ?? "").replace(/[^\d]/g, "");
+  if (digits.length >= 10) {
+    return phone; // use original input if it looks ok-ish
+  }
+
+  if (digits.length === 0) {
+    digits = options.basePhone;
+  }
+
+  while (digits.length < 10) {
+    digits += String(Math.floor(Math.random() * 10));
+  }
+  return digits;
 }

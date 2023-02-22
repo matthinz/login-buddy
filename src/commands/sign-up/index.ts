@@ -1,5 +1,4 @@
 import chalk from "chalk";
-import { sign } from "crypto";
 import getopts from "getopts";
 import { Page } from "puppeteer";
 import { until } from "../../dsl";
@@ -12,6 +11,8 @@ import { SignupOptions } from "./types";
 
 export { SignupState } from "./types";
 
+const DEFAULT_BASE_PHONE_NUMBER = "3602345678";
+
 // I can never remember what urls are what.
 const UNTIL_ALIASES: { [key: string]: string | undefined } = {
   mfa: "/authentication_methods_setup",
@@ -19,7 +20,9 @@ const UNTIL_ALIASES: { [key: string]: string | undefined } = {
 
 export function parseOptions(
   args: string[],
-  { programOptions: { baseURL, email, environment } }: GlobalState
+  {
+    programOptions: { baseURL, baseEmail, basePhone, environment },
+  }: GlobalState
 ): SignupOptions | undefined {
   const cmd = args.shift();
   if (cmd !== "signup") {
@@ -38,8 +41,12 @@ export function parseOptions(
     if (typeof raw.email !== "string") {
       throw new Error("Invalid --email");
     }
+    baseEmail = raw.email;
   }
-  const baseEmailAddress = raw.email == null ? email : String(raw.email);
+
+  if (raw.phone != null) {
+    basePhone = String(raw.phone);
+  }
 
   const sp = resolveSpOptions(raw, environment, baseURL);
 
@@ -60,7 +67,8 @@ export function parseOptions(
   const until = raw.until == null ? undefined : String(raw.until);
 
   return {
-    baseEmailAddress,
+    baseEmail,
+    basePhone,
     baseURL,
     sp,
     twoFactor: twoFactor[0] ?? "totp",

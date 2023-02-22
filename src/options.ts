@@ -3,6 +3,9 @@ import path from "node:path";
 import getopts from "getopts";
 import { ProgramOptions } from "./types";
 
+const DEFAULT_BASE_EMAIL = "test@example.org";
+const DEFAULT_BASE_PHONE = "3602345678";
+
 export async function resolveOptions(argv: string[]): Promise<ProgramOptions> {
   const options = getopts(argv);
   const environment = options["env"] ?? "local";
@@ -31,10 +34,12 @@ export async function resolveOptions(argv: string[]): Promise<ProgramOptions> {
       throw new Error(`Invalid value for --env: ${environment}`);
   }
 
-  let email = options.email ?? process.env["LOGIN_BUDDY_EMAIL"];
-  if (email == null) {
-    email = "test@example.org";
-  }
+  const baseEmail = String(
+    options.email ?? process.env["LOGIN_BUDDY_EMAIL"] ?? DEFAULT_BASE_EMAIL
+  );
+  const basePhone = String(
+    options.phone ?? process.env["LOGIN_BUDDY_PHONE"] ?? DEFAULT_BASE_PHONE
+  );
 
   if (environment === "local") {
     idpRoot = await findIdpRoot();
@@ -42,7 +47,8 @@ export async function resolveOptions(argv: string[]): Promise<ProgramOptions> {
     if (idpRoot) {
       return {
         baseURL,
-        email,
+        baseEmail,
+        basePhone,
         environment,
         idpRoot,
         watchForEmails: true,
@@ -52,7 +58,8 @@ export async function resolveOptions(argv: string[]): Promise<ProgramOptions> {
 
   return {
     baseURL,
-    email,
+    baseEmail,
+    basePhone,
     environment,
     idpRoot,
     watchForEmails: false,

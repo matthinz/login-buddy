@@ -4,15 +4,20 @@ import { SignupState } from "./commands/sign-up";
 export type ProgramOptions = Readonly<
   {
     /**
+     * Base email address used when creating account.
+     */
+    baseEmail: string;
+
+    /**
+     * Base phone number used to generate new phone numbers.
+     */
+    basePhone: string;
+
+    /**
      * URL used to build other login URLS.
      * Defaults to <http://localhost:3000>
      */
     baseURL: URL;
-
-    /**
-     * Base email address used when creating account.
-     */
-    email: string;
 
     /**
      * What kind of IDP environment are we working in?
