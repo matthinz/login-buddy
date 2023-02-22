@@ -1,4 +1,5 @@
 import { Browser } from "puppeteer";
+import { BrowserHelper } from "./browser-helper";
 import { SignupState } from "./commands/sign-up";
 
 export type ProgramOptions = Readonly<
@@ -46,3 +47,21 @@ export type SpMethod = "saml" | "oidc";
 export type TwoFactorMethod = "sms" | "totp" | "backup_codes";
 
 export type SpOptions = { method: SpMethod; url: URL };
+
+// Events
+
+export type NewBrowserEvent = {
+  browser: Browser;
+};
+
+export type CommandEvent = {
+  argv: string[];
+};
+
+export type ErrorEvent = {
+  error: any;
+};
+
+export type EventHandler<EventType> = (event: EventType) => void;
+
+export type AsyncEventHandler<EventType> = (event: EventType) => Promise<void>;

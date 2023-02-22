@@ -1,21 +1,5 @@
 import { EventEmitter } from "node:events";
-import { Browser } from "puppeteer";
-
-type BrowserEvent = {
-  browser: Browser;
-};
-
-type CommandEvent = {
-  argv: string[];
-};
-
-type ErrorEvent = {
-  error: any;
-};
-
-type Handler<EventType> = (event: EventType) => void;
-
-type AsyncHandler<EventType> = (event: EventType) => Promise<void>;
+import { Browser, Page } from "puppeteer";
 
 /**
  * 🚌
