@@ -1,48 +1,36 @@
 import totp from "totp-generator";
-import { GlobalState } from "../types";
-import { makeRunner } from "./utils";
+import { PluginOptions } from "../../types";
 
-type BackupCodeOptions = {};
+export function otpPlugin({ events, state }: PluginOptions) {
+  events.on("command:otp", () => {
+    const globalState = state.current();
+    const { lastSignup } = globalState;
 
-export function parseOptions(args: string[]): BackupCodeOptions | undefined {
-  const cmd = args.shift();
-  if (cmd !== "code") {
-    return;
-  }
-  return {};
-}
-
-export const run = makeRunner(
-  async (_options: BackupCodeOptions, state: GlobalState) => {
-    const { lastSignup } = state;
     if (!lastSignup) {
       throw new Error("No current signup");
     }
 
     let code: string | undefined;
-    let newState: GlobalState = state;
 
     if (lastSignup.backupCodes) {
       const backupCodes = [...lastSignup.backupCodes];
       code = backupCodes.shift();
-
       if (!code) {
         throw new Error("No more backup codes");
       }
-
-      newState = {
-        ...state,
+      state.update({
+        ...globalState,
         lastSignup: {
           ...lastSignup,
           backupCodes,
         },
-      };
+      });
     } else if (lastSignup.totpCode) {
       code = totp(lastSignup.totpCode);
+    } else {
+      throw new Error("No otp available.");
     }
 
     console.log("Your code is %s", code);
-
-    return newState;
-  }
-);
+  });
+}

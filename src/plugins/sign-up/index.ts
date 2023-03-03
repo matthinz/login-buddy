@@ -1,3 +1,5 @@
+import chalk from "chalk";
+import { sign } from "crypto";
 import getopts from "getopts";
 import { launch } from "puppeteer";
 import { EventBus } from "../../events";
@@ -21,9 +23,42 @@ const UNTIL_ALIASES: { [key: string]: string | undefined } = {
 };
 
 export function signUpPlugin({ programOptions, events }: PluginOptions) {
-  events.on("command:signup", (event) => {
+  events.on("command:signup", async (event) => {
     const options = parseOptions(event.args, programOptions);
-    return signUp(options, event.state);
+    const newState = await signUp(options, event.state.current());
+    event.state.update(newState);
+
+    const signup = newState.lastSignup;
+    if (signup) {
+      events.emit("signup", {
+        signup,
+      });
+    }
+  });
+
+  events.on("signup", ({ signup: { email, password, phone, backupCodes } }) => {
+    const info = [
+      ["Email", email],
+      ["Password", password],
+      phone && ["Phone", phone],
+      backupCodes && ["Backup codes", backupCodes.join("\n")],
+    ].filter(Boolean) as [string, string][];
+
+    console.log(
+      [
+        chalk.bold("Signup complete!"),
+        ...info.map(([label, value]) => {
+          if (/\n/.test(value)) {
+            return `${chalk.dim(label)}:\n${value
+              .split("\n")
+              .map((line) => `  ${line}`)
+              .join("\n")}`;
+          } else {
+            return `${chalk.dim(label)}: ${value}`;
+          }
+        }),
+      ].join("\n")
+    );
   });
 }
 
@@ -95,75 +130,3 @@ export function parseOptions(
     until,
   };
 }
-
-/*
-export const run = runFromPageFancy(
-  [
-    async (page, state) => {
-      return (
-        new URL(page.url()).hostname === state.programOptions.baseURL.hostname
-      );
-    },
-  ],
-  (browser) => browser.newPage(),
-  async (
-    page: Page,
-    globalState: GlobalState,
-    options: SignupOptions,
-    hooks: CommandHooks<GlobalState>
-  ): Promise<GlobalState> => {
-    const untilArg = options.until
-      ? UNTIL_ALIASES[options.until] ?? options.until
-      : undefined;
-
-    const signUpState = await SIGN_UP_FLOW.run(
-      {},
-      { ...options, page },
-      {
-        ...hooks,
-        shouldStop: untilArg ? until(untilArg) : () => false,
-      }
-    );
-
-    const { email, password, totpCode, backupCodes, phone } = signUpState;
-
-    if (!email || !password) {
-      return globalState;
-    }
-
-    const info = [
-      ["Email", email],
-      ["Password", password],
-      phone && ["Phone", phone],
-      backupCodes && ["Backup codes", backupCodes.join("\n")],
-    ].filter(Boolean) as [string, string][];
-
-    console.log(
-      [
-        chalk.bold("Signup complete!"),
-        ...info.map(([label, value]) => {
-          if (/\n/.test(value)) {
-            return `${chalk.dim(label)}:\n${value
-              .split("\n")
-              .map((line) => `  ${line}`)
-              .join("\n")}`;
-          } else {
-            return `${chalk.dim(label)}: ${value}`;
-          }
-        }),
-      ].join("\n")
-    );
-
-    return {
-      ...globalState,
-      lastSignup: {
-        email,
-        password,
-        totpCode,
-        phone,
-        backupCodes,
-      },
-    };
-  }
-);
-*/

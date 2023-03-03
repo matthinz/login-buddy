@@ -22,7 +22,7 @@ export function cliPlugin({ programOptions, events, state }: PluginOptions) {
     const command = args.shift();
     const event: CommandEvent = {
       args,
-      state: state.current(),
+      state,
     };
 
     currentExecution = events.emit(`command:${command}`, event).finally(() => {
@@ -35,8 +35,8 @@ export function cliPlugin({ programOptions, events, state }: PluginOptions) {
     process.exit();
   });
 
-  events.on("error", (err) => {
-    console.error(err);
+  events.on("error", ({ error }) => {
+    console.error(error);
   });
 
   welcome(programOptions);

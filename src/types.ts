@@ -68,13 +68,17 @@ export type NewBrowserEvent = {
 
 export type CommandEvent = {
   args: string[];
-  state: GlobalState;
+  state: StateManager<GlobalState>;
 };
 
 export type ErrorEvent = {
   error: any;
 };
 
-export type EventHandler<EventType> = (event: EventType) => void;
+export type SignupEvent = {
+  signup: SignupState;
+};
 
-export type AsyncEventHandler<EventType> = (event: EventType) => Promise<void>;
+export type EventHandler<EventType> = (
+  event: EventType
+) => void | Promise<void>;

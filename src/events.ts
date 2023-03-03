@@ -1,8 +1,9 @@
 import {
-  AsyncEventHandler,
   CommandEvent,
+  ErrorEvent,
   EventHandler,
   NewBrowserEvent,
+  SignupEvent,
 } from "./types";
 
 /**
@@ -17,34 +18,34 @@ export class EventBus {
     eventName: `command:${CommandName}`,
     event: CommandEvent
   ): Promise<void>;
-  emit(eventName: "newBrowser", event: NewBrowserEvent): Promise<void>;
   emit(eventName: "error", event: ErrorEvent): Promise<void>;
+  emit(eventName: "newBrowser", event: NewBrowserEvent): Promise<void>;
+  emit(eventName: "signup", event: SignupEvent): Promise<void>;
   async emit<EventType>(eventName: string, event: EventType): Promise<void> {
     const handlers = this.handlersByEvent[eventName];
     if (!handlers) {
       return;
     }
     for (const handler of handlers) {
-      const result = handler(event);
-      if (result instanceof Promise) {
-        await result;
+      try {
+        const result = handler(event);
+        if (result instanceof Promise) {
+          await result;
+        }
+      } catch (error) {
+        this.emit("error", { error });
       }
     }
   }
 
-  on(eventName: "newBrowser", handler: EventHandler<NewBrowserEvent>): void;
   on<CommandName extends string>(
     eventName: `command:${CommandName}`,
-    handler: EventHandler<CommandEvent> | AsyncEventHandler<CommandEvent>
+    handler: EventHandler<CommandEvent>
   ): void;
-  on(
-    eventName: "error",
-    handler: EventHandler<ErrorEvent> | AsyncEventHandler<ErrorEvent>
-  ): void;
-  on<EventType>(
-    eventName: string,
-    handler: EventHandler<EventType> | AsyncEventHandler<EventType>
-  ): void {
+  on(eventName: "error", handler: EventHandler<ErrorEvent>): void;
+  on(eventName: "newBrowser", handler: EventHandler<NewBrowserEvent>): void;
+  on(eventName: "signup", handler: EventHandler<SignupEvent>): void;
+  on<EventType>(eventName: string, handler: EventHandler<EventType>): void {
     this.handlersByEvent[eventName] = this.handlersByEvent[eventName] ?? [];
     this.handlersByEvent[eventName].push(handler);
   }
