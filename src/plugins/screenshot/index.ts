@@ -1,5 +1,6 @@
 import fs from "node:fs/promises";
 import { Browser, Page } from "puppeteer";
+import { BrowserHelper } from "../../browser";
 import { GlobalState, PluginOptions } from "../../types";
 
 const LANGUAGES = ["en", "fr", "es"] as const;
@@ -18,9 +19,9 @@ export type ScreenshotOptions = {
 };
 
 export function screenshotPlugin({ events, state }: PluginOptions) {
-  events.on("command:screenshot", async ({ args }) => {
+  events.on("command:screenshot", async ({ args, browser }) => {
     const options = parseOptions(args);
-    await screenshot(state.current(), options);
+    await screenshot(browser, options);
   });
 }
 
@@ -30,11 +31,8 @@ function parseOptions(args: string[]): ScreenshotOptions {
   };
 }
 
-async function screenshot(
-  { browser }: GlobalState,
-  { name }: ScreenshotOptions
-) {
-  const page = await getActivePage(browser);
+async function screenshot(browser: BrowserHelper, { name }: ScreenshotOptions) {
+  const page = await browser.activePage();
   if (!page) {
     console.error("No active page!");
     return;
@@ -87,28 +85,4 @@ async function screenshot(
     console.log("restore to %s", originalUrl);
     await page.goto(originalUrl.toString());
   }
-}
-
-async function getActivePage(browser?: Browser): Promise<Page | undefined> {
-  if (!browser) {
-    return;
-  }
-
-  const pages = await browser.pages();
-
-  return await pages.reduce<Promise<Page | undefined>>((promise, page) => {
-    return promise.then(async (result) => {
-      if (result) {
-        return result;
-      }
-
-      const isVisible = await page.evaluate(
-        () => document.visibilityState === "visible"
-      );
-
-      if (isVisible) {
-        return page;
-      }
-    });
-  }, Promise.resolve(undefined));
 }

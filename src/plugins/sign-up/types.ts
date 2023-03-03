@@ -1,3 +1,5 @@
+import { BrowserHelper } from "../../browser";
+
 export type SpMethod = "saml" | "oidc";
 
 export type TwoFactorMethod = "sms" | "totp" | "backup_codes";

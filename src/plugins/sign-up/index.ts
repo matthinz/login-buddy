@@ -1,17 +1,10 @@
 import chalk from "chalk";
-import { sign } from "crypto";
 import getopts from "getopts";
-import { launch } from "puppeteer";
-import { EventBus } from "../../events";
+import { BrowserHelper } from "../../browser";
 import { resolveSpOptions } from "../../sp";
-import {
-  GlobalState,
-  PluginOptions,
-  ProgramOptions,
-  TwoFactorMethod,
-} from "../../types";
+import { PluginOptions, ProgramOptions, TwoFactorMethod } from "../../types";
 import { SIGN_UP_FLOW } from "./flow";
-import { SignupOptions } from "./types";
+import { SignupOptions, SignupState } from "./types";
 
 export { SignupState } from "./types";
 
@@ -22,14 +15,17 @@ const UNTIL_ALIASES: { [key: string]: string | undefined } = {
   mfa: "/authentication_methods_setup",
 };
 
-export function signUpPlugin({ programOptions, events }: PluginOptions) {
-  events.on("command:signup", async (event) => {
-    const options = parseOptions(event.args, programOptions);
-    const newState = await signUp(options, event.state.current());
-    event.state.update(newState);
+export function signUpPlugin({ programOptions, events, state }: PluginOptions) {
+  events.on("command:signup", async ({ args, browser }) => {
+    const options = parseOptions(args, programOptions);
+    const signup = await signUp(browser, options);
 
-    const signup = newState.lastSignup;
     if (signup) {
+      state.update({
+        ...state.current(),
+        lastSignup: signup,
+      });
+
       events.emit("signup", {
         signup,
       });
@@ -63,25 +59,11 @@ export function signUpPlugin({ programOptions, events }: PluginOptions) {
 }
 
 async function signUp(
-  options: SignupOptions,
-  globalState: GlobalState
-): Promise<GlobalState> {
-  const browser =
-    globalState.browser ??
-    (await launch({
-      headless: false,
-      defaultViewport: null,
-    }));
-
+  browser: BrowserHelper,
+  options: SignupOptions
+): Promise<SignupState> {
   const page = await browser.newPage();
-
-  const lastSignup = await SIGN_UP_FLOW.run({}, { ...options, page });
-
-  return {
-    ...globalState,
-    browser,
-    lastSignup,
-  };
+  return await SIGN_UP_FLOW.run({}, { ...options, page });
 }
 
 export function parseOptions(

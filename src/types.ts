@@ -1,4 +1,5 @@
 import { Browser } from "puppeteer";
+import { BrowserHelper } from "./browser";
 import { EventBus } from "./events";
 import { SignupState } from "./plugins/sign-up";
 
@@ -68,6 +69,7 @@ export type NewBrowserEvent = {
 
 export type CommandEvent = {
   args: string[];
+  browser: BrowserHelper;
   state: StateManager<GlobalState>;
 };
 

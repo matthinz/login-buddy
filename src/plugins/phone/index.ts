@@ -1,6 +1,6 @@
 import { Browser, Page } from "puppeteer";
-import { EventBus } from "../../events";
-import { ProgramOptions } from "../../types";
+import { BrowserHelper } from "../../browser";
+import { PluginOptions } from "../../types";
 
 const TELEPHONY_MONITORING_URL = "/test/telephony";
 const POLL_DELAY = 3000;
@@ -10,53 +10,67 @@ const POLL_DELAY = 3000;
  * to the /test/telephony route and reports any SMS / voice messages
  * it sees there.
  */
-export function phonePlugin(options: ProgramOptions, events: EventBus) {
-  if (options.environment !== "local") {
+export function phonePlugin({ events, programOptions, state }: PluginOptions) {
+  if (programOptions.environment !== "local") {
     return;
   }
 
   let page: Page | undefined;
 
-  events.on("browser", ({ browser }) => {
-    createAndTrackPage(browser);
+  events.on("newBrowser", async () => {
+    await createAndTrackPage(new BrowserHelper(events, state));
   });
 
-  function createAndTrackPage(browser: Browser) {
-    (async () => {
-      try {
-        page?.close();
-      } catch {}
+  async function createAndTrackPage(browser: BrowserHelper) {
+    try {
+      page?.close();
+    } catch {}
 
-      page = undefined;
+    page = undefined;
 
-      try {
-        page = await browser.newPage();
-      } catch {
-        // We're probably exiting or something
+    const activePage = await browser.activePage();
+
+    try {
+      page = await browser.newPage();
+    } catch {
+      // We're probably exiting or something
+      return;
+    }
+
+    await page.goto(
+      new URL(TELEPHONY_MONITORING_URL, programOptions.baseURL).toString()
+    );
+
+    if (activePage) {
+      await activePage.bringToFront();
+    }
+
+    while (true) {
+      if (page == null) {
+        setTimeout(() => {
+          createAndTrackPage(browser), POLL_DELAY;
+        });
         return;
       }
 
-      await page.goto(
-        new URL(TELEPHONY_MONITORING_URL, options.baseURL).toString()
-      );
+      const success = await pollForMessages(page);
 
-      while (true) {
-        if (page.isClosed()) {
-          page = undefined;
-          setImmediate(createAndTrackPage, browser);
-          return;
-        }
-
-        await pollForMessages(page);
-        await new Promise((resolve) => setTimeout(resolve, POLL_DELAY));
+      if (!success) {
+        page = undefined;
+        // We've probably lost the page
+        continue;
       }
-    })().catch((err) => {
-      console.error(err);
-    });
+
+      await new Promise((resolve) => setTimeout(resolve, POLL_DELAY));
+    }
   }
 
-  async function pollForMessages(page: Page): Promise<void> {
-    await page.reload();
+  async function pollForMessages(page: Page): Promise<boolean> {
+    try {
+      await page.reload();
+    } catch {
+      return false;
+    }
 
     const result = await page.evaluate(() => {
       // Remove the meta refresh, since we're handling it
@@ -87,5 +101,7 @@ export function phonePlugin(options: ProgramOptions, events: EventBus) {
         });
       }
     });
+
+    return true;
   }
 }

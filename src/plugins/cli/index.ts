@@ -1,10 +1,12 @@
 import chalk from "chalk";
 import * as readline from "node:readline";
+import { BrowserHelper } from "../../browser";
 
 import { CommandEvent, PluginOptions, ProgramOptions } from "../../types";
 
 export function cliPlugin({ programOptions, events, state }: PluginOptions) {
   let currentExecution: Promise<void> | undefined;
+  const browser = new BrowserHelper(events, state);
 
   const rl = readline.createInterface({
     input: process.stdin,
@@ -22,6 +24,7 @@ export function cliPlugin({ programOptions, events, state }: PluginOptions) {
     const command = args.shift();
     const event: CommandEvent = {
       args,
+      browser,
       state,
     };
 

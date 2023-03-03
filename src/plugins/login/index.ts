@@ -1,30 +1,44 @@
 import getopts from "getopts";
-import { BrowserHelper } from "../../browser-helper";
-import { EventBus } from "../../events";
+import { BrowserHelper } from "../../browser";
 import { resolveSpOptions } from "../../sp";
-import { ProgramOptions } from "../../types";
+import { GlobalState, PluginOptions, ProgramOptions } from "../../types";
+import { LOG_IN } from "./flow";
 import { LogInOptions } from "./types";
 
 /**
  * Plugin providing a "login" command.
  */
-export function loginPlugin(
-  programOptions: ProgramOptions,
-  events: EventBus,
-  browser: BrowserHelper
-) {
-  events.on("command:login", ({ argv }) => {
-    const options = parseArgv(argv, programOptions);
+export function loginPlugin({ events, programOptions, state }: PluginOptions) {
+  events.on("command:login", async ({ args, browser }) => {
+    const options = parseArgs(args, state.current(), programOptions);
+    await login(browser, options);
   });
 }
 
-function parseArgv(
+async function login(
+  browser: BrowserHelper,
+  options: LogInOptions
+): Promise<void> {
+  const page = await browser.newPage();
+
+  await LOG_IN.run(options.signup, {
+    ...options,
+    page,
+  });
+}
+
+function parseArgs(
   argv: string[],
+  { lastSignup }: GlobalState,
   { environment, baseURL }: ProgramOptions
 ): LogInOptions {
   const raw = getopts(argv);
 
   const sp = resolveSpOptions(raw, environment, baseURL);
 
-  return { baseURL, sp };
+  if (!lastSignup) {
+    throw new Error("No current signup.");
+  }
+
+  return { baseURL, signup: lastSignup, sp };
 }
