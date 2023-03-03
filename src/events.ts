@@ -1,38 +1,51 @@
-import { EventEmitter } from "node:events";
-import { Browser, Page } from "puppeteer";
+import {
+  AsyncEventHandler,
+  CommandEvent,
+  EventHandler,
+  NewBrowserEvent,
+} from "./types";
 
 /**
  * 🚌
  */
 export class EventBus {
-  private emitter: EventEmitter;
+  private handlersByEvent: {
+    [key: string]: ((...args: any[]) => void | Promise<void>)[];
+  } = {};
 
-  constructor() {
-    this.emitter = new EventEmitter();
+  emit<CommandName extends string>(
+    eventName: `command:${CommandName}`,
+    event: CommandEvent
+  ): Promise<void>;
+  emit(eventName: "newBrowser", event: NewBrowserEvent): Promise<void>;
+  emit(eventName: "error", event: ErrorEvent): Promise<void>;
+  async emit<EventType>(eventName: string, event: EventType): Promise<void> {
+    const handlers = this.handlersByEvent[eventName];
+    if (!handlers) {
+      return;
+    }
+    for (const handler of handlers) {
+      const result = handler(event);
+      if (result instanceof Promise) {
+        await result;
+      }
+    }
   }
 
-  emit(eventName: "newBrowser", event: BrowserEvent): void;
-  emit(eventName: "error", event: ErrorEvent): void;
-  emit<EventType>(eventName: string, event: EventType) {
-    this.emitter.emit(eventName, event);
-  }
-
-  on(eventName: "newBrowser", handler: Handler<BrowserEvent>): void;
+  on(eventName: "newBrowser", handler: EventHandler<NewBrowserEvent>): void;
   on<CommandName extends string>(
     eventName: `command:${CommandName}`,
-    handler: Handler<CommandEvent> | AsyncHandler<CommandEvent>
+    handler: EventHandler<CommandEvent> | AsyncEventHandler<CommandEvent>
+  ): void;
+  on(
+    eventName: "error",
+    handler: EventHandler<ErrorEvent> | AsyncEventHandler<ErrorEvent>
   ): void;
   on<EventType>(
     eventName: string,
-    handler: Handler<EventType> | AsyncHandler<EventType>
+    handler: EventHandler<EventType> | AsyncEventHandler<EventType>
   ): void {
-    this.emitter.on(eventName, (event: EventType) => {
-      const result = handler(event);
-      if (result instanceof Promise) {
-        result.catch((err) => {
-          this.emit("error", err);
-        });
-      }
-    });
+    this.handlersByEvent[eventName] = this.handlersByEvent[eventName] ?? [];
+    this.handlersByEvent[eventName].push(handler);
   }
 }

@@ -1,12 +1,13 @@
-import chalk from "chalk";
-import { sign } from "crypto";
 import getopts from "getopts";
-import { Page } from "puppeteer";
-import { until } from "../../dsl";
+import { launch } from "puppeteer";
+import { EventBus } from "../../events";
 import { resolveSpOptions } from "../../sp";
-import { GlobalState, TwoFactorMethod } from "../../types";
-import { CommandHooks } from "../types";
-import { runFromPageFancy } from "../utils";
+import {
+  GlobalState,
+  PluginOptions,
+  ProgramOptions,
+  TwoFactorMethod,
+} from "../../types";
 import { SIGN_UP_FLOW } from "./flow";
 import { SignupOptions } from "./types";
 
@@ -19,15 +20,39 @@ const UNTIL_ALIASES: { [key: string]: string | undefined } = {
   mfa: "/authentication_methods_setup",
 };
 
+export function signUpPlugin({ programOptions, events }: PluginOptions) {
+  events.on("command:signup", (event) => {
+    const options = parseOptions(event.args, programOptions);
+    return signUp(options, event.state);
+  });
+}
+
+async function signUp(
+  options: SignupOptions,
+  globalState: GlobalState
+): Promise<GlobalState> {
+  const browser =
+    globalState.browser ??
+    (await launch({
+      headless: false,
+      defaultViewport: null,
+    }));
+
+  const page = await browser.newPage();
+
+  const lastSignup = await SIGN_UP_FLOW.run({}, { ...options, page });
+
+  return {
+    ...globalState,
+    browser,
+    lastSignup,
+  };
+}
+
 export function parseOptions(
   args: string[],
-  { programOptions: { baseURL, environment } }: GlobalState
-): SignupOptions | undefined {
-  const cmd = args.shift();
-  if (cmd !== "signup") {
-    return;
-  }
-
+  { baseURL, environment }: ProgramOptions
+): SignupOptions {
   const raw = getopts(args, {
     alias: {
       backupCodes: ["backup-codes", "use-backup-codes"],
@@ -71,6 +96,7 @@ export function parseOptions(
   };
 }
 
+/*
 export const run = runFromPageFancy(
   [
     async (page, state) => {
@@ -140,3 +166,4 @@ export const run = runFromPageFancy(
     };
   }
 );
+*/

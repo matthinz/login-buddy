@@ -1,32 +1,8 @@
 import * as dotenv from "dotenv";
-import { GlobalState, ProgramOptions } from "./types";
-import {
-  backupCode,
-  Command,
-  login,
-  screenshot,
-  signOut,
-  signUp,
-  verify,
-} from "./commands";
-import { createInterface } from "./interface";
-import { emailsPlugin } from "./plugins/email";
+import * as plugins from "./plugins";
 import { resolveOptions } from "./options";
 import { EventBus } from "./events";
-
-const ALL_COMMANDS: Command<GlobalState, {}>[] = [
-  backupCode,
-  login,
-  screenshot,
-  signOut,
-  signUp,
-  verify,
-];
-
-const PLUGINS: ((
-  programOptions: ProgramOptions,
-  eventBus: EventBus
-) => void)[] = [emailsPlugin];
+import { createState } from "./state";
 
 dotenv.config();
 
@@ -37,13 +13,10 @@ run(process.argv.slice(2)).catch((err) => {
 
 async function run(argv: string[]) {
   const programOptions = await resolveOptions(argv);
+  const events = new EventBus();
+  const state = createState({});
 
-  const eventBus = new EventBus();
-
-  PLUGINS.forEach((plugin) => plugin(programOptions, eventBus));
-
-  const { welcome, prompt } = createInterface(ALL_COMMANDS, programOptions);
-
-  welcome();
-  prompt();
+  Object.values(plugins).forEach((plugin) => {
+    plugin({ programOptions, events, state });
+  });
 }

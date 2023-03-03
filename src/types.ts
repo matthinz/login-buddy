@@ -1,6 +1,19 @@
 import { Browser } from "puppeteer";
-import { BrowserHelper } from "./browser-helper";
-import { SignupState } from "./commands/sign-up";
+import { EventBus } from "./events";
+import { SignupState } from "./plugins/sign-up";
+
+export type PluginOptions = {
+  programOptions: ProgramOptions;
+  events: EventBus;
+  state: StateManager<GlobalState>;
+};
+
+export type Plugin = (programOptions: ProgramOptions, events: EventBus) => void;
+
+export type StateManager<State> = {
+  update: (newState: State) => void;
+  current: () => State;
+};
 
 export type ProgramOptions = Readonly<
   {
@@ -39,7 +52,6 @@ export type ProgramOptions = Readonly<
 export type GlobalState = {
   browser?: Browser;
   lastSignup?: SignupState;
-  programOptions: ProgramOptions;
 };
 
 export type SpMethod = "saml" | "oidc";
@@ -55,7 +67,8 @@ export type NewBrowserEvent = {
 };
 
 export type CommandEvent = {
-  argv: string[];
+  args: string[];
+  state: GlobalState;
 };
 
 export type ErrorEvent = {
