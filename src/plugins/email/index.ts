@@ -4,10 +4,15 @@ import chokidar from "chokidar";
 import { Message, parseMultipleEmails } from "./parser";
 import { ProgramOptions } from "../../types";
 import chalk from "chalk";
+import { EventBus } from "../../events";
 
-export function emailsPlugin({
-  idpRoot,
-}: ProgramOptions & { idpRoot: string }) {
+export function emailsPlugin(options: ProgramOptions, events: EventBus) {
+  const { idpRoot } = options;
+
+  if (idpRoot == null) {
+    return;
+  }
+
   const emailsDirectory = path.join(idpRoot, "tmp", "mails");
 
   const filesToReview = new Set<string>();

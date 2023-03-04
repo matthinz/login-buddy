@@ -1,5 +1,20 @@
 import { Browser } from "puppeteer";
-import { SignupState } from "./commands/sign-up";
+import { BrowserHelper } from "./browser";
+import { EventBus } from "./events";
+import { SignupState } from "./plugins/sign-up";
+
+export type PluginOptions = {
+  programOptions: ProgramOptions;
+  events: EventBus;
+  state: StateManager<GlobalState>;
+};
+
+export type Plugin = (programOptions: ProgramOptions, events: EventBus) => void;
+
+export type StateManager<State> = {
+  update: (newState: State) => void;
+  current: () => State;
+};
 
 export type ProgramOptions = Readonly<
   {
@@ -48,7 +63,6 @@ export type ProgramOptions = Readonly<
 export type GlobalState = {
   browser?: Browser;
   lastSignup?: SignupState;
-  programOptions: ProgramOptions;
 };
 
 export type SpMethod = "saml" | "oidc";
@@ -56,3 +70,38 @@ export type SpMethod = "saml" | "oidc";
 export type TwoFactorMethod = "sms" | "totp" | "backup_codes";
 
 export type SpOptions = { method: SpMethod; url: URL };
+
+export type Message = {
+  type: "voice" | "sms";
+  time: Date;
+  to: string;
+  body: string;
+};
+
+// Events
+
+export type NewBrowserEvent = {
+  browser: Browser;
+};
+
+export type CommandEvent = {
+  args: string[];
+  browser: BrowserHelper;
+  state: StateManager<GlobalState>;
+};
+
+export type ErrorEvent = {
+  error: any;
+};
+
+export type MessageEvent = {
+  message: Message;
+};
+
+export type SignupEvent = {
+  signup: SignupState;
+};
+
+export type EventHandler<EventType> = (
+  event: EventType
+) => void | Promise<void>;

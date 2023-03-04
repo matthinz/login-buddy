@@ -1,5 +1,5 @@
 import { createFlow, navigateTo } from "../../dsl";
-import { getOtp } from "../../state";
+import { getOtp } from "../otp";
 import { SignupState } from "../sign-up";
 import { LogInOptions } from "./types";
 
