@@ -1,32 +1,42 @@
-import { Browser, Page } from "puppeteer";
+import { Page } from "puppeteer";
 import { BrowserHelper } from "../../browser";
-import { PluginOptions } from "../../types";
+import { Message, PluginOptions } from "../../types";
+import { parseMessage } from "./parse";
 
 const TELEPHONY_MONITORING_URL = "/test/telephony";
+const INIT_DELAY = 1500;
 const POLL_DELAY = 3000;
-
 /**
  * This plugin, in local environments, keeps a browser tab open
  * to the /test/telephony route and reports any SMS / voice messages
  * it sees there.
  */
-export function phonePlugin({ events, programOptions, state }: PluginOptions) {
+export function phonePlugin({ events, programOptions }: PluginOptions) {
   if (programOptions.environment !== "local") {
     return;
   }
 
+  /**
+   * Tracks the browser tab we're using to monitor the telephony debugging page.
+   */
   let page: Page | undefined;
 
-  events.on("newBrowser", async () => {
-    await createAndTrackPage(new BrowserHelper(events, state));
+  const messages: Message[] = [];
+
+  events.on("newBrowser", async ({ browser }) => {
+    setTimeout(
+      () => createAndTrackPage(new BrowserHelper(browser)),
+      INIT_DELAY
+    );
   });
 
+  /**
+   * Opens a page we can use to monitor the test telephony screen.
+   */
   async function createAndTrackPage(browser: BrowserHelper) {
     try {
-      page?.close();
+      await page?.close();
     } catch {}
-
-    page = undefined;
 
     const activePage = await browser.activePage();
 
@@ -42,66 +52,111 @@ export function phonePlugin({ events, programOptions, state }: PluginOptions) {
     );
 
     if (activePage) {
-      await activePage.bringToFront();
+      try {
+        await activePage.bringToFront();
+      } catch {}
     }
 
-    while (true) {
-      if (page == null) {
-        setTimeout(() => {
-          createAndTrackPage(browser), POLL_DELAY;
+    pollForMessages();
+
+    function pollForMessages() {
+      messagePollingWorker()
+        .catch(async (error) => {
+          await events.emit("error", { error });
+        })
+        .finally(() => {
+          setTimeout(pollForMessages, POLL_DELAY);
         });
+    }
+
+    async function messagePollingWorker(): Promise<void> {
+      try {
+        if (page) {
+          await page.reload();
+        }
+      } catch {
+        page = undefined;
+      }
+
+      if (!page) {
+        // Somehow, we've lost our page.
+        setTimeout(() => createAndTrackPage(browser), INIT_DELAY);
         return;
       }
 
-      const success = await pollForMessages(page);
+      await disableMetaRefresh(page);
 
-      if (!success) {
-        page = undefined;
-        // We've probably lost the page
-        continue;
-      }
+      const newMessages = [
+        ...(await getNewMessagesOnPage(page, "sms", messages)),
+        ...(await getNewMessagesOnPage(page, "voice", messages)),
+      ];
 
-      await new Promise((resolve) => setTimeout(resolve, POLL_DELAY));
+      newMessages.forEach((message) => {
+        messages.push(message);
+      });
+
+      await newMessages.reduce<Promise<void>>(
+        (promise, message) =>
+          promise.then(async () => {
+            await events.emit("message", { message });
+          }),
+        Promise.resolve()
+      );
     }
   }
+}
 
-  async function pollForMessages(page: Page): Promise<boolean> {
-    try {
-      await page.reload();
-    } catch {
-      return false;
+async function disableMetaRefresh(page: Page): Promise<void> {
+  await page.evaluate(() => {
+    // Remove the meta refresh, since we're handling it
+    const meta = document.querySelector<HTMLMetaElement>(
+      "meta[http-equiv=refresh]"
+    );
+    meta?.parentNode?.removeChild(meta);
+  });
+}
+
+async function getNewMessagesOnPage(
+  page: Page,
+  type: "sms" | "voice",
+  receivedMessages: Message[]
+): Promise<Message[]> {
+  // Each message is in a card element.
+  // Here we grab the text lines, then parse them.
+
+  const rawMessages = (await page.evaluate((type: "sms" | "voice") => {
+    const h2s = [].slice.call(document.querySelectorAll("h2")) as HTMLElement[];
+    const headingText = type === "sms" ? "Messages" : "Calls";
+    const messagesH2 = h2s.find((el) => el.innerText.trim() === headingText);
+
+    if (!messagesH2 || !messagesH2.parentNode) {
+      return [];
     }
 
-    const result = await page.evaluate(() => {
-      // Remove the meta refresh, since we're handling it
-      const meta = document.querySelector("meta[http-equiv=refresh]");
-      meta?.parentNode?.removeChild(meta);
+    const cards = [].slice.call(
+      messagesH2.parentNode.querySelectorAll<HTMLElement>(".lg-card")
+    ) as HTMLElement[];
 
-      const h2s = [].slice.call(
-        document.querySelectorAll("h2")
-      ) as HTMLElement[];
-
-      const messagesH2 = h2s.find((el) => el.innerText.trim() === "Messages");
-      if (messagesH2) {
-        const cards = [].slice.call(
-          messagesH2.parentNode?.querySelectorAll(".lg-card") ?? []
-        ) as HTMLElement[];
-        const texts = cards.map((card) => {
-          const pieces: string[] = [];
-          for (let c = card.firstChild; c; c = c.nextSibling) {
-            if (c.nodeName === "P") {
-              const p = c.cloneNode(true) as HTMLElement;
-              if (p.firstChild?.nodeName === "STRONG") {
-                p.removeChild(p.firstChild);
-              }
-              pieces.push(p.innerText.trim());
-            }
-          }
-          console.log(pieces);
-        });
+    return cards.map((card) => {
+      const lines: string[] = [];
+      for (let c = card.firstChild; c; c = c.nextSibling) {
+        if (c.nodeName === "P") {
+          lines.push((c as HTMLElement).innerText);
+        }
       }
+      return lines;
     });
+  }, type)) as string[][];
 
-    return true;
-  }
+  const messagesOnPage = rawMessages.map((lines) => parseMessage(lines, type));
+
+  return messagesOnPage.filter((message) => {
+    const isNew = !receivedMessages.some(
+      (m) =>
+        m.type == message.type &&
+        m.to === message.to &&
+        m.time.getTime() === message.time.getTime()
+    );
+    return isNew;
+  });
 }

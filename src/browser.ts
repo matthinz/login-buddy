@@ -1,71 +1,61 @@
-import { Browser, launch as puppeteerLaunch, Page } from "puppeteer";
-import { EventBus } from "./events";
-import { GlobalState, NewBrowserEvent, StateManager } from "./types";
-
-const LAUNCH_OPTIONS = {
-  headless: false,
-  defaultViewport: null,
-};
+import { Browser, Page } from "puppeteer";
 
 export class BrowserHelper {
-  private events: EventBus;
-  private stateManager: StateManager<GlobalState>;
-  private launchPromise: Promise<Browser> | undefined;
+  private readonly _launch: () => Promise<Browser>;
+  private browser: Browser | undefined;
 
-  constructor(events: EventBus, stateManager: StateManager<GlobalState>) {
-    this.events = events;
-    this.stateManager = stateManager;
+  constructor(browser: Browser);
+  constructor(launcher: () => Promise<Browser>);
+  constructor(browserOrLauncher: Browser | (() => Promise<Browser>)) {
+    if (typeof browserOrLauncher === "function") {
+      this._launch = () =>
+        browserOrLauncher().then((browser) => {
+          this.browser = browser;
+          return browser;
+        });
+    } else {
+      this._launch = () => Promise.resolve(browserOrLauncher);
+      this.browser = browserOrLauncher;
+    }
   }
 
   async activePage(): Promise<Page | undefined> {
-    const { browser } = this.stateManager.current();
-    if (!browser) {
+    if (!this.browser) {
       return;
     }
 
-    const pages = await browser.pages();
+    return await scanPages(this.browser);
 
-    return await pages.reduce<Promise<Page | undefined>>((promise, page) => {
-      return promise.then(async (result) => {
-        if (result) {
-          return result;
-        }
+    async function scanPages(browser: Browser): Promise<Page | undefined> {
+      const pages = await browser.pages();
+      return await pages.reduce<Promise<Page | undefined>>((promise, page) => {
+        return promise.then(async (result) => {
+          if (result) {
+            return result;
+          }
 
-        const isVisible = await page.evaluate(
-          () => document.visibilityState === "visible"
-        );
+          try {
+            const isVisible = await page.evaluate(
+              () => document.visibilityState === "visible"
+            );
 
-        if (isVisible) {
-          return page;
-        }
-      });
-    }, Promise.resolve(undefined));
+            if (isVisible) {
+              return page;
+            }
+          } catch {
+            // if nav happens while we are executing, this will fail. Need to restart
+            return await scanPages(browser);
+          }
+        });
+      }, Promise.resolve(undefined));
+    }
   }
 
   launch(): Promise<Browser> {
-    if (this.launchPromise) {
-      return this.launchPromise;
+    if (this.browser) {
+      return Promise.resolve(this.browser);
     }
-
-    this.launchPromise = Promise.resolve().then(async () => {
-      const state = this.stateManager.current();
-      if (state.browser) {
-        return state.browser;
-      }
-
-      const browser = await puppeteerLaunch(LAUNCH_OPTIONS);
-
-      this.stateManager.update({
-        ...state,
-        browser,
-      });
-
-      this.events.emit("newBrowser", { browser });
-
-      return browser;
-    });
-
-    return this.launchPromise;
+    return this._launch();
   }
 
   async newPage(): Promise<Page> {

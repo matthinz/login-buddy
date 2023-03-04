@@ -1,12 +1,20 @@
 import chalk from "chalk";
 import * as readline from "node:readline";
+import { Browser, launch } from "puppeteer";
 import { BrowserHelper } from "../../browser";
+import { EventBus } from "../../events";
 
-import { CommandEvent, PluginOptions, ProgramOptions } from "../../types";
+import {
+  CommandEvent,
+  GlobalState,
+  PluginOptions,
+  ProgramOptions,
+  StateManager,
+} from "../../types";
 
 export function cliPlugin({ programOptions, events, state }: PluginOptions) {
   let currentExecution: Promise<void> | undefined;
-  const browser = new BrowserHelper(events, state);
+  const browser = new BrowserHelper(createBrowserLauncher(events, state));
 
   const rl = readline.createInterface({
     input: process.stdin,
@@ -38,6 +46,12 @@ export function cliPlugin({ programOptions, events, state }: PluginOptions) {
     process.exit();
   });
 
+  events.on("message", ({ message }) => {
+    console.log(message.time);
+    console.log(message.to);
+    console.log(message.body);
+  });
+
   events.on("error", ({ error }) => {
     console.error(error);
   });
@@ -45,6 +59,31 @@ export function cliPlugin({ programOptions, events, state }: PluginOptions) {
   welcome(programOptions);
 
   rl.prompt();
+}
+
+function createBrowserLauncher(
+  events: EventBus,
+  state: StateManager<GlobalState>
+): () => Promise<Browser> {
+  const { browser } = state.current();
+  if (browser) {
+    return () => Promise.resolve(browser);
+  }
+
+  const LAUNCH_OPTIONS = {
+    headless: false,
+    defaultViewport: null,
+  };
+
+  return () =>
+    launch(LAUNCH_OPTIONS).then(async (browser) => {
+      state.update({
+        ...state.current(),
+        browser,
+      });
+      await events.emit("newBrowser", { browser });
+      return browser;
+    });
 }
 
 function parseLine(line: string): string[] {

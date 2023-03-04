@@ -61,6 +61,13 @@ export type TwoFactorMethod = "sms" | "totp" | "backup_codes";
 
 export type SpOptions = { method: SpMethod; url: URL };
 
+export type Message = {
+  type: "voice" | "sms";
+  time: Date;
+  to: string;
+  body: string;
+};
+
 // Events
 
 export type NewBrowserEvent = {
@@ -75,6 +82,10 @@ export type CommandEvent = {
 
 export type ErrorEvent = {
   error: any;
+};
+
+export type MessageEvent = {
+  message: Message;
 };
 
 export type SignupEvent = {

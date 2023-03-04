@@ -2,6 +2,7 @@ import {
   CommandEvent,
   ErrorEvent,
   EventHandler,
+  MessageEvent,
   NewBrowserEvent,
   SignupEvent,
 } from "./types";
@@ -19,6 +20,7 @@ export class EventBus {
     event: CommandEvent
   ): Promise<void>;
   emit(eventName: "error", event: ErrorEvent): Promise<void>;
+  emit(eventName: "message", event: MessageEvent): Promise<void>;
   emit(eventName: "newBrowser", event: NewBrowserEvent): Promise<void>;
   emit(eventName: "signup", event: SignupEvent): Promise<void>;
   async emit<EventType>(eventName: string, event: EventType): Promise<void> {
@@ -33,7 +35,7 @@ export class EventBus {
           await result;
         }
       } catch (error) {
-        this.emit("error", { error });
+        await this.emit("error", { error });
       }
     }
   }
@@ -43,6 +45,7 @@ export class EventBus {
     handler: EventHandler<CommandEvent>
   ): void;
   on(eventName: "error", handler: EventHandler<ErrorEvent>): void;
+  on(eventName: "message", handler: EventHandler<MessageEvent>): void;
   on(eventName: "newBrowser", handler: EventHandler<NewBrowserEvent>): void;
   on(eventName: "signup", handler: EventHandler<SignupEvent>): void;
   on<EventType>(eventName: string, handler: EventHandler<EventType>): void {
