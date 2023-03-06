@@ -8,8 +8,6 @@ import { SignupOptions, SignupState } from "./types";
 
 export { SignupState } from "./types";
 
-const DEFAULT_BASE_EMAIL_ADDRESS = "test@example.org";
-
 // I can never remember what urls are what.
 const UNTIL_ALIASES: { [key: string]: string | undefined } = {
   mfa: "/authentication_methods_setup",
@@ -68,7 +66,7 @@ async function signUp(
 
 export function parseOptions(
   args: string[],
-  { baseURL, environment }: ProgramOptions
+  { baseURL, baseEmail, basePhone, environment }: ProgramOptions
 ): SignupOptions {
   const raw = getopts(args, {
     alias: {
@@ -83,8 +81,10 @@ export function parseOptions(
       throw new Error("Invalid --email");
     }
   }
-  const baseEmailAddress =
-    raw.email == null ? DEFAULT_BASE_EMAIL_ADDRESS : String(raw.email);
+
+  baseEmail = raw.email == null ? baseEmail : String(raw.email);
+
+  basePhone = raw.phone == null ? basePhone : String(raw.phone);
 
   const sp = resolveSpOptions(raw, environment, baseURL);
 
@@ -105,7 +105,8 @@ export function parseOptions(
   const until = raw.until == null ? undefined : String(raw.until);
 
   return {
-    baseEmailAddress,
+    baseEmail,
+    basePhone,
     baseURL,
     sp,
     twoFactor: twoFactor[0] ?? "totp",
