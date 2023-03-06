@@ -47,9 +47,19 @@ export function phonePlugin({ events, programOptions }: PluginOptions) {
       return;
     }
 
-    await page.goto(
-      new URL(TELEPHONY_MONITORING_URL, programOptions.baseURL).toString()
-    );
+    try {
+      await page.goto(
+        new URL(TELEPHONY_MONITORING_URL, programOptions.baseURL).toString()
+      );
+    } catch (err: any) {
+      const isConnectionRefused = String(err.message).includes(
+        "net::ERR_CONNECTION_REFUSED"
+      );
+      if (isConnectionRefused) {
+        return;
+      }
+      throw err;
+    }
 
     if (activePage) {
       try {
