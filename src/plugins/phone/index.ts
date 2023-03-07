@@ -1,5 +1,4 @@
-import { Page } from "puppeteer";
-import { BrowserHelper } from "../../browser";
+import { load, CheerioAPI } from "cheerio";
 import { Message, PluginOptions } from "../../types";
 import { parseMessage } from "./parse";
 
@@ -11,162 +10,80 @@ const POLL_DELAY = 3000;
  * to the /test/telephony route and reports any SMS / voice messages
  * it sees there.
  */
-export function phonePlugin({ events, programOptions }: PluginOptions) {
-  if (programOptions.environment !== "local") {
+export function phonePlugin({
+  events,
+  programOptions: { baseURL, environment },
+}: PluginOptions) {
+  if (environment !== "local") {
     return;
   }
 
-  /**
-   * Tracks the browser tab we're using to monitor the telephony debugging page.
-   */
-  let page: Page | undefined;
-
   const messages: Message[] = [];
 
-  events.on("newBrowser", async ({ browser }) => {
-    setTimeout(
-      () => createAndTrackPage(new BrowserHelper(browser)),
-      INIT_DELAY
-    );
-  });
+  pollForMessages();
 
-  /**
-   * Opens a page we can use to monitor the test telephony screen.
-   */
-  async function createAndTrackPage(browser: BrowserHelper) {
-    try {
-      await page?.close();
-    } catch {}
-
-    const activePage = await browser.activePage();
-
-    try {
-      page = await browser.newPage();
-    } catch {
-      // We're probably exiting or something
-      return;
-    }
-
-    try {
-      await page.goto(
-        new URL(TELEPHONY_MONITORING_URL, programOptions.baseURL).toString()
-      );
-    } catch (err: any) {
-      const isConnectionRefused = String(err.message).includes(
-        "net::ERR_CONNECTION_REFUSED"
-      );
-      if (isConnectionRefused) {
-        return;
-      }
-      throw err;
-    }
-
-    if (activePage) {
-      try {
-        await activePage.bringToFront();
-      } catch {}
-    }
-
-    pollForMessages();
-
-    function pollForMessages() {
-      messagePollingWorker()
-        .catch(async (error) => {
-          await events.emit("error", { error });
-        })
-        .finally(() => {
-          setTimeout(pollForMessages, POLL_DELAY);
-        });
-    }
-
-    async function messagePollingWorker(): Promise<void> {
-      try {
-        if (page) {
-          await page.reload();
-        }
-      } catch {
-        page = undefined;
+  function pollForMessages() {
+    const telephonyUrl = new URL(TELEPHONY_MONITORING_URL, baseURL);
+    fetch(telephonyUrl.toString()).then(async (resp) => {
+      if (!resp.ok) {
+        setTimeout(pollForMessages, POLL_DELAY);
       }
 
-      if (!page) {
-        // Somehow, we've lost our page.
-        setTimeout(() => createAndTrackPage(browser), INIT_DELAY);
-        return;
-      }
+      const $ = load(await resp.text());
 
-      await disableMetaRefresh(page);
-
-      const newMessages = [
-        ...(await getNewMessagesOnPage(page, "sms", messages)),
-        ...(await getNewMessagesOnPage(page, "voice", messages)),
+      const messagesOnPage = [
+        ...getMessagesOnPage("sms", $),
+        ...getMessagesOnPage("voice", $),
       ];
 
-      newMessages.forEach((message) => {
-        messages.push(message);
+      const newMessages = messagesOnPage.filter((message) => {
+        const alreadyReceived = messages.some(
+          (m) =>
+            m.type === message.type &&
+            m.to === message.to &&
+            m.body === message.body &&
+            m.time.getTime() === message.time.getTime()
+        );
+        return !alreadyReceived;
       });
 
-      await newMessages.reduce<Promise<void>>(
-        (promise, message) =>
-          promise.then(async () => {
-            await events.emit("message", { message });
-          }),
-        Promise.resolve()
-      );
-    }
+      messages.push(...newMessages);
+
+      newMessages.forEach((message) => {
+        events.emit("message", { message });
+      });
+
+      setTimeout(pollForMessages, POLL_DELAY);
+    });
   }
 }
 
-async function disableMetaRefresh(page: Page): Promise<void> {
-  await page.evaluate(() => {
-    // Remove the meta refresh, since we're handling it
-    const meta = document.querySelector<HTMLMetaElement>(
-      "meta[http-equiv=refresh]"
-    );
-    meta?.parentNode?.removeChild(meta);
-  });
-}
-
-async function getNewMessagesOnPage(
-  page: Page,
-  type: "sms" | "voice",
-  receivedMessages: Message[]
-): Promise<Message[]> {
+function getMessagesOnPage(type: "sms" | "voice", $: CheerioAPI): Message[] {
   // Each message is in a card element.
   // Here we grab the text lines, then parse them.
 
-  const rawMessages = (await page.evaluate((type: "sms" | "voice") => {
-    const h2s = [].slice.call(document.querySelectorAll("h2")) as HTMLElement[];
-    const headingText = type === "sms" ? "Messages" : "Calls";
-    const messagesH2 = h2s.find((el) => el.innerText.trim() === headingText);
+  const headingText = type === "sms" ? "Messages" : "Calls";
 
-    if (!messagesH2 || !messagesH2.parentNode) {
-      return [];
-    }
-
-    const cards = [].slice.call(
-      messagesH2.parentNode.querySelectorAll<HTMLElement>(".lg-card")
-    ) as HTMLElement[];
-
-    return cards.map((card) => {
-      const lines: string[] = [];
-      for (let c = card.firstChild; c; c = c.nextSibling) {
-        if (c.nodeName === "P") {
-          lines.push((c as HTMLElement).innerText);
-        }
-      }
-      return lines;
-    });
-  }, type)) as string[][];
-
-  const messagesOnPage = rawMessages.map((lines) => parseMessage(lines, type));
-
-  return messagesOnPage.filter((message) => {
-    const isNew = !receivedMessages.some(
-      (m) =>
-        m.type == message.type &&
-        m.to === message.to &&
-        m.time.getTime() === message.time.getTime()
-    );
-    return isNew;
+  const $h2s = $("h2").filter(function (_, el) {
+    return $(el).text().trim() === headingText;
   });
+
+  if ($h2s.length === 0) {
+    return [];
+  }
+
+  const $cards = $h2s.parent().find(".lg-card");
+  const rawMessages: string[][] = [];
+
+  $cards.each(function (_, card) {
+    const lines: string[] = [];
+    $(card)
+      .children("p")
+      .each((_, p) => {
+        lines.push($(p).text().trim());
+      });
+    rawMessages.push(lines);
+  });
+
+  return rawMessages.map((lines) => parseMessage(lines, type));
 }

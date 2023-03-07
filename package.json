@@ -5,6 +5,7 @@
   "license": "MIT",
   "dependencies": {
     "chalk": "^4.1.2",
+    "cheerio": "^1.0.0-rc.12",
     "chokidar": "^3.5.3",
     "dotenv": "^16.0.3",
     "getopts": "^2.3.0",
