@@ -19,7 +19,7 @@ async function login(
   browser: BrowserHelper,
   options: LogInOptions
 ): Promise<void> {
-  const page = await browser.newPage();
+  const page = await browser.tryToReusePage(options.baseURL);
 
   await LOG_IN.run(options.signup, {
     ...options,

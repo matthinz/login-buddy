@@ -62,4 +62,22 @@ export class BrowserHelper {
     const browser = await this.launch();
     return await browser.newPage();
   }
+
+  async tryToReusePage(url: string | URL): Promise<Page> {
+    const browser = await this.launch();
+    const pages = await browser.pages();
+
+    let page = pages.find((p) => this.pageMatches(p, url));
+    if (!page) {
+      page = await browser.newPage();
+    }
+
+    await page.goto(url.toString());
+
+    return page;
+  }
+
+  private pageMatches(page: Page, url: URL | string): boolean {
+    return page.url() === url.toString();
+  }
 }
