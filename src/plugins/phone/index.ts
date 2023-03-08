@@ -20,9 +20,9 @@ export function phonePlugin({
 
   const messages: Message[] = [];
 
-  pollForMessages();
+  pollForMessages(false);
 
-  function pollForMessages() {
+  function pollForMessages(emitEvents = true) {
     const telephonyUrl = new URL(TELEPHONY_MONITORING_URL, baseURL);
     fetch(telephonyUrl.toString()).then(async (resp) => {
       if (!resp.ok) {
@@ -49,9 +49,11 @@ export function phonePlugin({
 
       messages.push(...newMessages);
 
-      newMessages.forEach((message) => {
-        events.emit("message", { message });
-      });
+      if (emitEvents) {
+        await Promise.all(
+          newMessages.map((message) => events.emit("message", { message }))
+        );
+      }
 
       setTimeout(pollForMessages, POLL_DELAY);
     });
