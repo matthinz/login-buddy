@@ -58,7 +58,10 @@ export function cliPlugin({ programOptions, events, state }: PluginOptions) {
 
   welcome(programOptions);
 
-  rl.prompt();
+  // Aesthetic thing: clear the fetch() api warning
+  setTimeout(() => {
+    rl.prompt();
+  }, 500);
 }
 
 function createBrowserLauncher(
