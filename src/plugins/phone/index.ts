@@ -24,39 +24,44 @@ export function phonePlugin({
 
   function pollForMessages(emitEvents = true) {
     const telephonyUrl = new URL(TELEPHONY_MONITORING_URL, baseURL);
-    fetch(telephonyUrl.toString()).then(async (resp) => {
-      if (!resp.ok) {
+    fetch(telephonyUrl.toString())
+      .catch((err) => {
+        return undefined;
+      })
+      .then(async (resp) => {
+        if (!resp?.ok) {
+          setTimeout(pollForMessages, POLL_DELAY);
+          return;
+        }
+
+        const $ = load(await resp.text());
+
+        const messagesOnPage = [
+          ...getMessagesOnPage("sms", $),
+          ...getMessagesOnPage("voice", $),
+        ];
+
+        const newMessages = messagesOnPage.filter((message) => {
+          const alreadyReceived = messages.some(
+            (m) =>
+              m.type === message.type &&
+              m.to === message.to &&
+              m.body === message.body &&
+              m.time.getTime() === message.time.getTime()
+          );
+          return !alreadyReceived;
+        });
+
+        messages.push(...newMessages);
+
+        if (emitEvents) {
+          await Promise.all(
+            newMessages.map((message) => events.emit("message", { message }))
+          );
+        }
+
         setTimeout(pollForMessages, POLL_DELAY);
-      }
-
-      const $ = load(await resp.text());
-
-      const messagesOnPage = [
-        ...getMessagesOnPage("sms", $),
-        ...getMessagesOnPage("voice", $),
-      ];
-
-      const newMessages = messagesOnPage.filter((message) => {
-        const alreadyReceived = messages.some(
-          (m) =>
-            m.type === message.type &&
-            m.to === message.to &&
-            m.body === message.body &&
-            m.time.getTime() === message.time.getTime()
-        );
-        return !alreadyReceived;
       });
-
-      messages.push(...newMessages);
-
-      if (emitEvents) {
-        await Promise.all(
-          newMessages.map((message) => events.emit("message", { message }))
-        );
-      }
-
-      setTimeout(pollForMessages, POLL_DELAY);
-    });
   }
 }
 
