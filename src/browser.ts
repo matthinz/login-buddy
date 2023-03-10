@@ -67,7 +67,12 @@ export class BrowserHelper {
     const browser = await this.launch();
     const pages = await browser.pages();
 
-    let page = pages.find((p) => this.pageMatches(p, url));
+    let page: Page | undefined;
+
+    try {
+      page = pages.find((p) => this.pageMatches(p, url));
+    } catch {}
+
     if (!page) {
       page = await browser.newPage();
     }
