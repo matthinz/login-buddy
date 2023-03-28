@@ -71,7 +71,7 @@ export function parseOptions(
     },
   });
 
-  let threatMetrix = raw.threatMetrix == null ? "no_result" : raw.threatMetrix;
+  let threatMetrix = raw.threatMetrix == null ? "pass" : raw.threatMetrix;
   if (!THREATMETRIX_RESULTS.includes(threatMetrix)) {
     throw new Error("Invalid value for --threatmetrix");
   }
