@@ -14,6 +14,12 @@ const UNTIL_ALIASES: { [key: string]: string | RegExp } = {
   verify: /(\/verify\/doc_auth\/verify|\/verify\/verify_info)/,
 };
 
+const DEFAULT_PHONE = "3602345678";
+
+// > Simulates a phone number that couldn’t be verified as belonging to the user
+// https://developers.login.gov/testing/
+const BAD_PHONE = "703-555-5555";
+
 export function idvPlugin({ events, programOptions, state }: PluginOptions) {
   events.on("command:verify", async ({ args }) => {
     const options = parseOptions(args, programOptions);
@@ -50,7 +56,12 @@ async function verify(
     ? UNTIL_ALIASES[options.until] ?? options.until
     : undefined;
 
-  await VERIFY_FLOW.run(lastSignup, runOptions, {
+  const inputState = {
+    ...lastSignup,
+    phone: options.phone ?? lastSignup.phone ?? DEFAULT_PHONE,
+  };
+
+  await VERIFY_FLOW.run(inputState, runOptions, {
     shouldStop: untilArg ? until(untilArg) : () => false,
   });
 
@@ -68,6 +79,7 @@ export function parseOptions(
   const raw = getopts(args, {
     alias: {
       threatMetrix: ["threatmetrix"],
+      badPhone: ["bad-phone"],
     },
   });
 
@@ -84,10 +96,20 @@ export function parseOptions(
 
   const ssn = raw.ssn == null ? undefined : String(raw.ssn);
 
+  let phone = raw.phone == null ? undefined : String(raw.phone);
+
+  if (raw.badPhone) {
+    if (phone != null) {
+      throw new Error("Can't specify --phone and --bad-phone");
+    }
+    phone = BAD_PHONE;
+  }
+
   return {
     baseURL,
     hybrid,
     gpo,
+    phone,
     ssn,
     threatMetrix: threatMetrix as ThreatMetrixResult,
     until,

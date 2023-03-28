@@ -11,6 +11,7 @@ export type VerifyOptions = {
   baseURL: URL;
   gpo: boolean;
   hybrid: boolean;
+  phone?: string | undefined;
   threatMetrix: ThreatMetrixResult;
   ssn?: string | undefined;
   until?: string;

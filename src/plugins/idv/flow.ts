@@ -5,6 +5,7 @@ import { createFlow, FlowInterface, FlowRunOptions } from "../../dsl";
 type InputState = {
   email: string;
   password: string;
+  phone: string;
 };
 
 const PROOFING_YAML = `
@@ -103,7 +104,6 @@ export const VERIFY_FLOW = createFlow<InputState, VerifyOptions>()
       noGpo
         // "Enter your phone number"
         .expectUrl("/verify/phone")
-        .generate("phone", () => "3602345678")
         .type('[name="idv_phone_form[phone]"]', (state) => state.phone)
         .submit()
 
