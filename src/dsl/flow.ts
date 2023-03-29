@@ -1,6 +1,7 @@
 import { promises as fs } from "fs";
 import * as path from "path";
 import { Page } from "puppeteer";
+import { createFlow } from ".";
 
 import {
   FlowHooks,
@@ -339,6 +340,18 @@ export class Flow<
       await page.waitForNetworkIdle();
 
       return state;
+    });
+  }
+
+  then<NextOutputState extends OutputState>(
+    next: (
+      flow: FlowInterface<OutputState, OutputState, Options>,
+      state: OutputState
+    ) => FlowInterface<OutputState, NextOutputState, Options>
+  ): FlowInterface<InputState, NextOutputState, Options> {
+    return this.derive<NextOutputState>(async (state, options, hooks) => {
+      const flow = createFlow<OutputState, Options>();
+      return await next(flow, state).run(state, options);
     });
   }
 

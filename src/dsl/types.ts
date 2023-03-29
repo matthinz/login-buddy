@@ -149,6 +149,13 @@ export interface FlowInterface<
     selector?: FromStateAndOptions<string, OutputState, Options>
   ): FlowInterface<InputState, OutputState, Options>;
 
+  then<NextOutputState extends OutputState>(
+    next: (
+      flow: FlowInterface<OutputState, OutputState, Options>,
+      state: OutputState
+    ) => FlowInterface<OutputState, NextOutputState, Options>
+  ): FlowInterface<InputState, NextOutputState, Options>;
+
   type(
     selector: FromStateAndOptions<string, OutputState, Options>,
     text: FromStateAndOptions<string, OutputState, Options>
