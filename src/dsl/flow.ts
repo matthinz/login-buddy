@@ -371,6 +371,14 @@ export class Flow<
         timeout: 3000,
       });
 
+      await page.evaluate((selector) => {
+        const input = document.querySelector<HTMLInputElement>(selector);
+        if (!input) {
+          throw new Error("Could not find selector " + selector);
+        }
+        input.value = "";
+      }, resolvedSelector);
+
       await page.type(resolvedSelector, resolvedText);
 
       return state;
