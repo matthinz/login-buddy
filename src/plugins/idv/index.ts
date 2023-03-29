@@ -59,6 +59,7 @@ async function verify(
   const inputState = {
     ...lastSignup,
     phone: options.phone ?? lastSignup.phone ?? DEFAULT_PHONE,
+    throttlePhone: !!options.throttlePhone,
   };
 
   await VERIFY_FLOW.run(inputState, runOptions, {
@@ -80,6 +81,7 @@ export function parseOptions(
     alias: {
       threatMetrix: ["threatmetrix"],
       badPhone: ["bad-phone"],
+      throttlePhone: ["throttle-phone"],
     },
   });
 
@@ -96,7 +98,19 @@ export function parseOptions(
 
   const ssn = raw.ssn == null ? undefined : String(raw.ssn);
 
+  const throttlePhone = !!raw.throttlePhone;
+
   let phone = raw.phone == null ? undefined : String(raw.phone);
+
+  if (throttlePhone) {
+    if (phone) {
+      throw new Error("Can't specify --phone and --throttle-phone");
+    }
+    if (gpo) {
+      throw new Error("Can't specify --throttle-phone and --gpo");
+    }
+    phone = BAD_PHONE;
+  }
 
   if (raw.badPhone) {
     if (phone != null) {
@@ -112,6 +126,7 @@ export function parseOptions(
     phone,
     ssn,
     threatMetrix: threatMetrix as ThreatMetrixResult,
+    throttlePhone,
     until,
   };
 }

@@ -6,6 +6,7 @@ type InputState = {
   email: string;
   password: string;
   phone: string;
+  throttlePhone: boolean;
 };
 
 const PROOFING_YAML = `
@@ -100,39 +101,38 @@ export const VERIFY_FLOW = createFlow<InputState, VerifyOptions>()
         .navigateTo("/verify/usps")
         .submit('form[action="/verify/usps"] button[type=submit]'),
     // Branch: Don't use GPO
-    (noGpo) =>
-      noGpo
-        // "Enter your phone number"
-        .expectUrl("/verify/phone")
-        .type('[name="idv_phone_form[phone]"]', (state) => state.phone)
-        .submit()
-
-        // "Enter your one-time code"
-        .expectUrl("/verify/phone_confirmation")
-        .submit('form[action="/verify/phone_confirmation"] button[type=submit]')
+    enterPhone
   )
 
-  // "Re-enter your Login.gov password to protect your data"
-  .expectUrl("/verify/review")
-  .type('[name="user[password]"]', (state) => state.password)
-  .submit('form[action="/verify/review"] button[type=submit]')
+  // Bail if we have been phone throttled
+  .branch(
+    (_, state) => state.throttlePhone,
+    doNothing,
+    (flow) =>
+      flow
 
-  // Handle OTP before and after personal key
-  .branch(isComeBackLaterScreen, enterOtp, doNothing)
+        // "Re-enter your Login.gov password to protect your data"
+        .expectUrl("/verify/review")
+        .type('[name="user[password]"]', (state) => state.password)
+        .submit('form[action="/verify/review"] button[type=submit]')
 
-  // "Save your personal key"
-  .expectUrl("/verify/personal_key")
-  .evaluate(async (page, state) => {
-    const personalKey = (await page.evaluate(() => {
-      // @ts-ignore
-      return document.querySelector(".personal-key-block").innerText;
-    })) as string;
-    return { ...state, personalKey };
-  })
-  .click("label[for=acknowledgment]")
-  .submit()
+        // Handle OTP before and after personal key
+        .branch(isComeBackLaterScreen, enterOtp, doNothing)
 
-  .branch(isComeBackLaterScreen, enterOtp, doNothing);
+        // "Save your personal key"
+        .expectUrl("/verify/personal_key")
+        .evaluate(async (page, state) => {
+          const personalKey = (await page.evaluate(() => {
+            // @ts-ignore
+            return document.querySelector(".personal-key-block").innerText;
+          })) as string;
+          return { ...state, personalKey };
+        })
+        .click("label[for=acknowledgment]")
+        .submit()
+
+        .branch(isComeBackLaterScreen, enterOtp, doNothing)
+  );
 
 function generateSsn(): string {
   let result = "666";
@@ -193,5 +193,39 @@ function enterOtp<
       .askIfNeeded("gpoOtp", "Please enter your GPO one-time password")
       .type('[name="gpo_verify_form[otp]"]', (state) => state.gpoOtp)
       .submit()
+  );
+}
+
+function enterPhone<
+  InputState,
+  OutputState extends InputState & { phone: string; throttlePhone: boolean },
+  Options extends FlowRunOptions
+>(
+  flow: FlowInterface<InputState, OutputState, Options>
+): FlowInterface<InputState, OutputState, Options> {
+  return (
+    flow
+      // "Enter your phone number"
+      .expectUrl("/verify/phone")
+      .type('[name="idv_phone_form[phone]"]', (state) => state.phone)
+      .submit()
+
+      .branch(
+        (_, state) => state.throttlePhone,
+        (flow) =>
+          flow.branch(
+            (page) =>
+              new URL(page.url()).pathname === "/verify/phone/errors/failure",
+            doNothing,
+            (flow) => flow.click(".usa-button.usa-button--big").then(enterPhone)
+          ),
+        (flow) =>
+          flow
+            // "Enter your one-time code"
+            .expectUrl("/verify/phone_confirmation")
+            .submit(
+              'form[action="/verify/phone_confirmation"] button[type=submit]'
+            )
+      )
   );
 }

@@ -13,6 +13,7 @@ export type VerifyOptions = {
   hybrid: boolean;
   phone?: string | undefined;
   threatMetrix: ThreatMetrixResult;
+  throttlePhone?: boolean | undefined;
   ssn?: string | undefined;
   until?: string;
 };
