@@ -8,6 +8,7 @@ export const THREATMETRIX_RESULTS = [
 export type ThreatMetrixResult = typeof THREATMETRIX_RESULTS[number];
 
 export type VerifyOptions = {
+  badId?: boolean | undefined;
   baseURL: URL;
   gpo: boolean;
   hybrid: boolean;

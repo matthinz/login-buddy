@@ -58,6 +58,7 @@ async function verify(
 
   const inputState = {
     ...lastSignup,
+    badId: !!options.badId,
     phone: options.phone ?? lastSignup.phone ?? DEFAULT_PHONE,
     throttlePhone: !!options.throttlePhone,
   };
@@ -80,6 +81,7 @@ export function parseOptions(
   const raw = getopts(args, {
     alias: {
       threatMetrix: ["threatmetrix"],
+      badId: ["bad-id"],
       badPhone: ["bad-phone"],
       throttlePhone: ["throttle-phone"],
     },
@@ -89,6 +91,8 @@ export function parseOptions(
   if (!THREATMETRIX_RESULTS.includes(threatMetrix)) {
     throw new Error("Invalid value for --threatmetrix");
   }
+
+  const badId = !!raw.badId;
 
   const gpo = !!raw.gpo;
 
@@ -120,6 +124,7 @@ export function parseOptions(
   }
 
   return {
+    badId,
     baseURL,
     hybrid,
     gpo,

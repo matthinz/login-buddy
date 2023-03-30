@@ -1,31 +1,15 @@
 import { Page } from "puppeteer";
 import { VerifyOptions } from "./types";
 import { createFlow, FlowInterface, FlowRunOptions } from "../../dsl";
+import { generateBadIdYaml, generateIdYaml } from "./id";
 
 type InputState = {
+  badId: boolean;
   email: string;
   password: string;
   phone: string;
   throttlePhone: boolean;
 };
-
-const PROOFING_YAML = `
-document:
-  type: license
-  first_name: Susan
-  last_name: Smith
-  middle_name: Q
-  address1: 1 Microsoft Way
-  address2: Apt 3
-  city: Bayside
-  state: NY
-  zipcode: '11364'
-  dob: 10/06/1938
-  phone: +1 314-555-1212
-  state_id_number: '123456789'
-  state_id_type: drivers_license
-  state_id_jurisdiction: 'NY'
-`.trim();
 
 export const VERIFY_FLOW = createFlow<InputState, VerifyOptions>()
   .navigateTo("/verify")
@@ -57,11 +41,7 @@ export const VERIFY_FLOW = createFlow<InputState, VerifyOptions>()
         .submit(
           'form[action="/verify/doc_auth/upload?type=desktop"] button[type=submit]'
         )
-        // "Add your state-issued ID"
-        .expectUrl("/verify/doc_auth/document_capture")
-        .upload("#file-input-1", "proofing.yml", PROOFING_YAML)
-        .upload("#file-input-2", "proofing.yml", PROOFING_YAML)
-        .submit()
+        .then(uploadId)
   )
 
   // NOTE: Pause for processing documents
@@ -228,4 +208,22 @@ function enterPhone<
             )
       )
   );
+}
+
+function uploadId<
+  InputState,
+  OutputState extends InputState & { badId: boolean },
+  Options extends FlowRunOptions
+>(
+  flow: FlowInterface<InputState, OutputState, Options>
+): FlowInterface<InputState, OutputState, Options> {
+  return flow
+    .expectUrl("/verify/doc_auth/document_capture")
+    .upload("#file-input-1", "proofing.yml", (state) =>
+      state.badId ? generateBadIdYaml() : generateIdYaml()
+    )
+    .upload("#file-input-2", "proofing.yml", (state) =>
+      state.badId ? generateBadIdYaml() : generateIdYaml()
+    )
+    .submit();
 }

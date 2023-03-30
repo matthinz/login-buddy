@@ -52,6 +52,7 @@ Take the account created via `signup` through the Identity Verification (IdV) fl
 
 | Option                                                | Description                                                                   |
 | ----------------------------------------------------- | ----------------------------------------------------------------------------- |
+| `--bad-id`                                            | Use a bad identity document.                                                  |
 | `--bad-phone`                                         | Use a phone number that will fail during phone verification                   |
 | `--gpo`                                               | Verify using GPO (the "send me a letter" flow).                               |
 | `--phone <string>`                                    | Specify the phone number to use during verification.                          |
