@@ -2,12 +2,12 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import chokidar from "chokidar";
 import { Message, parseMultipleEmails } from "./parser";
-import { ProgramOptions } from "../../types";
+import { PluginOptions, ProgramOptions } from "../../types";
 import chalk from "chalk";
 import { EventBus } from "../../events";
 
-export function emailsPlugin(options: ProgramOptions, events: EventBus) {
-  const { idpRoot } = options;
+export function emailPlugin({ events, programOptions, state }: PluginOptions) {
+  const { idpRoot } = programOptions;
 
   if (idpRoot == null) {
     return;
@@ -141,9 +141,15 @@ function getLinksInEmail(message: Message): string[] {
     }
 
     // Some simple heuristics to ignore boring URLs
+
+    const isPublicSite = url.host === "www.login.gov";
+    if (isPublicSite) {
+      continue;
+    }
+
     const isDeep = /\/.*?\//.test(url.pathname);
     const hasQueryString = url.search.length > 1;
-    if (isDeep || hasQueryString) {
+    if (isDeep || hasQueryString || isPublicSite) {
       urls.add(url.toString());
     }
   }

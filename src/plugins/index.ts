@@ -1,4 +1,5 @@
 export { cliPlugin } from "./cli";
+export { emailPlugin } from "./email";
 export { idvPlugin } from "./idv";
 export { loginPlugin } from "./login";
 export { otpPlugin } from "./otp";
