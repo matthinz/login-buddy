@@ -45,10 +45,11 @@ export function phonePlugin({
           const alreadyReceived = messages.some(
             (m) =>
               m.type === message.type &&
-              m.to === message.to &&
+              m.to[0] === message.to[0] &&
               m.body === message.body &&
               m.time.getTime() === message.time.getTime()
           );
+
           return !alreadyReceived;
         });
 

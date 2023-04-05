@@ -71,12 +71,23 @@ export type TwoFactorMethod = "sms" | "totp" | "backup_codes";
 
 export type SpOptions = { method: SpMethod; url: URL };
 
-export type Message = {
+export type TelephonyMessage = {
   type: "voice" | "sms";
   time: Date;
-  to: string;
+  to: string[];
   body: string;
 };
+
+export type EmailMessage = {
+  type: "email";
+  time: Date;
+  to: string[];
+  subject: string;
+  body: string;
+  htmlBody: string;
+};
+
+export type Message = TelephonyMessage | EmailMessage;
 
 // Events
 

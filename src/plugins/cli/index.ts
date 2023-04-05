@@ -11,6 +11,7 @@ import {
   ProgramOptions,
   StateManager,
 } from "../../types";
+import { reportMessage } from "./messages";
 
 export function cliPlugin({ programOptions, events, state }: PluginOptions) {
   let currentExecution: Promise<void> | undefined;
@@ -46,11 +47,7 @@ export function cliPlugin({ programOptions, events, state }: PluginOptions) {
     process.exit();
   });
 
-  events.on("message", ({ message }) => {
-    console.log(message.time);
-    console.log(message.to);
-    console.log(message.body);
-  });
+  events.on("message", ({ message }) => reportMessage(message));
 
   events.on("error", ({ error }) => {
     console.error(error);

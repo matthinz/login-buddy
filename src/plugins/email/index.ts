@@ -2,11 +2,9 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import chokidar from "chokidar";
 import { Message, parseMultipleEmails } from "./parser";
-import { PluginOptions, ProgramOptions } from "../../types";
-import chalk from "chalk";
-import { EventBus } from "../../events";
+import { MessageEvent, PluginOptions } from "../../types";
 
-export function emailPlugin({ events, programOptions, state }: PluginOptions) {
+export function emailPlugin({ events, programOptions }: PluginOptions) {
   const { idpRoot } = programOptions;
 
   if (idpRoot == null) {
@@ -69,17 +67,6 @@ export function emailPlugin({ events, programOptions, state }: PluginOptions) {
     });
   }
 
-  function reportNewEmail(message: Message) {
-    console.log(
-      chalk.dim("\n💌 New email to %s: %s\n%s\n"),
-      message.to.join(","),
-      chalk.bold(message.subject),
-      getLinksInEmail(message)
-        .map((link) => chalk.blueBright(`   ${link}`))
-        .join("\n")
-    );
-  }
-
   function reviewUpdatedFiles() {
     if (reviewInProgress) {
       if (timer) {
@@ -101,7 +88,19 @@ export function emailPlugin({ events, programOptions, state }: PluginOptions) {
 
         const newMessages = messages.slice(prevCount);
         emailCountsByFile.set(file, messages.length);
-        newMessages.forEach(reportNewEmail);
+
+        newMessages
+          .map<MessageEvent>((email) => ({
+            message: {
+              type: "email",
+              time: new Date(),
+              to: email.to,
+              subject: email.subject,
+              body: email.body["text/plain"],
+              htmlBody: email.body["text/html"],
+            },
+          }))
+          .forEach((event) => events.emit("message", event));
       })
     ).finally(() => {
       reviewInProgress = false;
@@ -120,39 +119,4 @@ export function emailPlugin({ events, programOptions, state }: PluginOptions) {
 async function parseEmailFile(file: string): Promise<Message[]> {
   const data = await fs.readFile(file);
   return parseMultipleEmails(data.toString("utf-8"));
-}
-
-function getLinksInEmail(message: Message): string[] {
-  const REGEX = /https?:\/\/[^\s]+/g;
-  const urls = new Set<string>();
-
-  while (true) {
-    const m = REGEX.exec(message.body["text/plain"]);
-    if (!m) {
-      break;
-    }
-
-    let url: URL;
-    try {
-      url = new URL(m[0]);
-    } catch (err) {
-      console.error(err);
-      continue;
-    }
-
-    // Some simple heuristics to ignore boring URLs
-
-    const isPublicSite = url.host === "www.login.gov";
-    if (isPublicSite) {
-      continue;
-    }
-
-    const isDeep = /\/.*?\//.test(url.pathname);
-    const hasQueryString = url.search.length > 1;
-    if (isDeep || hasQueryString || isPublicSite) {
-      urls.add(url.toString());
-    }
-  }
-
-  return Array.from(urls);
 }

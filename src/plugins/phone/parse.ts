@@ -30,7 +30,7 @@ export function parseMessage(pieces: string[], type: "sms" | "voice"): Message {
 
     switch (field) {
       case "To":
-        message.to = value;
+        message.to = [value];
         break;
       case "Body":
         message.body = value;
