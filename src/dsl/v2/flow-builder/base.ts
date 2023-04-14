@@ -1,5 +1,4 @@
 import { FlowBuilder } from ".";
-import { FlowHooks } from "../../types";
 import { click, navigate, submit, type } from "./actions";
 import { ConvertingFlowBuilder } from "./converter";
 import { Action, Context, FlowBuilderInterface, RuntimeValue } from "./types";
@@ -11,7 +10,7 @@ export abstract class AbstractFlowBuilder<
 > implements FlowBuilderInterface<InputState, State, Options>
 {
   click(
-    selector: RuntimeValue<string, State>
+    selector: RuntimeValue<string, State, Options>
   ): FlowBuilderInterface<InputState, State, Options> {
     return this.derive(click(selector));
   }
@@ -19,6 +18,12 @@ export abstract class AbstractFlowBuilder<
   evaluate<NextState extends State>(
     func: (context: Context<State, Options>) => Promise<NextState>
   ): FlowBuilderInterface<InputState, NextState, Options> {
+    throw new Error();
+  }
+
+  expect(
+    url: RuntimeValue<string | URL, State, Options>
+  ): FlowBuilderInterface<InputState, State, Options> {
     throw new Error();
   }
 
@@ -44,7 +49,7 @@ export abstract class AbstractFlowBuilder<
   }
 
   navigateTo(
-    url: RuntimeValue<string | URL, State>
+    url: RuntimeValue<string | URL, State, Options>
   ): FlowBuilderInterface<InputState, State, Options> {
     return this.derive(navigate(url));
   }
@@ -52,14 +57,14 @@ export abstract class AbstractFlowBuilder<
   abstract run(context: Context<InputState, Options>): Promise<State>;
 
   submit(
-    selector: RuntimeValue<string, State>
+    selector: RuntimeValue<string, State, Options>
   ): FlowBuilderInterface<InputState, State, Options> {
     return this.derive(submit(selector));
   }
 
   type(
-    selector: RuntimeValue<string, State>,
-    value: RuntimeValue<string, State>
+    selector: RuntimeValue<string, State, Options>,
+    value: RuntimeValue<string, State, Options>
   ): FlowBuilderInterface<InputState, State, Options> {
     return this.derive(type(selector, value));
   }
