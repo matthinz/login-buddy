@@ -10,23 +10,23 @@ import {
   TypeAction,
 } from "./types";
 
-export function click<State>(
+export function click<State, Options>(
   selector: RuntimeValue<string, State>
-): ClickAction<State> {
+): ClickAction<State, Options> {
   const selectorFunc = bindRuntimeValueResolver(selector);
   return {
     type: "click",
     selector: selectorFunc,
-    async perform({ page, state }: Context<State>) {
+    async perform({ page, state }: Context<State, Options>) {
       const selector = await selectorFunc(state);
       await page.click(selector);
     },
   };
 }
 
-export function expectUrl<State>(
+export function expectUrl<State, Options>(
   url: RuntimeValue<URL | string, State>
-): ExpectUrlAction<State> {
+): ExpectUrlAction<State, Options> {
   const urlFunc = async (state: State) => {
     const resolved = await resolveRuntimeValue(url, state);
     return resolved instanceof URL ? resolved : new URL(resolved);
@@ -48,9 +48,9 @@ export function expectUrl<State>(
   };
 }
 
-export function navigate<State>(
+export function navigate<State, Options>(
   url: RuntimeValue<string | URL, State>
-): NavigateAction<State> {
+): NavigateAction<State, Options> {
   const urlFunc = async (state: State) => {
     const resolved = await resolveRuntimeValue(url, state);
     return resolved instanceof URL ? resolved : new URL(resolved);
@@ -59,21 +59,21 @@ export function navigate<State>(
   return {
     type: "navigate",
     url: urlFunc,
-    async perform({ page, state }: Context<State>) {
+    async perform({ page, state }: Context<State, Options>) {
       const url = await urlFunc(state);
       await page.goto(url.toString());
     },
   };
 }
 
-export function submit<State>(
+export function submit<State, Options>(
   selector: RuntimeValue<string, State>
-): SubmitAction<State> {
+): SubmitAction<State, Options> {
   const selectorFunc = bindRuntimeValueResolver(selector);
   return {
     type: "submit",
     selector: selectorFunc,
-    async perform({ page, state }: Context<State>) {
+    async perform({ page, state }: Context<State, Options>) {
       const selector = await selectorFunc(state);
       await Promise.all([page.click(selector), page.waitForNavigation()]);
       await page.waitForNetworkIdle();
@@ -81,17 +81,17 @@ export function submit<State>(
   };
 }
 
-export function type<State>(
+export function type<State, Options>(
   selector: RuntimeValue<string, State>,
   value: RuntimeValue<string, State>
-): TypeAction<State> {
+): TypeAction<State, Options> {
   const selectorFunc = bindRuntimeValueResolver(selector);
   const valueFunc = bindRuntimeValueResolver(value);
   return {
     type: "type",
     selector: selectorFunc,
     value: valueFunc,
-    async perform({ page, state }: Context<State>) {
+    async perform({ page, state }: Context<State, Options>) {
       const [selector, value] = await Promise.all([
         selectorFunc(state),
         valueFunc(state),

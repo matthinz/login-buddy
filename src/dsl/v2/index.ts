@@ -1,11 +1,9 @@
 import { FlowBuilder, FlowBuilderInterface } from "./flow-builder";
 
-export function createFlow<State>(): FlowBuilderInterface<State, State> {
-  return new FlowBuilder<State, State>(undefined, []);
-}
-
-export function navigateTo<State>(
-  url: string | URL
-): FlowBuilderInterface<State, State> {
-  return createFlow<State>().navigateTo(url);
+export function createFlow<State, Options>(): FlowBuilderInterface<
+  State,
+  State,
+  Options
+> {
+  return new FlowBuilder<State, State, Options>(undefined, []);
 }

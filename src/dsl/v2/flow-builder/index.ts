@@ -5,21 +5,22 @@ export { FlowBuilderInterface } from "./types";
 
 export class FlowBuilder<
   InputState,
-  State extends InputState
-> extends AbstractFlowBuilder<InputState, State> {
-  private prev: FlowBuilderInterface<InputState, State> | undefined;
-  private actions: Action<State>[];
+  State extends InputState,
+  Options
+> extends AbstractFlowBuilder<InputState, State, Options> {
+  private prev: FlowBuilderInterface<InputState, State, Options> | undefined;
+  private actions: Action<State, Options>[];
 
   constructor(
-    prev: FlowBuilderInterface<InputState, State> | undefined,
-    actions: Action<State>[]
+    prev: FlowBuilderInterface<InputState, State, Options> | undefined,
+    actions: Action<State, Options>[]
   ) {
     super();
     this.prev = prev;
     this.actions = actions;
   }
 
-  async run(context: Context<InputState>): Promise<State> {
+  async run(context: Context<InputState, Options>): Promise<State> {
     const state = this.prev
       ? await this.prev.run(context)
       : (context.state as State);
@@ -42,8 +43,8 @@ export class FlowBuilder<
   }
 
   protected override derive(
-    action: Action<State>
-  ): FlowBuilderInterface<InputState, State> {
+    action: Action<State, Options>
+  ): FlowBuilderInterface<InputState, State, Options> {
     return new FlowBuilder(this.prev, [...this.actions, action]);
   }
 }
