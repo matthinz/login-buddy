@@ -9,6 +9,7 @@ import {
   THREATMETRIX_RESULTS,
   VerifyOptions,
 } from "./types";
+import { BrowserHelper } from "../../browser";
 
 const UNTIL_ALIASES: { [key: string]: string | RegExp } = {
   verify: /(\/verify\/doc_auth\/verify|\/verify\/verify_info)/,
@@ -20,25 +21,18 @@ const DEFAULT_PHONE = "3602345678";
 // https://developers.login.gov/testing/
 const BAD_PHONE = "703-555-5555";
 
-export function idvPlugin({ events, programOptions, state }: PluginOptions) {
-  events.on("command:verify", async ({ args }) => {
+export function idvPlugin({ events, programOptions }: PluginOptions) {
+  events.on("command:verify", async ({ args, browser, state }) => {
     const options = parseOptions(args, programOptions);
-    const nextState = await verify(state.current(), options);
-    state.update(nextState);
+    await verify(browser, state.current(), options);
   });
 }
 
 async function verify(
+  browser: BrowserHelper,
   state: GlobalState,
   options: VerifyOptions
-): Promise<GlobalState> {
-  const browser =
-    state.browser ??
-    (await launch({
-      headless: false,
-      defaultViewport: null,
-    }));
-
+) {
   const { lastSignup } = state;
 
   if (!lastSignup) {
@@ -66,12 +60,6 @@ async function verify(
   await VERIFY_FLOW.run(inputState, runOptions, {
     shouldStop: untilArg ? until(untilArg) : () => false,
   });
-
-  return {
-    ...state,
-    browser,
-    lastSignup,
-  };
 }
 
 export function parseOptions(

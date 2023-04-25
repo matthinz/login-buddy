@@ -15,7 +15,9 @@ import { reportMessage } from "./messages";
 
 export function cliPlugin({ programOptions, events, state }: PluginOptions) {
   let currentExecution: Promise<void> | undefined;
-  const browser = new BrowserHelper(createBrowserLauncher(events, state));
+  const browser = new BrowserHelper(
+    createBrowserLauncher(events, state, programOptions)
+  );
 
   const rl = readline.createInterface({
     input: process.stdin,
@@ -63,7 +65,8 @@ export function cliPlugin({ programOptions, events, state }: PluginOptions) {
 
 function createBrowserLauncher(
   events: EventBus,
-  state: StateManager<GlobalState>
+  state: StateManager<GlobalState>,
+  programOptions: ProgramOptions
 ): () => Promise<Browser> {
   const { browser } = state.current();
   if (browser) {
@@ -71,6 +74,11 @@ function createBrowserLauncher(
   }
 
   const LAUNCH_OPTIONS = {
+    args: [
+      programOptions.ignoreSslErrors && "--ignore-certificate-errors",
+      programOptions.ignoreSslErrors &&
+        `--unsafely-treat-insecure-origin-as-secure="${programOptions.baseURL.toString()}"`,
+    ].filter(Boolean) as string[],
     headless: false,
     defaultViewport: null,
   };

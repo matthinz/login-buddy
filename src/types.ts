@@ -38,6 +38,11 @@ export type ProgramOptions = Readonly<
      * What kind of IDP environment are we working in?
      */
     environment: "local" | "dev" | "int" | string;
+
+    /**
+     * Whether to ignore issues with SSL certs.
+     */
+    ignoreSslErrors: boolean;
   } & (
     | {
         /**

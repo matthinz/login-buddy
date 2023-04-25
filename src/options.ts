@@ -11,10 +11,16 @@ export async function resolveOptions(argv: string[]): Promise<ProgramOptions> {
   const environment = options["env"] ?? "local";
   let baseURL: URL;
   let idpRoot: string | undefined;
+  let ignoreSslErrors = false;
 
   switch (environment) {
     case "local":
-      baseURL = new URL("http://localhost:3000");
+      if (options.host) {
+        baseURL = new URL(`https://${options.host}:3000`);
+        ignoreSslErrors = true;
+      } else {
+        baseURL = new URL("http://localhost:3000");
+      }
       break;
 
     case "dev":
@@ -51,6 +57,7 @@ export async function resolveOptions(argv: string[]): Promise<ProgramOptions> {
         basePhone,
         environment,
         idpRoot,
+        ignoreSslErrors,
         watchForEmails: true,
       };
     }
@@ -62,6 +69,7 @@ export async function resolveOptions(argv: string[]): Promise<ProgramOptions> {
     basePhone,
     environment,
     idpRoot,
+    ignoreSslErrors: false,
     watchForEmails: false,
   };
 }
