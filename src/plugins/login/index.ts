@@ -4,6 +4,7 @@ import { resolveSpOptions } from "../../sp";
 import { GlobalState, PluginOptions, ProgramOptions } from "../../types";
 import { LOG_IN } from "./flow";
 import { LogInOptions } from "./types";
+import { Hooks } from "../../hooks";
 
 /**
  * Plugin providing a "login" command.
@@ -11,19 +12,22 @@ import { LogInOptions } from "./types";
 export function loginPlugin({ events, programOptions, state }: PluginOptions) {
   events.on("command:login", async ({ args, browser }) => {
     const options = parseArgs(args, state.current(), programOptions);
-    await login(browser, options);
+    await login(browser, options, new Hooks(events));
   });
 }
 
 async function login(
   browser: BrowserHelper,
-  options: LogInOptions
+  options: LogInOptions,
+  hooks: Hooks
 ): Promise<void> {
   const page = await browser.tryToReusePage(options.baseURL);
 
-  await LOG_IN.run(options.signup, {
-    ...options,
+  await LOG_IN.run({
+    hooks,
+    options,
     page,
+    state: options.signup,
   });
 }
 
