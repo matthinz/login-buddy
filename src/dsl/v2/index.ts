@@ -1,5 +1,7 @@
 import { FlowBuilder, FlowBuilderInterface } from "./flow-builder";
 
+export { Context, FlowBuilderInterface } from "./flow-builder";
+
 export function createFlow<State, Options>(): FlowBuilderInterface<
   State,
   State,

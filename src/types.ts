@@ -2,6 +2,7 @@ import { Browser } from "puppeteer";
 import { BrowserHelper } from "./browser";
 import { EventBus } from "./events";
 import { SignupState } from "./plugins/sign-up";
+import { FlowHooks } from "./dsl/v2/flow-builder/types";
 
 export type PluginOptions = {
   programOptions: ProgramOptions;
@@ -95,6 +96,12 @@ export type EmailMessage = {
 export type Message = TelephonyMessage | EmailMessage;
 
 // Events
+
+export type AskEvent = {
+  prompt: string;
+  received: () => void;
+  respond: (answer: string | undefined) => void;
+};
 
 export type NewBrowserEvent = {
   browser: Browser;

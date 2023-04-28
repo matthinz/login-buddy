@@ -1,5 +1,7 @@
+import { Page } from "puppeteer";
+import { FlowBuilder } from ".";
 import { AbstractFlowBuilder } from "./base";
-import { Context, FlowBuilderInterface } from "./types";
+import { Action, Context, FlowBuilderInterface, FlowHooks } from "./types";
 
 type Converter<From, To, Options> = (
   context: Context<From, Options>
@@ -30,5 +32,17 @@ export class ConvertingFlowBuilder<
       state: prevState,
     };
     return await this.converter(newContext);
+  }
+
+  protected override derive(
+    action: Action<State, Options>
+  ): FlowBuilderInterface<InputState, State, Options> {
+    return new FlowBuilder(this, [action]);
+  }
+
+  protected override deriveAndModifyState<NextState extends State>(
+    converter: (context: Context<State, Options>) => Promise<NextState>
+  ): FlowBuilderInterface<InputState, NextState, Options> {
+    return new ConvertingFlowBuilder(this, converter);
   }
 }

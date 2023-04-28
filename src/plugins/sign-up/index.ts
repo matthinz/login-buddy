@@ -2,21 +2,22 @@ import chalk from "chalk";
 import getopts from "getopts";
 import { BrowserHelper } from "../../browser";
 import { resolveSpOptions } from "../../sp";
-import { PluginOptions, ProgramOptions, TwoFactorMethod } from "../../types";
+import {
+  CommandEvent,
+  PluginOptions,
+  ProgramOptions,
+  TwoFactorMethod,
+} from "../../types";
 import { SIGN_UP_FLOW } from "./flow";
 import { SignupOptions, SignupState } from "./types";
+import { Hooks } from "../../hooks";
 
 export { SignupState } from "./types";
-
-// I can never remember what urls are what.
-const UNTIL_ALIASES: { [key: string]: string | undefined } = {
-  mfa: "/authentication_methods_setup",
-};
 
 export function signUpPlugin({ programOptions, events, state }: PluginOptions) {
   events.on("command:signup", async ({ args, browser }) => {
     const options = parseOptions(args, programOptions);
-    const signup = await signUp(browser, options);
+    const signup = await signUp(browser, options, new Hooks(events));
 
     if (signup) {
       state.update({
@@ -58,10 +59,16 @@ export function signUpPlugin({ programOptions, events, state }: PluginOptions) {
 
 async function signUp(
   browser: BrowserHelper,
-  options: SignupOptions
+  options: SignupOptions,
+  hooks: Hooks
 ): Promise<SignupState> {
   const page = await browser.newPage();
-  return await SIGN_UP_FLOW.run({}, { ...options, page });
+  return await SIGN_UP_FLOW.run({
+    options,
+    page,
+    state: {},
+    hooks,
+  });
 }
 
 export function parseOptions(

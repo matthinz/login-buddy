@@ -1,5 +1,5 @@
-import { FlowBuilder } from ".";
-import { click, navigate, submit, type } from "./actions";
+import { createFlow } from "..";
+import { click, expectUrl, navigate, select, submit, type } from "./actions";
 import { ConvertingFlowBuilder } from "./converter";
 import { Action, Context, FlowBuilderInterface, RuntimeValue } from "./types";
 
@@ -9,6 +9,65 @@ export abstract class AbstractFlowBuilder<
   Options
 > implements FlowBuilderInterface<InputState, State, Options>
 {
+  askIfNeeded<Key extends string>(
+    key: Key,
+    prompt: string,
+    normalizer?: (input: string) => string | Promise<string>
+  ): FlowBuilderInterface<
+    InputState,
+    State & { [key in Key]: string },
+    Options
+  > {
+    return this.deriveAndModifyState(async (context) => {
+      const { state, hooks } = context;
+
+      if (typeof state !== "object") {
+        throw new Error();
+      }
+
+      if (state == null) {
+        throw new Error();
+      }
+
+      let value = await hooks.ask(prompt);
+
+      if (typeof value !== "string") {
+        throw new Error();
+      }
+
+      if (normalizer) {
+        value = await normalizer(value);
+      }
+
+      return {
+        ...state,
+        [key]: value,
+      } as State & { [key in Key]: string };
+    });
+  }
+
+  branch<TrueState extends State, FalseState extends State>(
+    check: (context: Context<State, Options>) => boolean | Promise<boolean>,
+    ifTrue: (
+      flow: FlowBuilderInterface<State, State, Options>,
+      context: Context<State, Options>
+    ) => FlowBuilderInterface<State, TrueState, Options>,
+    ifFalse: (
+      flow: FlowBuilderInterface<State, State, Options>,
+      context: Context<State, Options>
+    ) => FlowBuilderInterface<State, FalseState, Options>
+  ): FlowBuilderInterface<InputState, TrueState | FalseState, Options> {
+    return this.deriveAndModifyState(async (context) => {
+      const checkPasses = await check(context);
+
+      const flow = checkPasses
+        ? ifTrue(createFlow(), context)
+        : ifFalse(createFlow(), context);
+
+      return await flow.run(context);
+    });
+  }
+
   click(
     selector: RuntimeValue<string, State, Options>
   ): FlowBuilderInterface<InputState, State, Options> {
@@ -18,13 +77,14 @@ export abstract class AbstractFlowBuilder<
   evaluate<NextState extends State>(
     func: (context: Context<State, Options>) => Promise<NextState>
   ): FlowBuilderInterface<InputState, NextState, Options> {
-    throw new Error();
+    return this.deriveAndModifyState(func);
   }
 
   expect(
-    url: RuntimeValue<string | URL, State, Options>
+    url: RuntimeValue<string | URL, State, Options>,
+    normalizer?: (input: URL) => string | URL
   ): FlowBuilderInterface<InputState, State, Options> {
-    throw new Error();
+    return this.derive(expectUrl(url, normalizer));
   }
 
   generate<
@@ -56,10 +116,17 @@ export abstract class AbstractFlowBuilder<
 
   abstract run(context: Context<InputState, Options>): Promise<State>;
 
-  submit(
-    selector: RuntimeValue<string, State, Options>
+  select(
+    selector: RuntimeValue<string, State, Options>,
+    value: RuntimeValue<string, State, Options>
   ): FlowBuilderInterface<InputState, State, Options> {
-    return this.derive(submit(selector));
+    return this.derive(select(selector, value));
+  }
+
+  submit(
+    selector?: RuntimeValue<string, State, Options>
+  ): FlowBuilderInterface<InputState, State, Options> {
+    return this.derive(submit(selector ?? "form button[type=submit]"));
   }
 
   type(
@@ -69,15 +136,21 @@ export abstract class AbstractFlowBuilder<
     return this.derive(type(selector, value));
   }
 
-  protected derive(
-    action: Action<State, Options>
-  ): FlowBuilderInterface<InputState, State, Options> {
-    return new FlowBuilder(this, [action]);
+  when<NextState extends State>(
+    check: (context: Context<State, Options>) => boolean | Promise<boolean>,
+    ifTrue: (
+      flow: FlowBuilderInterface<State, State, Options>,
+      context: Context<State, Options>
+    ) => FlowBuilderInterface<State, NextState, Options>
+  ): FlowBuilderInterface<InputState, State | NextState, Options> {
+    return this.branch(check, ifTrue, (flow) => flow);
   }
 
-  protected deriveAndModifyState<NextState extends State>(
+  protected abstract derive(
+    action: Action<State, Options>
+  ): FlowBuilderInterface<InputState, State, Options>;
+
+  protected abstract deriveAndModifyState<NextState extends State>(
     converter: (context: Context<State, Options>) => Promise<NextState>
-  ): FlowBuilderInterface<InputState, NextState, Options> {
-    return new ConvertingFlowBuilder(this, converter);
-  }
+  ): FlowBuilderInterface<InputState, NextState, Options>;
 }

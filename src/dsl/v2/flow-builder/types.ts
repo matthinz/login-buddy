@@ -5,6 +5,7 @@ export type RawValue = string | number | boolean | object | URL;
 export type Action<State, Options> =
   | AssertAction<State, Options>
   | ClickAction<State, Options>
+  | SelectAction<State, Options>
   | SubmitAction<State, Options>
   | ExpectUrlAction<State, Options>
   | NavigateAction<State, Options>
@@ -22,7 +23,7 @@ export type AssertAction<State, Options> = {
 };
 
 export type Context<State, Options> = Readonly<{
-  hooks: FlowHooks<State, Options>;
+  hooks: FlowHooks;
   options: Options;
   page: Page;
   state: State;
@@ -46,6 +47,13 @@ export type NavigateAction<State, Options> = {
   perform(context: Context<State, Options>): Promise<void>;
 };
 
+export type SelectAction<State, Options> = {
+  readonly type: "select";
+  selector(context: Context<State, Options>): Promise<string>;
+  value(context: Context<State, Options>): Promise<string>;
+  perform(context: Context<State, Options>): Promise<void>;
+};
+
 export type SubmitAction<State, Options> = {
   readonly type: "submit";
   selector(context: Context<State, Options>): Promise<string>;
@@ -59,10 +67,12 @@ export type TypeAction<State, Options> = {
   perform(context: Context<State, Options>): Promise<void>;
 };
 
-export interface FlowHooks<State, Options> {
-  [key: string]: <Result>(
-    context: Omit<Context<State, Options>, "hooks">
-  ) => Promise<Result>;
+export interface FlowHooks {
+  /**
+   * Prompts the user for some information.
+   * @param prompt
+   */
+  ask(prompt: string): Promise<string | undefined>;
 }
 
 export interface FlowBuilderInterface<
@@ -70,6 +80,28 @@ export interface FlowBuilderInterface<
   State extends InputState,
   Options
 > {
+  askIfNeeded<Key extends string>(
+    key: Key,
+    prompt: string,
+    normalizer?: (input: string) => string | Promise<string>
+  ): FlowBuilderInterface<
+    InputState,
+    State & { [key in Key]: string },
+    Options
+  >;
+
+  branch<TrueState extends State, FalseState extends State>(
+    check: (context: Context<State, Options>) => boolean | Promise<boolean>,
+    ifTrue: (
+      flow: FlowBuilderInterface<State, State, Options>,
+      context: Context<State, Options>
+    ) => FlowBuilderInterface<State, TrueState, Options>,
+    ifFalse: (
+      flow: FlowBuilderInterface<State, State, Options>,
+      context: Context<State, Options>
+    ) => FlowBuilderInterface<State, FalseState, Options>
+  ): FlowBuilderInterface<InputState, TrueState | FalseState, Options>;
+
   click(selector: string): FlowBuilderInterface<InputState, State, Options>;
 
   click(
@@ -83,19 +115,26 @@ export interface FlowBuilderInterface<
   expect(url: string | URL): FlowBuilderInterface<InputState, State, Options>;
 
   expect(
-    url: (context: Context<State, Options>) => string
+    url: (context: Context<State, Options>) => string | URL
   ): FlowBuilderInterface<InputState, State, Options>;
 
   expect(
-    url: (context: Context<State, Options>) => URL
+    url: (context: Context<State, Options>) => Promise<string | URL>
   ): FlowBuilderInterface<InputState, State, Options>;
 
   expect(
-    url: (context: Context<State, Options>) => Promise<string>
+    url: string | URL,
+    normalizer: (url: URL) => string | URL
   ): FlowBuilderInterface<InputState, State, Options>;
 
   expect(
-    url: (context: Context<State, Options>) => Promise<URL>
+    url: (context: Context<State, Options>) => string | URL,
+    normalizer: (url: URL) => string | URL
+  ): FlowBuilderInterface<InputState, State, Options>;
+
+  expect(
+    url: (context: Context<State, Options>) => Promise<string | URL>,
+    normalizer: (url: URL) => string | URL
   ): FlowBuilderInterface<InputState, State, Options>;
 
   generate<Key extends string, Value>(
@@ -112,6 +151,28 @@ export interface FlowBuilderInterface<
   ): FlowBuilderInterface<InputState, State, Options>;
 
   run(context: Context<InputState, Options>): Promise<State>;
+
+  select(
+    selector: string,
+    value: string
+  ): FlowBuilderInterface<InputState, State, Options>;
+
+  select(
+    selector: (context: Context<State, Options>) => Promise<string> | string,
+    value: string
+  ): FlowBuilderInterface<InputState, State, Options>;
+
+  select(
+    selector: string,
+    value: (context: Context<State, Options>) => Promise<string> | string
+  ): FlowBuilderInterface<InputState, State, Options>;
+
+  select(
+    selector: (context: Context<State, Options>) => Promise<string> | string,
+    value: (context: Context<State, Options>) => Promise<string> | string
+  ): FlowBuilderInterface<InputState, State, Options>;
+
+  submit(): FlowBuilderInterface<InputState, State, Options>;
 
   submit(selector: string): FlowBuilderInterface<InputState, State, Options>;
 
@@ -138,4 +199,12 @@ export interface FlowBuilderInterface<
     selector: (context: Context<State, Options>) => string | Promise<string>,
     value: (context: Context<State, Options>) => string | Promise<string>
   ): FlowBuilderInterface<InputState, State, Options>;
+
+  when<NextState extends State>(
+    check: (context: Context<State, Options>) => boolean | Promise<boolean>,
+    ifTrue: (
+      flow: FlowBuilderInterface<State, State, Options>,
+      context: Context<State, Options>
+    ) => FlowBuilderInterface<State, NextState, Options>
+  ): FlowBuilderInterface<InputState, State | NextState, Options>;
 }

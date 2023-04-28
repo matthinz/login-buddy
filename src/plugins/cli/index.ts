@@ -49,6 +49,11 @@ export function cliPlugin({ programOptions, events, state }: PluginOptions) {
     process.exit();
   });
 
+  events.on("ask", ({ prompt, received, respond }) => {
+    received();
+    rl.question(prompt, respond);
+  });
+
   events.on("message", ({ message }) => reportMessage(message));
 
   events.on("error", ({ error }) => {
@@ -158,4 +163,16 @@ We are using ${chalk.blue(`<${baseURL?.toString()}>`)}
 (You can change this with the --env option.)
 
 `);
+}
+
+function makeAsker(
+  rl: readline.Interface
+): (prompt: string) => Promise<string | undefined> {
+  return (prompt: string) => {
+    return new Promise<string | undefined>((resolve) => {
+      rl.question(prompt, (answer) => {
+        resolve(answer);
+      });
+    });
+  };
 }

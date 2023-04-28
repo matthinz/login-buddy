@@ -6,6 +6,7 @@ import {
   NavigateAction,
   RawValue,
   RuntimeValue,
+  SelectAction,
   SubmitAction,
   TypeAction,
 } from "./types";
@@ -68,11 +69,12 @@ export function click<State, Options>(
 }
 
 export function expectUrl<State, Options>(
-  url: RuntimeValue<URL | string, State, Options>
+  url: RuntimeValue<URL | string, State, Options>,
+  normalizer?: (input: URL) => string | URL
 ): ExpectUrlAction<State, Options> {
   const urlFunc = async (context: Context<State, Options>) => {
     const resolved = await resolveRuntimeValue(url, context);
-    return resolved instanceof URL ? resolved : new URL(resolved);
+    return resolveURL(resolved, context.options);
   };
   return {
     type: "expect_url",
@@ -80,7 +82,21 @@ export function expectUrl<State, Options>(
     async perform(context) {
       const expected = await urlFunc(context);
       const actual = new URL(context.page.url());
-      if (expected.toString() !== actual.toString()) {
+
+      // By default, strip hash + querystring
+      normalizer =
+        normalizer ??
+        ((input: URL): string | URL => {
+          const result = new URL(input);
+          result.hash = "";
+          result.search = "";
+          return result;
+        });
+
+      const theyMatch =
+        normalizer(expected).toString() === normalizer(actual).toString();
+
+      if (!theyMatch) {
         const err: Error & { code?: string } = new Error(
           `Expected URL ${expected.toString()}, but got ${actual.toString()}`
         );
@@ -91,12 +107,12 @@ export function expectUrl<State, Options>(
   };
 }
 
-export function navigate<State, Options>(
+export function navigate<State, Options extends unknown | { baseURL: URL }>(
   url: RuntimeValue<string | URL, State, Options>
 ): NavigateAction<State, Options> {
   const urlFunc = async (context: Context<State, Options>) => {
     const resolved = await resolveRuntimeValue(url, context);
-    return resolved instanceof URL ? resolved : new URL(resolved);
+    return resolveURL(resolved, context.options);
   };
 
   return {
@@ -105,6 +121,29 @@ export function navigate<State, Options>(
     async perform(context: Context<State, Options>) {
       const url = await urlFunc(context);
       await context.page.goto(url.toString());
+    },
+  };
+}
+
+export function select<State, Options>(
+  selector: RuntimeValue<string, State, Options>,
+  value: RuntimeValue<string, State, Options>
+): SelectAction<State, Options> {
+  const selectorFunc = bindRuntimeValueResolver(selector);
+  const valueFunc = bindRuntimeValueResolver(value);
+  return {
+    type: "select",
+    selector: selectorFunc,
+    value: valueFunc,
+    async perform(context: Context<State, Options>) {
+      const [selector, value] = await Promise.all([
+        selectorFunc(context),
+        valueFunc(context),
+      ]);
+
+      const { page } = context;
+
+      await page.select(selector, value);
     },
   };
 }
@@ -164,4 +203,13 @@ function bindRuntimeValueResolver<T extends RawValue, State, Options>(
   // TODO: Figure this out.
   // @ts-ignore
   return resolveRuntimeValue.bind(undefined, value);
+}
+
+function resolveURL<Options extends unknown | { baseURL: URL }>(
+  value: string | URL,
+  options: Options
+): URL {
+  // XXX: Derive from a baseURL without
+  const { baseURL } = options ?? ({} as any);
+  return baseURL instanceof URL ? new URL(value, baseURL) : new URL(value);
 }

@@ -1,4 +1,5 @@
 import {
+  AskEvent,
   CommandEvent,
   ErrorEvent,
   EventHandler,
@@ -19,6 +20,7 @@ export class EventBus {
     eventName: `command:${CommandName}`,
     event: CommandEvent
   ): Promise<void>;
+  emit(eventName: "ask", event: AskEvent): Promise<void>;
   emit(eventName: "error", event: ErrorEvent): Promise<void>;
   emit(eventName: "message", event: MessageEvent): Promise<void>;
   emit(eventName: "newBrowser", event: NewBrowserEvent): Promise<void>;
@@ -44,6 +46,7 @@ export class EventBus {
     eventName: `command:${CommandName}`,
     handler: EventHandler<CommandEvent>
   ): void;
+  on(eventName: "ask", handler: EventHandler<AskEvent>): void;
   on(eventName: "error", handler: EventHandler<ErrorEvent>): void;
   on(eventName: "message", handler: EventHandler<MessageEvent>): void;
   on(eventName: "newBrowser", handler: EventHandler<NewBrowserEvent>): void;
