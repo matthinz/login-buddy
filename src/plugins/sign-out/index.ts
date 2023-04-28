@@ -1,6 +1,7 @@
 import getopts from "getopts";
 import { Browser, launch, Page } from "puppeteer";
 import { GlobalState, PluginOptions, ProgramOptions } from "../../types";
+import { BrowserHelper } from "../../browser";
 
 type SignOutOptions = {
   baseURL: URL;
@@ -9,15 +10,11 @@ type SignOutOptions = {
 
 const ALIASES = ["logout", "signout"];
 
-export function signOutPlugin({
-  events,
-  programOptions,
-  state,
-}: PluginOptions) {
+export function signOutPlugin({ events, programOptions }: PluginOptions) {
   ALIASES.forEach((alias) => {
-    events.on(`command:${alias}`, async ({ args, state }) => {
+    events.on(`command:${alias}`, async ({ args, browser, state }) => {
       const options = parseOptions(args, programOptions);
-      const nextState = await signOut(state.current(), options);
+      const nextState = await signOut(state.current(), options, browser);
       state.update(nextState);
     });
   });
@@ -25,15 +22,9 @@ export function signOutPlugin({
 
 async function signOut(
   state: GlobalState,
-  { baseURL, completely }: SignOutOptions
+  { baseURL, completely }: SignOutOptions,
+  browser: BrowserHelper
 ): Promise<GlobalState> {
-  const browser =
-    state.browser ??
-    (await launch({
-      headless: false,
-      defaultViewport: null,
-    }));
-
   const page = await browser.newPage();
   const url = new URL("/logout", baseURL);
 
@@ -64,11 +55,10 @@ async function signOut(
     console.log(message);
   }
 
-  await closeAllPagesForHostname(browser, baseURL.hostname, page);
+  await browser.closeAllPagesForHostname(baseURL.hostname);
 
   return {
     ...state,
-    browser,
   };
 }
 
@@ -83,25 +73,4 @@ export function parseOptions(
     completely,
     baseURL,
   };
-}
-
-async function closeAllPagesForHostname(
-  browser: Browser,
-  hostname: string,
-  except?: Page
-) {
-  const pages = await browser.pages();
-
-  await Promise.all(
-    pages.map(async (p) => {
-      if (p === except) {
-        return;
-      }
-
-      const url = new URL(p.url());
-      if (url.hostname === hostname) {
-        await p.close();
-      }
-    })
-  );
 }

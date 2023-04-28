@@ -51,6 +51,27 @@ export class BrowserHelper {
     }
   }
 
+  async closeAllPagesForHostname(hostname: string, except?: Page) {
+    if (!this.browser) {
+      return;
+    }
+
+    const pages = await this.browser.pages();
+
+    await Promise.all(
+      pages.map(async (p) => {
+        if (p === except) {
+          return;
+        }
+
+        const url = new URL(p.url());
+        if (url.hostname === hostname) {
+          await p.close();
+        }
+      })
+    );
+  }
+
   launch(): Promise<Browser> {
     if (this.browser) {
       return Promise.resolve(this.browser);
