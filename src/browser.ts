@@ -4,19 +4,12 @@ export class BrowserHelper {
   private readonly _launch: () => Promise<Browser>;
   private browser: Browser | undefined;
 
-  constructor(browser: Browser);
-  constructor(launcher: () => Promise<Browser>);
-  constructor(browserOrLauncher: Browser | (() => Promise<Browser>)) {
-    if (typeof browserOrLauncher === "function") {
-      this._launch = () =>
-        browserOrLauncher().then((browser) => {
-          this.browser = browser;
-          return browser;
-        });
-    } else {
-      this._launch = () => Promise.resolve(browserOrLauncher);
-      this.browser = browserOrLauncher;
-    }
+  constructor(launch: () => Promise<Browser>) {
+    this._launch = () =>
+      launch().then((browser) => {
+        this.browser = browser;
+        return browser;
+      });
   }
 
   async activePage(): Promise<Page | undefined> {
@@ -49,6 +42,17 @@ export class BrowserHelper {
         });
       }, Promise.resolve(undefined));
     }
+  }
+
+  async close(): Promise<void> {
+    if (!this.browser) {
+      return;
+    }
+
+    const { browser } = this;
+    this.browser = undefined;
+
+    await browser.close();
   }
 
   async closeAllPagesForHostname(hostname: string, except?: Page) {

@@ -73,11 +73,6 @@ function createBrowserLauncher(
   state: StateManager<GlobalState>,
   programOptions: ProgramOptions
 ): () => Promise<Browser> {
-  const { browser } = state.current();
-  if (browser) {
-    return () => Promise.resolve(browser);
-  }
-
   const LAUNCH_OPTIONS = {
     args: [
       programOptions.ignoreSslErrors && "--ignore-certificate-errors",
@@ -90,10 +85,6 @@ function createBrowserLauncher(
 
   return () =>
     launch(LAUNCH_OPTIONS).then(async (browser) => {
-      state.update({
-        ...state.current(),
-        browser,
-      });
       await events.emit("newBrowser", { browser });
       return browser;
     });

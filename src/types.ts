@@ -2,7 +2,6 @@ import { Browser } from "puppeteer";
 import { BrowserHelper } from "./browser";
 import { EventBus } from "./events";
 import { SignupState } from "./plugins/sign-up";
-import { FlowHooks } from "./dsl/v2/flow-builder/types";
 
 export type PluginOptions = {
   programOptions: ProgramOptions;
@@ -67,7 +66,6 @@ export type ProgramOptions = Readonly<
 >;
 
 export type GlobalState = {
-  browser?: Browser;
   lastSignup?: SignupState;
 };
 
