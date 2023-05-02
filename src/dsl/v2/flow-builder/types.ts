@@ -1,6 +1,6 @@
 import { Page } from "puppeteer";
 
-export type RawValue = string | number | boolean | object | URL;
+export type RawValue = string | number | boolean | object | URL | Buffer;
 
 export type Action<State, Options> =
   | AssertAction<State, Options>
@@ -9,7 +9,8 @@ export type Action<State, Options> =
   | SubmitAction<State, Options>
   | ExpectUrlAction<State, Options>
   | NavigateAction<State, Options>
-  | TypeAction<State, Options>;
+  | TypeAction<State, Options>
+  | UploadAction<State, Options>;
 
 export type RuntimeValue<T extends RawValue, State, Options> =
   | T
@@ -64,6 +65,14 @@ export type TypeAction<State, Options> = {
   readonly type: "type";
   selector(context: Context<State, Options>): Promise<string>;
   value(context: Context<State, Options>): Promise<string>;
+  perform(context: Context<State, Options>): Promise<void>;
+};
+
+export type UploadAction<State, Options> = {
+  readonly type: "upload";
+  selector(context: Context<State, Options>): Promise<string>;
+  contents(context: Context<State, Options>): Promise<string | Buffer>;
+  filename(context: Context<State, Options>): Promise<string>;
   perform(context: Context<State, Options>): Promise<void>;
 };
 
@@ -180,6 +189,12 @@ export interface FlowBuilderInterface<
     selector: (context: Context<State, Options>) => Promise<string> | string
   ): FlowBuilderInterface<InputState, State, Options>;
 
+  then<NextState extends State>(
+    next: (
+      flow: FlowBuilderInterface<InputState, State, Options>
+    ) => FlowBuilderInterface<InputState, NextState, Options>
+  ): FlowBuilderInterface<InputState, NextState, Options>;
+
   type(
     selector: string,
     value: string
@@ -198,6 +213,12 @@ export interface FlowBuilderInterface<
   type(
     selector: (context: Context<State, Options>) => string | Promise<string>,
     value: (context: Context<State, Options>) => string | Promise<string>
+  ): FlowBuilderInterface<InputState, State, Options>;
+
+  upload(
+    selector: RuntimeValue<string, State, Options>,
+    filename: RuntimeValue<string, State, Options>,
+    contents: RuntimeValue<string | Buffer, State, Options>
   ): FlowBuilderInterface<InputState, State, Options>;
 
   when<NextState extends State>(

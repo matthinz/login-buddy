@@ -1,6 +1,6 @@
 import { Page } from "puppeteer";
 import { VerifyOptions } from "./types";
-import { createFlow, FlowInterface, FlowRunOptions } from "../../dsl";
+import { FlowBuilderInterface, createFlow } from "../../dsl/v2";
 import { generateBadIdYaml, generateIdYaml } from "./id";
 
 type InputState = {
@@ -13,67 +13,53 @@ type InputState = {
 
 export const VERIFY_FLOW = createFlow<InputState, VerifyOptions>()
   .navigateTo("/verify")
-  .expectUrl("/verify/doc_auth/welcome")
+  .expect("/verify/doc_auth/welcome")
   .submit()
 
   // "How verifying your identity works"
-  .expectUrl("/verify/doc_auth/agreement")
+  .expect("/verify/doc_auth/agreement")
   .click("label[for=doc_auth_ial2_consent_given]")
   .submit()
 
   // "How would you like to upload your state-issued ID?"
-  .expectUrl("/verify/doc_auth/upload")
-  .branch(
-    (_page, _state, options) => options.hybrid,
-    // Hybrid flow
-    (flow) =>
-      flow
-        .submit("button.usa-button--big[type=submit]")
-
-        .expectUrl("/verify/doc_auth/send_link")
-        .evaluate(() => {
-          throw new Error("Complete hybrid flow not implemented");
-        }),
-
-    // Desktop flow
-    (flow) =>
-      flow
-        .submit(
-          'form[action="/verify/doc_auth/upload?type=desktop"] button[type=submit]'
-        )
-        .then(uploadId)
+  .expect("/verify/doc_auth/upload")
+  .submit(
+    'form[action="/verify/doc_auth/upload?type=desktop"] button[type=submit]'
   )
+  .then(uploadId)
 
   // NOTE: Pause for processing documents
 
   // "Enter your Social Security number"
-  .expectUrl("/verify/doc_auth/ssn")
-  .generate<"ssn", string>(
-    "ssn",
-    (_state, options) => options.ssn ?? generateSsn()
-  )
-  .type('[name="doc_auth[ssn]"]', (state) => state.ssn)
-  .evaluate(async (page, _state, options) => {
+  .expect("/verify/ssn")
+  .generate("ssn", ({ options }) => options.ssn ?? generateSsn())
+
+  .type('[name="doc_auth[ssn]"]', ({ state: { ssn } }) => ssn)
+
+  .evaluate(async ({ page, options, state }) => {
     const $mockProfilingResult = await page.$("[name=mock_profiling_result]");
     if (!$mockProfilingResult) {
       if (options.threatMetrix !== "no_result") {
         throw new Error("ThreatMetrix mock not found on the page");
       }
-      return;
+      return state;
     }
 
     await $mockProfilingResult.select(options.threatMetrix);
+
+    return state;
   })
+
   .click(".password-toggle__toggle-label")
   .submit()
 
   // "Verify your information"
-  .expectUrl("/verify/doc_auth/verify")
+  .expect("/verify/verify_info")
   .click(".usa-checkbox__label")
   .submit("button[type=submit].usa-button--big")
 
   .branch(
-    (_page, _state, options) => options.gpo,
+    ({ options }) => options.gpo,
     // Branch: Use GPO
     (useGpo) =>
       // "Want a letter?"
@@ -85,33 +71,34 @@ export const VERIFY_FLOW = createFlow<InputState, VerifyOptions>()
   )
 
   // Bail if we have been phone throttled
-  .branch(
-    (_, state) => state.throttlePhone,
-    doNothing,
+  .when(
+    ({ state }) => !state.throttlePhone,
     (flow) =>
       flow
 
         // "Re-enter your Login.gov password to protect your data"
-        .expectUrl("/verify/review")
-        .type('[name="user[password]"]', (state) => state.password)
+        .expect("/verify/review")
+        .type('[name="user[password]"]', ({ state: { password } }) => password)
         .submit('form[action="/verify/review"] button[type=submit]')
 
         // Handle OTP before and after personal key
-        .branch(isComeBackLaterScreen, enterOtp, doNothing)
+        .when(isComeBackLaterScreen, enterOtp)
 
         // "Save your personal key"
-        .expectUrl("/verify/personal_key")
-        .evaluate(async (page, state) => {
+        .expect("/verify/personal_key")
+
+        .evaluate(async ({ page, state }) => {
           const personalKey = (await page.evaluate(() => {
             // @ts-ignore
             return document.querySelector(".personal-key-block").innerText;
           })) as string;
           return { ...state, personalKey };
         })
+
         .click("label[for=acknowledgment]")
         .submit()
 
-        .branch(isComeBackLaterScreen, enterOtp, doNothing)
+        .when(isComeBackLaterScreen, enterOtp)
   );
 
 function generateSsn(): string {
@@ -122,33 +109,23 @@ function generateSsn(): string {
   return result;
 }
 
-async function isComeBackLaterScreen(page: Page): Promise<boolean> {
+async function isComeBackLaterScreen({
+  page,
+}: {
+  page: Page;
+}): Promise<boolean> {
   return new URL(page.url()).pathname === "/verify/come_back_later";
 }
 
-function doNothing<
-  InputState,
-  OutputState extends InputState,
-  Options extends FlowRunOptions
->(
-  flow: FlowInterface<InputState, OutputState, Options>
-): FlowInterface<InputState, OutputState, Options> {
-  return flow;
-}
-
-function enterOtp<
-  InputState,
-  OutputState extends InputState,
-  Options extends FlowRunOptions
->(
-  flow: FlowInterface<InputState, OutputState, Options>
-): FlowInterface<InputState, OutputState & { gpoOtp: string }, Options> {
+function enterOtp<InputState, OutputState extends InputState, Options>(
+  flow: FlowBuilderInterface<InputState, OutputState, Options>
+): FlowBuilderInterface<InputState, OutputState & { gpoOtp: string }, Options> {
   return (
     flow
-      .expectUrl("/verify/come_back_later")
+      .expect("/verify/come_back_later")
       .navigateTo("/account/verify")
       // "Welcome back"
-      .evaluate(async (page, state) => {
+      .evaluate(async ({ page, state }) => {
         // Locally, IDP will put the OTP on the page for us to read.
         let gpoOtp = await page.evaluate(() =>
           // @ts-ignore
@@ -171,7 +148,7 @@ function enterOtp<
         return { ...state, gpoOtp };
       })
       .askIfNeeded("gpoOtp", "Please enter your GPO one-time password")
-      .type('[name="gpo_verify_form[otp]"]', (state) => state.gpoOtp)
+      .type('[name="gpo_verify_form[otp]"]', ({ state }) => state.gpoOtp)
       .submit()
   );
 }
@@ -179,30 +156,29 @@ function enterOtp<
 function enterPhone<
   InputState,
   OutputState extends InputState & { phone: string; throttlePhone: boolean },
-  Options extends FlowRunOptions
+  Options
 >(
-  flow: FlowInterface<InputState, OutputState, Options>
-): FlowInterface<InputState, OutputState, Options> {
+  flow: FlowBuilderInterface<InputState, OutputState, Options>
+): FlowBuilderInterface<InputState, OutputState, Options> {
   return (
     flow
       // "Enter your phone number"
-      .expectUrl("/verify/phone")
-      .type('[name="idv_phone_form[phone]"]', (state) => state.phone)
+      .expect("/verify/phone")
+      .type('[name="idv_phone_form[phone]"]', ({ state: { phone } }) => phone)
       .submit()
 
       .branch(
-        (_, state) => state.throttlePhone,
+        ({ state }) => state.throttlePhone,
         (flow) =>
-          flow.branch(
-            (page) =>
-              new URL(page.url()).pathname === "/verify/phone/errors/failure",
-            doNothing,
+          flow.when(
+            ({ page }) =>
+              new URL(page.url()).pathname !== "/verify/phone/errors/failure",
             (flow) => flow.click(".usa-button.usa-button--big").then(enterPhone)
           ),
         (flow) =>
           flow
             // "Enter your one-time code"
-            .expectUrl("/verify/phone_confirmation")
+            .expect("/verify/phone_confirmation")
             .submit(
               'form[action="/verify/phone_confirmation"] button[type=submit]'
             )
@@ -213,16 +189,16 @@ function enterPhone<
 function uploadId<
   InputState,
   OutputState extends InputState & { badId: boolean },
-  Options extends FlowRunOptions
+  Options
 >(
-  flow: FlowInterface<InputState, OutputState, Options>
-): FlowInterface<InputState, OutputState, Options> {
+  flow: FlowBuilderInterface<InputState, OutputState, Options>
+): FlowBuilderInterface<InputState, OutputState, Options> {
   return flow
-    .expectUrl("/verify/doc_auth/document_capture")
-    .upload("#file-input-1", "proofing.yml", (state) =>
+    .expect("/verify/document_capture")
+    .upload("#file-input-1", "proofing.yml", ({ state }) =>
       state.badId ? generateBadIdYaml() : generateIdYaml()
     )
-    .upload("#file-input-2", "proofing.yml", (state) =>
+    .upload("#file-input-2", "proofing.yml", ({ state }) =>
       state.badId ? generateBadIdYaml() : generateIdYaml()
     )
     .submit();

@@ -10,6 +10,7 @@ import {
   VerifyOptions,
 } from "./types";
 import { BrowserHelper } from "../../browser";
+import { Hooks } from "../../hooks";
 
 const UNTIL_ALIASES: { [key: string]: string | RegExp } = {
   verify: /(\/verify\/doc_auth\/verify|\/verify\/verify_info)/,
@@ -24,14 +25,15 @@ const BAD_PHONE = "703-555-5555";
 export function idvPlugin({ events, programOptions }: PluginOptions) {
   events.on("command:verify", async ({ args, browser, state }) => {
     const options = parseOptions(args, programOptions);
-    await verify(browser, state.current(), options);
+    await verify(browser, state.current(), options, new Hooks(events));
   });
 }
 
 async function verify(
   browser: BrowserHelper,
   state: GlobalState,
-  options: VerifyOptions
+  options: VerifyOptions,
+  hooks: Hooks
 ) {
   const { lastSignup } = state;
 
@@ -41,15 +43,6 @@ async function verify(
 
   const page = await browser.newPage();
 
-  const runOptions = {
-    ...options,
-    page,
-  };
-
-  const untilArg = options.until
-    ? UNTIL_ALIASES[options.until] ?? options.until
-    : undefined;
-
   const inputState = {
     ...lastSignup,
     badId: !!options.badId,
@@ -57,8 +50,11 @@ async function verify(
     throttlePhone: !!options.throttlePhone,
   };
 
-  await VERIFY_FLOW.run(inputState, runOptions, {
-    shouldStop: untilArg ? until(untilArg) : () => false,
+  await VERIFY_FLOW.run({
+    hooks,
+    options,
+    page,
+    state: inputState,
   });
 }
 

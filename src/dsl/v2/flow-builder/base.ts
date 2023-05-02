@@ -1,5 +1,13 @@
 import { createFlow } from "..";
-import { click, expectUrl, navigate, select, submit, type } from "./actions";
+import {
+  click,
+  expectUrl,
+  navigate,
+  select,
+  submit,
+  type,
+  upload,
+} from "./actions";
 import { ConvertingFlowBuilder } from "./converter";
 import { Action, Context, FlowBuilderInterface, RuntimeValue } from "./types";
 
@@ -129,11 +137,27 @@ export abstract class AbstractFlowBuilder<
     return this.derive(submit(selector ?? "form button[type=submit]"));
   }
 
+  then<NextState extends State>(
+    next: (
+      flow: FlowBuilderInterface<InputState, State, Options>
+    ) => FlowBuilderInterface<InputState, NextState, Options>
+  ): FlowBuilderInterface<InputState, NextState, Options> {
+    return next(this);
+  }
+
   type(
     selector: RuntimeValue<string, State, Options>,
     value: RuntimeValue<string, State, Options>
   ): FlowBuilderInterface<InputState, State, Options> {
     return this.derive(type(selector, value));
+  }
+
+  upload(
+    selector: RuntimeValue<string, State, Options>,
+    filename: RuntimeValue<string, State, Options>,
+    contents: RuntimeValue<string, State, Options>
+  ): FlowBuilderInterface<InputState, State, Options> {
+    return this.derive(upload(selector, filename, contents));
   }
 
   when<NextState extends State>(

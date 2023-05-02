@@ -1,3 +1,5 @@
+import fs from "node:fs/promises";
+import path from "node:path";
 import {
   AssertAction,
   ClickAction,
@@ -9,6 +11,7 @@ import {
   SelectAction,
   SubmitAction,
   TypeAction,
+  UploadAction,
 } from "./types";
 
 export function assert<State, Options>(
@@ -181,6 +184,50 @@ export function type<State, Options>(
       ]);
 
       await context.page.type(selector, value);
+    },
+  };
+}
+
+export function upload<State, Options>(
+  selector: RuntimeValue<string, State, Options>,
+  filename: RuntimeValue<string, State, Options>,
+  contents: RuntimeValue<string | Buffer, State, Options>
+): UploadAction<State, Options> {
+  const selectorFunc = bindRuntimeValueResolver(selector);
+  const filenameFunc = bindRuntimeValueResolver(filename);
+  const contentsFunc = bindRuntimeValueResolver(contents);
+  return {
+    type: "upload",
+    selector: selectorFunc,
+    filename: filenameFunc,
+    contents: contentsFunc,
+    async perform(context: Context<State, Options>): Promise<void> {
+      const [selector, filename, contents] = await Promise.all([
+        selectorFunc(context),
+        filenameFunc(context),
+        contentsFunc(context),
+      ]);
+
+      const tempFile = path.join(".tmp", filename);
+      await fs
+        .mkdir(path.dirname(tempFile), {
+          recursive: true,
+        })
+        .catch((err) => {
+          console.error(err);
+        });
+      await fs.writeFile(tempFile, contents ?? "");
+
+      const { page } = context;
+
+      await page.waitForSelector(selector, { timeout: 3000 });
+
+      const [fileChooser] = await Promise.all([
+        page.waitForFileChooser(),
+        page.click(selector),
+      ]);
+
+      await fileChooser.accept([path.resolve(tempFile)]);
     },
   };
 }
