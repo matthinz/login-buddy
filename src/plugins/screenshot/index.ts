@@ -42,7 +42,9 @@ export function screenshotPlugin({ browser, events }: PluginOptions) {
 }
 
 function parseOptions(args: string[]): ScreenshotOptions {
-  const raw = getopts(args);
+  const raw = getopts(args, {
+    boolean: ["before", "html"],
+  });
 
   return {
     before: !!raw.before,
