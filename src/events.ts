@@ -4,7 +4,6 @@ import {
   ErrorEvent,
   EventHandler,
   MessageEvent,
-  NewBrowserEvent,
   SignupEvent,
 } from "./types";
 
@@ -23,7 +22,6 @@ export class EventBus {
   emit(eventName: "ask", event: AskEvent): Promise<void>;
   emit(eventName: "error", event: ErrorEvent): Promise<void>;
   emit(eventName: "message", event: MessageEvent): Promise<void>;
-  emit(eventName: "newBrowser", event: NewBrowserEvent): Promise<void>;
   emit(eventName: "signup", event: SignupEvent): Promise<void>;
   async emit<EventType>(eventName: string, event: EventType): Promise<void> {
     const handlers = this.handlersByEvent[eventName];
@@ -49,7 +47,6 @@ export class EventBus {
   on(eventName: "ask", handler: EventHandler<AskEvent>): void;
   on(eventName: "error", handler: EventHandler<ErrorEvent>): void;
   on(eventName: "message", handler: EventHandler<MessageEvent>): void;
-  on(eventName: "newBrowser", handler: EventHandler<NewBrowserEvent>): void;
   on(eventName: "signup", handler: EventHandler<SignupEvent>): void;
   on<EventType>(eventName: string, handler: EventHandler<EventType>): void {
     this.handlersByEvent[eventName] = this.handlersByEvent[eventName] ?? [];

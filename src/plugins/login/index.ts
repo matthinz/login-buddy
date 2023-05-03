@@ -9,8 +9,13 @@ import { Hooks } from "../../hooks";
 /**
  * Plugin providing a "login" command.
  */
-export function loginPlugin({ events, programOptions, state }: PluginOptions) {
-  events.on("command:login", async ({ args, browser }) => {
+export function loginPlugin({
+  browser,
+  events,
+  programOptions,
+  state,
+}: PluginOptions) {
+  events.on("command:login", async ({ args }) => {
     const options = parseArgs(args, state.current(), programOptions);
     await login(browser, options, new Hooks(events));
   });

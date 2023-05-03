@@ -1,9 +1,9 @@
-import { Browser } from "puppeteer";
 import { BrowserHelper } from "./browser";
 import { EventBus } from "./events";
 import { SignupState } from "./plugins/sign-up";
 
 export type PluginOptions = {
+  browser: BrowserHelper;
   programOptions: ProgramOptions;
   events: EventBus;
   state: StateManager<GlobalState>;
@@ -101,13 +101,8 @@ export type AskEvent = {
   respond: (answer: string | undefined) => void;
 };
 
-export type NewBrowserEvent = {
-  browser: Browser;
-};
-
 export type CommandEvent = {
   args: string[];
-  browser: BrowserHelper;
   state: StateManager<GlobalState>;
 };
 

@@ -2,20 +2,20 @@ import chalk from "chalk";
 import getopts from "getopts";
 import { BrowserHelper } from "../../browser";
 import { resolveSpOptions } from "../../sp";
-import {
-  CommandEvent,
-  PluginOptions,
-  ProgramOptions,
-  TwoFactorMethod,
-} from "../../types";
+import { PluginOptions, ProgramOptions, TwoFactorMethod } from "../../types";
 import { SIGN_UP_FLOW } from "./flow";
 import { SignupOptions, SignupState } from "./types";
 import { Hooks } from "../../hooks";
 
 export { SignupState } from "./types";
 
-export function signUpPlugin({ programOptions, events, state }: PluginOptions) {
-  events.on("command:signup", async ({ args, browser }) => {
+export function signUpPlugin({
+  browser,
+  programOptions,
+  events,
+  state,
+}: PluginOptions) {
+  events.on("command:signup", async ({ args }) => {
     const options = parseOptions(args, programOptions);
     const signup = await signUp(browser, options, new Hooks(events));
 

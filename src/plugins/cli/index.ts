@@ -15,9 +15,6 @@ import { reportMessage } from "./messages";
 
 export function cliPlugin({ programOptions, events, state }: PluginOptions) {
   let currentExecution: Promise<void> | undefined;
-  const browser = new BrowserHelper(
-    createBrowserLauncher(events, state, programOptions)
-  );
 
   const rl = readline.createInterface({
     input: process.stdin,
@@ -35,7 +32,6 @@ export function cliPlugin({ programOptions, events, state }: PluginOptions) {
     const command = args.shift();
     const event: CommandEvent = {
       args,
-      browser,
       state,
     };
 
@@ -66,28 +62,6 @@ export function cliPlugin({ programOptions, events, state }: PluginOptions) {
   setTimeout(() => {
     rl.prompt();
   }, 500);
-}
-
-function createBrowserLauncher(
-  events: EventBus,
-  state: StateManager<GlobalState>,
-  programOptions: ProgramOptions
-): () => Promise<Browser> {
-  const LAUNCH_OPTIONS = {
-    args: [
-      programOptions.ignoreSslErrors && "--ignore-certificate-errors",
-      programOptions.ignoreSslErrors &&
-        `--unsafely-treat-insecure-origin-as-secure="${programOptions.baseURL.toString()}"`,
-    ].filter(Boolean) as string[],
-    headless: false,
-    defaultViewport: null,
-  };
-
-  return () =>
-    launch(LAUNCH_OPTIONS).then(async (browser) => {
-      await events.emit("newBrowser", { browser });
-      return browser;
-    });
 }
 
 function parseLine(line: string): string[] {

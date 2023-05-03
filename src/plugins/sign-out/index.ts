@@ -10,9 +10,13 @@ type SignOutOptions = {
 
 const ALIASES = ["logout", "signout"];
 
-export function signOutPlugin({ events, programOptions }: PluginOptions) {
+export function signOutPlugin({
+  browser,
+  events,
+  programOptions,
+}: PluginOptions) {
   ALIASES.forEach((alias) => {
-    events.on(`command:${alias}`, async ({ args, browser, state }) => {
+    events.on(`command:${alias}`, async ({ args, state }) => {
       const options = parseOptions(args, programOptions);
       const nextState = await signOut(state.current(), options, browser);
       state.update(nextState);

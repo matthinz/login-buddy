@@ -33,8 +33,8 @@ export type ScreenshotOptions = {
 
 type ScreenshotSet = { [key in LanguageCode]: string };
 
-export function screenshotPlugin({ events, state }: PluginOptions) {
-  events.on("command:screenshot", async ({ args, browser }) => {
+export function screenshotPlugin({ browser, events }: PluginOptions) {
+  events.on("command:screenshot", async ({ args }) => {
     const options = parseOptions(args);
 
     await screenshot(browser, options);

@@ -22,8 +22,8 @@ const DEFAULT_PHONE = "3602345678";
 // https://developers.login.gov/testing/
 const BAD_PHONE = "703-555-5555";
 
-export function idvPlugin({ events, programOptions }: PluginOptions) {
-  events.on("command:verify", async ({ args, browser, state }) => {
+export function idvPlugin({ browser, events, programOptions }: PluginOptions) {
+  events.on("command:verify", async ({ args, state }) => {
     const options = parseOptions(args, programOptions);
     await verify(browser, state.current(), options, new Hooks(events));
   });
