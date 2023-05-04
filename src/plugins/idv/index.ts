@@ -1,6 +1,4 @@
 import getopts from "getopts";
-import { launch } from "puppeteer";
-import { until } from "../../dsl";
 
 import { GlobalState, PluginOptions, ProgramOptions } from "../../types";
 import { VERIFY_FLOW } from "./flow";
@@ -11,10 +9,6 @@ import {
 } from "./types";
 import { BrowserHelper } from "../../browser";
 import { Hooks } from "../../hooks";
-
-const UNTIL_ALIASES: { [key: string]: string | RegExp } = {
-  verify: /(\/verify\/doc_auth\/verify|\/verify\/verify_info)/,
-};
 
 const DEFAULT_PHONE = "3602345678";
 

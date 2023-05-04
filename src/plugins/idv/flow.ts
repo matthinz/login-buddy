@@ -1,10 +1,5 @@
 import { VerifyOptions } from "./types";
-import {
-  atPath,
-  Context,
-  FlowBuilderInterface,
-  createFlow,
-} from "../../dsl/v2";
+import { atPath, Context, FlowBuilderInterface, createFlow } from "../../dsl";
 import { generateBadIdYaml, generateIdYaml } from "./id";
 
 type InputState = {

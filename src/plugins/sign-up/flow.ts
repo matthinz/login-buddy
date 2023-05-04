@@ -1,6 +1,6 @@
 import totp from "totp-generator";
 
-import { createFlow } from "../../dsl/v2";
+import { createFlow } from "../../dsl";
 import { SignupOptions, SignupState } from "./types";
 
 const DEFAULT_PASSWORD = "reallygoodpassword";

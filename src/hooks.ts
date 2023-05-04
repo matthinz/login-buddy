@@ -1,4 +1,4 @@
-import { FlowHooks } from "./dsl/v2/flow-builder/types";
+import { FlowHooks } from "./dsl/flow-builder/types";
 import { EventBus } from "./events";
 
 export class Hooks implements FlowHooks {

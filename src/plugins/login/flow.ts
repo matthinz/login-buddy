@@ -1,4 +1,4 @@
-import { createFlow } from "../../dsl/v2";
+import { createFlow } from "../../dsl";
 import { getOtp } from "../otp";
 import { SignupState } from "../sign-up";
 import { LogInOptions } from "./types";
