@@ -100,7 +100,9 @@ export interface FlowBuilderInterface<
   >;
 
   branch<TrueState extends State, FalseState extends State>(
-    check: (context: Context<State, Options>) => boolean | Promise<boolean>,
+    check: (
+      context: Context<State, Options>
+    ) => boolean | void | Promise<boolean | void>,
     ifTrue: (
       flow: FlowBuilderInterface<State, State, Options>,
       context: Context<State, Options>
@@ -222,7 +224,9 @@ export interface FlowBuilderInterface<
   ): FlowBuilderInterface<InputState, State, Options>;
 
   when<NextState extends State>(
-    check: (context: Context<State, Options>) => boolean | Promise<boolean>,
+    check: (
+      context: Context<State, Options>
+    ) => boolean | void | Promise<boolean | void>,
     ifTrue: (
       flow: FlowBuilderInterface<State, State, Options>,
       context: Context<State, Options>

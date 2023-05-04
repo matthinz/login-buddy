@@ -8,7 +8,6 @@ import {
   type,
   upload,
 } from "./actions";
-import { ConvertingFlowBuilder } from "./converter";
 import { Action, Context, FlowBuilderInterface, RuntimeValue } from "./types";
 
 export abstract class AbstractFlowBuilder<
@@ -55,7 +54,9 @@ export abstract class AbstractFlowBuilder<
   }
 
   branch<TrueState extends State, FalseState extends State>(
-    check: (context: Context<State, Options>) => boolean | Promise<boolean>,
+    check: (
+      context: Context<State, Options>
+    ) => boolean | void | Promise<boolean | void>,
     ifTrue: (
       flow: FlowBuilderInterface<State, State, Options>,
       context: Context<State, Options>
@@ -161,7 +162,9 @@ export abstract class AbstractFlowBuilder<
   }
 
   when<NextState extends State>(
-    check: (context: Context<State, Options>) => boolean | Promise<boolean>,
+    check: (
+      context: Context<State, Options>
+    ) => boolean | void | Promise<boolean | void>,
     ifTrue: (
       flow: FlowBuilderInterface<State, State, Options>,
       context: Context<State, Options>
