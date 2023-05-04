@@ -23,11 +23,6 @@ export const VERIFY_FLOW = createFlow<InputState, VerifyOptions>()
   .click("label[for=doc_auth_ial2_consent_given]")
   .submit()
 
-  // "How would you like to upload your state-issued ID?"
-  .expect("/verify/doc_auth/upload")
-  .submit(
-    'form[action="/verify/doc_auth/upload?type=desktop"] button[type=submit]'
-  )
   .then(uploadId)
 
   // NOTE: Pause for processing documents
@@ -212,11 +207,37 @@ function uploadId<InputState, State extends InputState>(
   const idYaml = ({ options: { badId } }: Context<State, VerifyOptions>) =>
     badId ? generateBadIdYaml() : generateIdYaml();
 
-  return flow
-    .expect("/verify/document_capture")
-    .upload("#file-input-1", "proofing.yml", idYaml)
-    .upload("#file-input-2", "proofing.yml", idYaml)
-    .submit();
+  return (
+    flow
+      // "How would you like to upload your state-issued ID?"
+      .expect("/verify/doc_auth/upload")
+      .branch(
+        ({ options }) => options.hybrid,
+
+        // Hybrid flow
+        (flow) =>
+          flow
+            .generate("phone", () => "3602345678")
+            .type('[name="doc_auth[phone]"]', ({ state: { phone } }) => phone)
+            .submit(
+              'form[action="/verify/doc_auth/upload?combined=true&type=mobile"] button[type=submit]'
+            )
+            .evaluate(() => {
+              throw new Error("TODO: Implement hybrid flow");
+            }),
+
+        // Standard flow
+        (flow) =>
+          flow
+            .submit(
+              'form[action="/verify/doc_auth/upload?type=desktop"] button[type=submit]'
+            )
+            .expect("/verify/document_capture")
+            .upload("#file-input-1", "proofing.yml", idYaml)
+            .upload("#file-input-2", "proofing.yml", idYaml)
+            .submit()
+      )
+  );
 }
 
 function generateSsn(prefix = "666"): string {
