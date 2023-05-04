@@ -70,7 +70,22 @@ export const SIGN_UP_FLOW = createFlow<Partial<SignupState>, SignupOptions>()
   )
 
   .expect("/sign_up/enter_password")
-  .type('[name="password_form[password]"]', ({ state }) => state.password)
+  .type(
+    '[name="password_form[password]"]',
+    ({ state: { password } }) => password
+  )
+
+  // Re-enter password when field is present
+  .when(
+    async ({ page }) =>
+      !!(await page.$('[name="password_form[password_confirmation]"]')),
+    (flow) =>
+      flow.type(
+        '[name="password_form[password_confirmation]"]',
+        ({ state: { password } }) => password
+      )
+  )
+
   .submit("button[type=submit]")
 
   .expect("/authentication_methods_setup")
