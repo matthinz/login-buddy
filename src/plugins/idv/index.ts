@@ -48,6 +48,7 @@ async function verify(
     badId: !!options.badId,
     phone: options.phone ?? lastSignup.phone ?? DEFAULT_PHONE,
     throttlePhone: !!options.throttlePhone,
+    throttleSsn: !!options.throttleSsn,
   };
 
   await VERIFY_FLOW.run({
@@ -68,7 +69,9 @@ export function parseOptions(
       badId: ["bad-id"],
       badPhone: ["bad-phone"],
       throttlePhone: ["throttle-phone"],
+      throttleSsn: ["throttle-ssn"],
     },
+    boolean: ["badId", "badPhone", "throttlePhone", "throttleSsn"],
   });
 
   let threatMetrix = raw.threatMetrix == null ? "pass" : raw.threatMetrix;
@@ -83,8 +86,6 @@ export function parseOptions(
   const hybrid = !!raw.hybrid;
 
   const until = raw.until;
-
-  const ssn = raw.ssn == null ? undefined : String(raw.ssn);
 
   const throttlePhone = !!raw.throttlePhone;
 
@@ -107,6 +108,14 @@ export function parseOptions(
     phone = BAD_PHONE;
   }
 
+  const throttleSsn = !!raw.throttleSsn;
+
+  const ssn = throttleSsn
+    ? undefined
+    : raw.ssn == null
+    ? undefined
+    : String(raw.ssn);
+
   return {
     badId,
     baseURL,
@@ -116,6 +125,7 @@ export function parseOptions(
     ssn,
     threatMetrix: threatMetrix as ThreatMetrixResult,
     throttlePhone,
+    throttleSsn,
     until,
   };
 }

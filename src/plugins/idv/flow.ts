@@ -1,14 +1,16 @@
-import { Page } from "puppeteer";
 import { VerifyOptions } from "./types";
-import { FlowBuilderInterface, createFlow } from "../../dsl/v2";
+import {
+  atPath,
+  Context,
+  FlowBuilderInterface,
+  createFlow,
+} from "../../dsl/v2";
 import { generateBadIdYaml, generateIdYaml } from "./id";
 
 type InputState = {
-  badId: boolean;
   email: string;
   password: string;
   phone: string;
-  throttlePhone: boolean;
 };
 
 export const VERIFY_FLOW = createFlow<InputState, VerifyOptions>()
@@ -31,91 +33,63 @@ export const VERIFY_FLOW = createFlow<InputState, VerifyOptions>()
   // NOTE: Pause for processing documents
 
   // "Enter your Social Security number"
-  .expect("/verify/ssn")
-  .generate("ssn", ({ options }) => options.ssn ?? generateSsn())
-
-  .type('[name="doc_auth[ssn]"]', ({ state: { ssn } }) => ssn)
-
-  .evaluate(async ({ page, options, state }) => {
-    const $mockProfilingResult = await page.$("[name=mock_profiling_result]");
-    if (!$mockProfilingResult) {
-      if (options.threatMetrix !== "no_result") {
-        throw new Error("ThreatMetrix mock not found on the page");
-      }
-      return state;
-    }
-
-    await $mockProfilingResult.select(options.threatMetrix);
-
-    return state;
-  })
-
-  .click(".password-toggle__toggle-label")
-  .submit()
+  .then(enterSsn)
 
   // "Verify your information"
-  .expect("/verify/verify_info")
-  .click(".usa-checkbox__label")
-  .submit("button[type=submit].usa-button--big")
+  .then(verifyYourInformation)
 
-  .branch(
-    ({ options }) => options.gpo,
-    // Branch: Use GPO
-    (useGpo) =>
-      // "Want a letter?"
-      useGpo
-        .navigateTo("/verify/usps")
-        .submit('form[action="/verify/usps"] button[type=submit]'),
-    // Branch: Don't use GPO
-    enterPhone
-  )
-
-  // Bail if we have been phone throttled
   .when(
-    ({ state }) => !state.throttlePhone,
+    ({ options }) => !options.throttleSsn,
     (flow) =>
       flow
+        .branch(
+          ({ options }) => options.gpo,
+          // Branch: Use GPO
+          (useGpo) =>
+            // "Want a letter?"
+            useGpo
+              .navigateTo("/verify/usps")
+              .submit('form[action="/verify/usps"] button[type=submit]'),
+          // Branch: Don't use GPO
+          enterPhone
+        )
 
-        // "Re-enter your Login.gov password to protect your data"
-        .expect("/verify/review")
-        .type('[name="user[password]"]', ({ state: { password } }) => password)
-        .submit('form[action="/verify/review"] button[type=submit]')
+        // Bail if we have been phone throttled
+        .when(
+          ({ options }) => !options.throttlePhone,
+          (flow) =>
+            flow
 
-        // Handle OTP before and after personal key
-        .when(isComeBackLaterScreen, enterOtp)
+              // "Re-enter your Login.gov password to protect your data"
+              .expect("/verify/review")
+              .type(
+                '[name="user[password]"]',
+                ({ state: { password } }) => password
+              )
+              .submit('form[action="/verify/review"] button[type=submit]')
 
-        // "Save your personal key"
-        .expect("/verify/personal_key")
+              // Handle OTP before and after personal key
+              .when(atPath("/verify/come_back_later"), enterOtp)
 
-        .evaluate(async ({ page, state }) => {
-          const personalKey = (await page.evaluate(() => {
-            // @ts-ignore
-            return document.querySelector(".personal-key-block").innerText;
-          })) as string;
-          return { ...state, personalKey };
-        })
+              // "Save your personal key"
+              .expect("/verify/personal_key")
 
-        .click("label[for=acknowledgment]")
-        .submit()
+              .evaluate(async ({ page, state }) => {
+                const personalKey = (await page.evaluate(() => {
+                  // @ts-ignore
+                  return document.querySelector<HTMLElement>(
+                    ".personal-key-block"
+                  ).innerText;
+                })) as string;
+                return { ...state, personalKey };
+              })
 
-        .when(isComeBackLaterScreen, enterOtp)
+              .click("label[for=acknowledgment]")
+              .submit()
+
+              .when(atPath("/verify/come_back_later"), enterOtp)
+        )
   );
-
-function generateSsn(): string {
-  let result = "666";
-  while (result.length < 9) {
-    result += String(Math.floor(Math.random() * 10));
-  }
-  return result;
-}
-
-async function isComeBackLaterScreen({
-  page,
-}: {
-  page: Page;
-}): Promise<boolean> {
-  return new URL(page.url()).pathname === "/verify/come_back_later";
-}
 
 function enterOtp<InputState, OutputState extends InputState, Options>(
   flow: FlowBuilderInterface<InputState, OutputState, Options>
@@ -153,13 +127,9 @@ function enterOtp<InputState, OutputState extends InputState, Options>(
   );
 }
 
-function enterPhone<
-  InputState,
-  OutputState extends InputState & { phone: string; throttlePhone: boolean },
-  Options
->(
-  flow: FlowBuilderInterface<InputState, OutputState, Options>
-): FlowBuilderInterface<InputState, OutputState, Options> {
+function enterPhone<InputState, State extends InputState & { phone: string }>(
+  flow: FlowBuilderInterface<InputState, State, VerifyOptions>
+): FlowBuilderInterface<InputState, State, VerifyOptions> {
   return (
     flow
       // "Enter your phone number"
@@ -168,7 +138,7 @@ function enterPhone<
       .submit()
 
       .branch(
-        ({ state }) => state.throttlePhone,
+        ({ options }) => options.throttlePhone,
         (flow) =>
           flow.when(
             ({ page }) =>
@@ -186,20 +156,73 @@ function enterPhone<
   );
 }
 
-function uploadId<
-  InputState,
-  OutputState extends InputState & { badId: boolean },
-  Options
->(
-  flow: FlowBuilderInterface<InputState, OutputState, Options>
-): FlowBuilderInterface<InputState, OutputState, Options> {
+function enterSsn<InputState, State extends InputState>(
+  flow: FlowBuilderInterface<InputState, State, VerifyOptions>
+): FlowBuilderInterface<InputState, State, VerifyOptions> {
+  return flow
+    .expect("/verify/ssn")
+    .generate("ssn", ({ options }) => {
+      if (options.throttleSsn) {
+        return generateSsn("123");
+      } else if (options.ssn) {
+        return options.ssn;
+      } else {
+        return generateSsn();
+      }
+    })
+    .type('[name="doc_auth[ssn]"]', ({ state: { ssn } }) => ssn)
+    .evaluate(async ({ page, options, state }) => {
+      const $mockProfilingResult = await page.$("[name=mock_profiling_result]");
+      if (!$mockProfilingResult) {
+        if (options.threatMetrix !== "no_result") {
+          throw new Error("ThreatMetrix mock not found on the page");
+        }
+        return state;
+      }
+
+      await $mockProfilingResult.select(options.threatMetrix);
+
+      return state;
+    })
+
+    .click(".password-toggle__toggle-label")
+    .submit();
+}
+
+function verifyYourInformation<InputState, State extends InputState>(
+  flow: FlowBuilderInterface<InputState, State, VerifyOptions>
+): FlowBuilderInterface<InputState, State, VerifyOptions> {
+  return flow
+    .expect("/verify/verify_info")
+    .click(".usa-checkbox__label")
+    .submit("button[type=submit].usa-button--big")
+
+    .when(
+      ({ options }) => options.throttleSsn,
+      (flow) =>
+        flow.when(atPath("/verify/session/errors/warning"), (flow) =>
+          flow.click(".usa-button").then(verifyYourInformation)
+        )
+    );
+}
+
+function uploadId<InputState, State extends InputState>(
+  flow: FlowBuilderInterface<InputState, State, VerifyOptions>
+): FlowBuilderInterface<InputState, State, VerifyOptions> {
+  const idYaml = ({ options: { badId } }: Context<State, VerifyOptions>) =>
+    badId ? generateBadIdYaml() : generateIdYaml();
+
   return flow
     .expect("/verify/document_capture")
-    .upload("#file-input-1", "proofing.yml", ({ state }) =>
-      state.badId ? generateBadIdYaml() : generateIdYaml()
-    )
-    .upload("#file-input-2", "proofing.yml", ({ state }) =>
-      state.badId ? generateBadIdYaml() : generateIdYaml()
-    )
+    .upload("#file-input-1", "proofing.yml", idYaml)
+    .upload("#file-input-2", "proofing.yml", idYaml)
     .submit();
+}
+
+function generateSsn(prefix = "666"): string {
+  let result = prefix;
+  while (result.length < 9) {
+    result += String(Math.floor(Math.random() * 10));
+  }
+  return result;
 }

@@ -15,6 +15,7 @@ export type VerifyOptions = {
   phone?: string | undefined;
   threatMetrix: ThreatMetrixResult;
   throttlePhone?: boolean | undefined;
+  throttleSsn?: boolean | undefined;
   ssn?: string | undefined;
   until?: string;
 };
