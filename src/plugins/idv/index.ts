@@ -8,7 +8,6 @@ import {
   VerifyOptions,
 } from "./types";
 import { BrowserHelper } from "../../browser";
-import { Hooks } from "../../hooks";
 
 const DEFAULT_PHONE = "3602345678";
 
@@ -19,15 +18,14 @@ const BAD_PHONE = "703-555-5555";
 export function idvPlugin({ browser, events, programOptions }: PluginOptions) {
   events.on("command:verify", async ({ args, state }) => {
     const options = parseOptions(args, programOptions);
-    await verify(browser, state.current(), options, new Hooks(events));
+    await verify(browser, state.current(), options);
   });
 }
 
 async function verify(
   browser: BrowserHelper,
   state: GlobalState,
-  options: VerifyOptions,
-  hooks: Hooks
+  options: VerifyOptions
 ) {
   const { lastSignup } = state;
 
@@ -39,14 +37,10 @@ async function verify(
 
   const inputState = {
     ...lastSignup,
-    badId: !!options.badId,
     phone: options.phone ?? lastSignup.phone ?? DEFAULT_PHONE,
-    throttlePhone: !!options.throttlePhone,
-    throttleSsn: !!options.throttleSsn,
   };
 
   await VERIFY_FLOW.run({
-    hooks,
     options,
     page,
     state: inputState,

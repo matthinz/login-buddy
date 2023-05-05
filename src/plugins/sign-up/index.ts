@@ -11,7 +11,6 @@ import {
 } from "../../types";
 import { SIGN_UP_FLOW } from "./flow";
 import { SignupOptions, SignupState } from "./types";
-import { Hooks } from "../../hooks";
 import { EventBus } from "../../events";
 
 export { SignupState } from "./types";
@@ -61,13 +60,10 @@ async function signUp(
 ): Promise<SignupState | undefined> {
   const page = await browser.newPage();
 
-  const hooks = new Hooks(events);
-
   const result = await SIGN_UP_FLOW.run({
     options,
     page,
     state: {},
-    hooks,
   });
 
   if (!result.completed) {

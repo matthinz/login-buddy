@@ -24,7 +24,6 @@ export type AssertAction<State, Options> = {
 };
 
 export type Context<State, Options> = Readonly<{
-  hooks: FlowHooks;
   options: Options;
   page: Page;
   state: State;
@@ -76,14 +75,6 @@ export type UploadAction<State, Options> = {
   perform(context: Context<State, Options>): Promise<void>;
 };
 
-export interface FlowHooks {
-  /**
-   * Prompts the user for some information.
-   * @param prompt
-   */
-  ask(prompt: string): Promise<string | undefined>;
-}
-
 export type FlowResult<InputState, State extends InputState> =
   | {
       completed: true;
@@ -99,16 +90,6 @@ export interface FlowBuilderInterface<
   State extends InputState,
   Options
 > {
-  askIfNeeded<Key extends string>(
-    key: Key,
-    prompt: string,
-    normalizer?: (input: string) => string | Promise<string>
-  ): FlowBuilderInterface<
-    InputState,
-    State & { [key in Key]: string },
-    Options
-  >;
-
   branch<TrueState extends State, FalseState extends State>(
     check: (
       context: Context<State, Options>

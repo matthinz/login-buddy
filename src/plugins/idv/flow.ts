@@ -59,7 +59,7 @@ export const VERIFY_FLOW = createFlow<InputState, VerifyOptions>()
               .submit('form[action="/verify/review"] button[type=submit]')
 
               // Handle OTP before and after personal key
-              .when(atPath("/verify/come_back_later"), enterOtp)
+              .when(atPath("/verify/come_back_later"), enterGpoOtp)
 
               // "Save your personal key"
               .expect("/verify/personal_key")
@@ -77,13 +77,13 @@ export const VERIFY_FLOW = createFlow<InputState, VerifyOptions>()
               .click("label[for=acknowledgment]")
               .submit()
 
-              .when(atPath("/verify/come_back_later"), enterOtp)
+              .when(atPath("/verify/come_back_later"), enterGpoOtp)
         )
   );
 
-function enterOtp<InputState, OutputState extends InputState, Options>(
-  flow: FlowBuilderInterface<InputState, OutputState, Options>
-): FlowBuilderInterface<InputState, OutputState & { gpoOtp: string }, Options> {
+function enterGpoOtp<State extends InputState>(
+  flow: FlowBuilderInterface<State, State, VerifyOptions>
+): FlowBuilderInterface<State, State & { gpoOtp: string }, VerifyOptions> {
   return (
     flow
       .expect("/verify/come_back_later")
@@ -111,8 +111,11 @@ function enterOtp<InputState, OutputState extends InputState, Options>(
 
         return { ...state, gpoOtp };
       })
-      .askIfNeeded("gpoOtp", "Please enter your GPO one-time password")
-      .type('[name="gpo_verify_form[otp]"]', ({ state }) => state.gpoOtp)
+
+      .generate("gpoOtp", async () => {
+        throw new Error("TODO: Prompt for GPO OTP");
+      })
+      .type('[name="gpo_verify_form[otp]"]', ({ state: { gpoOtp } }) => gpoOtp)
       .submit()
   );
 }
@@ -196,7 +199,7 @@ function verifyYourInformation<InputState, State extends InputState>(
     );
 }
 
-function uploadId<InputState, State extends InputState>(
+function uploadId<State extends InputState>(
   flow: FlowBuilderInterface<InputState, State, VerifyOptions>
 ): FlowBuilderInterface<InputState, State, VerifyOptions> {
   const idYaml = ({ options: { badId } }: Context<State, VerifyOptions>) =>
@@ -212,12 +215,11 @@ function uploadId<InputState, State extends InputState>(
         // Hybrid flow
         (flow) =>
           flow
-            .generate("phone", () => "3602345678")
             .type('[name="doc_auth[phone]"]', ({ state: { phone } }) => phone)
             .submit(
               'form[action="/verify/doc_auth/upload?combined=true&type=mobile"] button[type=submit]'
             )
-            .evaluate(() => {
+            .evaluate(async () => {
               throw new Error("TODO: Implement hybrid flow");
             }),
 

@@ -1,6 +1,6 @@
 import totp from "totp-generator";
 
-import { createFlow } from "../../dsl";
+import { createFlow, selectorFound } from "../../dsl";
 import { SignupOptions, SignupState } from "./types";
 
 const DEFAULT_PASSWORD = "reallygoodpassword";
@@ -41,7 +41,8 @@ export const SIGN_UP_FLOW = createFlow<Partial<SignupState>, SignupOptions>()
   .expect("/sign_up/verify_email")
 
   .branch(
-    async ({ page }) => !!(await page.$("#confirm-now")),
+    selectorFound("#confirm-now"),
+
     // We can just confirm right away
     // This route is available when enable_load_testing_mode is set
     (flow) => flow.submit("#confirm-now"),
@@ -49,23 +50,14 @@ export const SIGN_UP_FLOW = createFlow<Partial<SignupState>, SignupOptions>()
     // We have to click a link in an email
     (flow) =>
       flow
-        .askIfNeeded(
-          "confirmEmailToken",
-          "Check your email and paste your confirmation link here",
-          (token) => {
-            token = (token ?? "").trim();
-
-            try {
-              const url = new URL(token);
-              token = url.searchParams.get("confirmation_token") ?? "";
-            } catch (err) {}
-
-            return token;
-          }
-        )
+        .generate("confirmEmailToken", async (context) => {
+          throw new Error("TODO: Prompt user for confirmEmailToken");
+        })
         .navigateTo(
-          ({ state }) =>
-            `/sign_up/email/confirm?confirmation_token=${state.confirmEmailToken}`
+          ({ state: { confirmEmailToken } }) =>
+            `/sign_up/email/confirm?confirmation_token=${encodeURIComponent(
+              confirmEmailToken
+            )}`
         )
   )
 
@@ -151,7 +143,9 @@ export const SIGN_UP_FLOW = createFlow<Partial<SignupState>, SignupOptions>()
         .click("label[for=two_factor_options_form_selection_phone]")
         .submit()
 
-        .askIfNeeded("phone", "Please enter your actual phone number here")
+        .generate("phone", async () => {
+          throw new Error("TODO: Prompt user for phone number");
+        })
 
         .type('input[name="new_phone_form[phone]"]', ({ state }) => state.phone)
         .submit()
@@ -168,9 +162,12 @@ export const SIGN_UP_FLOW = createFlow<Partial<SignupState>, SignupOptions>()
             otp,
           };
         })
-        .askIfNeeded("otp", "Enter the OTP you received here")
 
-        .type("[autocomplete=one-time-code]", ({ state }) => state.otp)
+        .generate("otp", async () => {
+          throw new Error("TODO: Prompt user for OTP");
+        })
+
+        .type("[autocomplete=one-time-code]", ({ state: { otp } }) => otp)
         .submit()
   )
 

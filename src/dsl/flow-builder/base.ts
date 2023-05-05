@@ -22,48 +22,6 @@ export abstract class AbstractFlowBuilder<
   Options
 > implements FlowBuilderInterface<InputState, State, Options>
 {
-  askIfNeeded<Key extends string>(
-    key: Key,
-    prompt: string,
-    normalizer?: (input: string) => string | Promise<string>
-  ): FlowBuilderInterface<
-    InputState,
-    State & { [key in Key]: string },
-    Options
-  > {
-    return this.deriveAndModifyState(async (context) => {
-      const { state, hooks } = context;
-
-      if (typeof state !== "object") {
-        throw new Error();
-      }
-
-      if (state == null) {
-        throw new Error();
-      }
-
-      let value = await hooks.ask(prompt);
-
-      if (typeof value !== "string") {
-        throw new Error();
-      }
-
-      if (normalizer) {
-        value = await normalizer(value);
-      }
-
-      const nextState = {
-        ...state,
-        [key]: value,
-      } as State & { [key in Key]: string };
-
-      return {
-        completed: true,
-        state: nextState,
-      };
-    });
-  }
-
   branch<TrueState extends State, FalseState extends State>(
     check: (
       context: Context<State, Options>
