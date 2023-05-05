@@ -51,6 +51,9 @@ async function verify(
     options: {
       ...options,
       getLinkToHybridFlow: createHybridFlowLinkMonitor(events),
+      getMobileBrowserPage() {
+        return browser.newIncognitoPage();
+      },
     },
     page,
     state: inputState,

@@ -1,3 +1,5 @@
+import { Page } from "puppeteer";
+
 export const THREATMETRIX_RESULTS = [
   "no_result",
   "pass",
@@ -18,5 +20,7 @@ export type VerifyOptions = {
   throttleSsn?: boolean | undefined;
   ssn?: string | undefined;
   until?: string;
+  uploadUrl?: URL;
   getLinkToHybridFlow?: () => Promise<string | undefined>;
+  getMobileBrowserPage?: () => Promise<Page>;
 };

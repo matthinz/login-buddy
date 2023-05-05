@@ -16,7 +16,7 @@ document:
   state_id_jurisdiction: 'NY'
 `;
 
-export function generateIdYaml(): string {
+export function generateGoodIdYaml(): string {
   return PROOFING_YAML.trim();
 }
 

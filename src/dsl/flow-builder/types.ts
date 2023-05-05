@@ -216,6 +216,12 @@ export interface FlowBuilderInterface<
     contents: RuntimeValue<string | Buffer, State, Options>
   ): FlowBuilderInterface<InputState, State, Options>;
 
+  waitUntil(
+    check: (
+      context: Context<State, Options>
+    ) => boolean | void | Promise<boolean | void>
+  ): FlowBuilderInterface<InputState, State, Options>;
+
   when<NextState extends State>(
     check: (
       context: Context<State, Options>

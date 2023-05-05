@@ -1,3 +1,4 @@
+import { Page } from "puppeteer";
 import { createFlow } from "..";
 import {
   click,
@@ -145,6 +146,42 @@ export abstract class AbstractFlowBuilder<
     contents: RuntimeValue<string, State, Options>
   ): FlowBuilderInterface<InputState, State, Options> {
     return this.derive(upload(selector, filename, contents));
+  }
+
+  waitUntil(
+    check: (
+      context: Context<State, Options>
+    ) => boolean | void | Promise<boolean | void>
+  ): FlowBuilderInterface<InputState, State, Options> {
+    const POLL_INTERVAL = 300;
+
+    return this.deriveAndModifyState(
+      (context) =>
+        new Promise((resolve, reject) => {
+          doCheck();
+
+          async function doCheck() {
+            let checkPassed;
+
+            try {
+              checkPassed = await check(context);
+            } catch (err: any) {
+              reject(err);
+              return;
+            }
+
+            if (checkPassed) {
+              resolve({
+                completed: true,
+                state: context.state,
+              });
+              return;
+            }
+
+            setTimeout(doCheck, POLL_INTERVAL);
+          }
+        })
+    );
   }
 
   when<NextState extends State>(

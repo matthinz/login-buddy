@@ -1,12 +1,25 @@
 import { VerifyOptions } from "./types";
 import { atPath, Context, FlowBuilderInterface, createFlow } from "../../dsl";
-import { generateBadIdYaml, generateIdYaml } from "./id";
+import { generateBadIdYaml, generateGoodIdYaml } from "./id";
 
 type InputState = {
   email: string;
   password: string;
   phone: string;
 };
+
+export const MOBILE_DOCUMENT_CAPTURE_FLOW = createFlow<{}, VerifyOptions>()
+  .when(
+    ({ options }) => !!options.uploadUrl,
+    (flow, { options: { uploadUrl } }) => {
+      if (uploadUrl) {
+        return flow.navigateTo(uploadUrl);
+      }
+      return flow;
+    }
+  )
+  .then(doDocumentCapture)
+  .expect("/verify/hybrid_mobile/capture_complete");
 
 export const VERIFY_FLOW = createFlow<InputState, VerifyOptions>()
   .navigateTo("/verify")
@@ -202,9 +215,6 @@ function verifyYourInformation<InputState, State extends InputState>(
 function uploadId<State extends InputState>(
   flow: FlowBuilderInterface<InputState, State, VerifyOptions>
 ): FlowBuilderInterface<InputState, State, VerifyOptions> {
-  const idYaml = ({ options: { badId } }: Context<State, VerifyOptions>) =>
-    badId ? generateBadIdYaml() : generateIdYaml();
-
   return (
     flow
       // "How would you like to upload your state-issued ID?"
@@ -219,17 +229,37 @@ function uploadId<State extends InputState>(
             .submit(
               'form[action="/verify/doc_auth/upload?combined=true&type=mobile"] button[type=submit]'
             )
-            .evaluate(async ({ options }) => {
-              const link =
-                options.getLinkToHybridFlow &&
-                (await options.getLinkToHybridFlow());
+            .evaluate(async (context) => {
+              const {
+                options: { getLinkToHybridFlow, getMobileBrowserPage },
+              } = context;
+
+              const link = getLinkToHybridFlow && (await getLinkToHybridFlow());
 
               if (!link) {
                 throw new Error("Could not determine link to hybrid flow");
               }
 
-              throw new Error("TODO: Implement hybrid flow doc capture");
-            }),
+              if (!getMobileBrowserPage) {
+                throw new Error("getMobileBrowserPage not provided");
+              }
+
+              const page = await getMobileBrowserPage();
+
+              await MOBILE_DOCUMENT_CAPTURE_FLOW.run({
+                ...context,
+                options: {
+                  ...context.options,
+                  uploadUrl: new URL(link),
+                },
+                page,
+              });
+
+              await page.close();
+
+              return context.state;
+            })
+            .waitUntil(atPath("/verify/ssn")),
 
         // Standard flow
         (flow) =>
@@ -238,9 +268,7 @@ function uploadId<State extends InputState>(
               'form[action="/verify/doc_auth/upload?type=desktop"] button[type=submit]'
             )
             .expect("/verify/document_capture")
-            .upload("#file-input-1", "proofing.yml", idYaml)
-            .upload("#file-input-2", "proofing.yml", idYaml)
-            .submit()
+            .then(doDocumentCapture)
       )
   );
 }
@@ -251,4 +279,17 @@ function generateSsn(prefix = "666"): string {
     result += String(Math.floor(Math.random() * 10));
   }
   return result;
+}
+
+function generateIdYaml<State>({ options }: Context<State, VerifyOptions>) {
+  return options.badId ? generateBadIdYaml() : generateGoodIdYaml();
+}
+
+function doDocumentCapture<State>(
+  flow: FlowBuilderInterface<State, State, VerifyOptions>
+): FlowBuilderInterface<State, State, VerifyOptions> {
+  return flow
+    .upload("#file-input-1", "proofing.yml", generateIdYaml)
+    .upload("#file-input-2", "proofing.yml", generateIdYaml)
+    .submit();
 }
