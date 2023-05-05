@@ -84,6 +84,16 @@ export interface FlowHooks {
   ask(prompt: string): Promise<string | undefined>;
 }
 
+export type FlowResult<InputState, State extends InputState> =
+  | {
+      completed: true;
+      state: State;
+    }
+  | {
+      completed: false;
+      state: InputState extends {} ? InputState & Partial<State> : InputState;
+    };
+
 export interface FlowBuilderInterface<
   InputState,
   State extends InputState,
@@ -161,7 +171,9 @@ export interface FlowBuilderInterface<
     url: RuntimeValue<string | URL, State, Options>
   ): FlowBuilderInterface<InputState, State, Options>;
 
-  run(context: Context<InputState, Options>): Promise<State>;
+  run(
+    context: Context<InputState, Options>
+  ): Promise<FlowResult<InputState, State>>;
 
   select(
     selector: string,

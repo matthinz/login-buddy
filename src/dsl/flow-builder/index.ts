@@ -1,6 +1,5 @@
-import { Page } from "puppeteer";
 import { AbstractFlowBuilder } from "./base";
-import { Action, Context, FlowBuilderInterface, FlowHooks } from "./types";
+import { Action, Context, FlowBuilderInterface, FlowResult } from "./types";
 import { ConvertingFlowBuilder } from "./converter";
 
 export { Context, FlowBuilderInterface } from "./types";
@@ -24,17 +23,27 @@ export class FlowBuilder<
     this.actions = actions;
   }
 
-  async run(context: Context<InputState, Options>): Promise<State> {
-    const state = this.prev
-      ? await this.prev.run(context)
-      : (context.state as State);
+  async run(
+    context: Context<InputState, Options>
+  ): Promise<FlowResult<InputState, State>> {
+    let prevState: State;
+
+    if (this.prev) {
+      const prevResult = await this.prev.run(context);
+      if (!prevResult.completed) {
+        return prevResult;
+      }
+      prevState = prevResult.state;
+    } else {
+      prevState = context.state as State;
+    }
 
     const newContext = {
       ...context,
-      state,
+      state: prevState,
     };
 
-    const { state: result } = await this.actions.reduce(
+    const finalContext = await this.actions.reduce(
       (promise, action) =>
         promise.then(async (context) => {
           await action.perform(context);
@@ -43,7 +52,10 @@ export class FlowBuilder<
       Promise.resolve(newContext)
     );
 
-    return result;
+    return {
+      completed: true,
+      state: finalContext.state,
+    };
   }
 
   protected override derive(
@@ -54,13 +66,8 @@ export class FlowBuilder<
 
   protected override deriveAndModifyState<NextState extends State>(
     converter: (
-      context: Readonly<{
-        hooks: FlowHooks;
-        options: Options;
-        page: Page;
-        state: State;
-      }>
-    ) => Promise<NextState>
+      context: Context<State, Options>
+    ) => Promise<FlowResult<InputState, NextState>>
   ): FlowBuilderInterface<InputState, NextState, Options> {
     return new ConvertingFlowBuilder(this, converter);
   }

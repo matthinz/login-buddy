@@ -1,11 +1,6 @@
-import { Page } from "puppeteer";
 import { FlowBuilder } from ".";
 import { AbstractFlowBuilder } from "./base";
-import { Action, Context, FlowBuilderInterface, FlowHooks } from "./types";
-
-type Converter<From, To, Options> = (
-  context: Context<From, Options>
-) => Promise<To>;
+import { Action, Context, FlowBuilderInterface, FlowResult } from "./types";
 
 export class ConvertingFlowBuilder<
   InputState,
@@ -14,24 +9,35 @@ export class ConvertingFlowBuilder<
   Options
 > extends AbstractFlowBuilder<InputState, State, Options> {
   private prev: FlowBuilderInterface<InputState, PrevState, Options>;
-  private converter: Converter<PrevState, State, Options>;
+  private converter: (
+    context: Context<PrevState, Options>
+  ) => Promise<FlowResult<InputState, State>>;
 
   constructor(
     prev: FlowBuilderInterface<InputState, PrevState, Options>,
-    converter: Converter<PrevState, State, Options>
+    converter: (
+      context: Context<PrevState, Options>
+    ) => Promise<FlowResult<InputState, State>>
   ) {
     super();
     this.prev = prev;
     this.converter = converter;
   }
 
-  async run(context: Context<InputState, Options>): Promise<State> {
-    const prevState = await this.prev.run(context);
+  async run(
+    context: Context<InputState, Options>
+  ): Promise<FlowResult<InputState, State>> {
+    const prevResult = await this.prev.run(context);
+    if (!prevResult.completed) {
+      return prevResult;
+    }
+
     const newContext = {
       ...context,
-      state: prevState,
+      state: prevResult.state,
     };
-    return await this.converter(newContext);
+
+    return this.converter(newContext);
   }
 
   protected override derive(
@@ -41,7 +47,9 @@ export class ConvertingFlowBuilder<
   }
 
   protected override deriveAndModifyState<NextState extends State>(
-    converter: (context: Context<State, Options>) => Promise<NextState>
+    converter: (
+      context: Context<State, Options>
+    ) => Promise<FlowResult<InputState, NextState>>
   ): FlowBuilderInterface<InputState, NextState, Options> {
     return new ConvertingFlowBuilder(this, converter);
   }

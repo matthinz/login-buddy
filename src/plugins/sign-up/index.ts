@@ -2,10 +2,17 @@ import chalk from "chalk";
 import getopts from "getopts";
 import { BrowserHelper } from "../../browser";
 import { resolveSpOptions } from "../../sp";
-import { PluginOptions, ProgramOptions, TwoFactorMethod } from "../../types";
+import {
+  GlobalState,
+  PluginOptions,
+  ProgramOptions,
+  StateManager,
+  TwoFactorMethod,
+} from "../../types";
 import { SIGN_UP_FLOW } from "./flow";
 import { SignupOptions, SignupState } from "./types";
 import { Hooks } from "../../hooks";
+import { EventBus } from "../../events";
 
 export { SignupState } from "./types";
 
@@ -17,18 +24,7 @@ export function signUpPlugin({
 }: PluginOptions) {
   events.on("command:signup", async ({ args }) => {
     const options = parseOptions(args, programOptions);
-    const signup = await signUp(browser, options, new Hooks(events));
-
-    if (signup) {
-      state.update({
-        ...state.current(),
-        lastSignup: signup,
-      });
-
-      events.emit("signup", {
-        signup,
-      });
-    }
+    await signUp(options, browser, events, state);
   });
 
   events.on("signup", ({ signup: { email, password, phone, backupCodes } }) => {
@@ -58,16 +54,35 @@ export function signUpPlugin({
 }
 
 async function signUp(
-  browser: BrowserHelper,
   options: SignupOptions,
-  hooks: Hooks
-): Promise<SignupState> {
+  browser: BrowserHelper,
+  events: EventBus,
+  state: StateManager<GlobalState>
+): Promise<SignupState | undefined> {
   const page = await browser.newPage();
-  return await SIGN_UP_FLOW.run({
+
+  const hooks = new Hooks(events);
+
+  const result = await SIGN_UP_FLOW.run({
     options,
     page,
     state: {},
     hooks,
+  });
+
+  if (!result.completed) {
+    return;
+  }
+
+  const signup = result.state;
+
+  state.update({
+    ...state.current(),
+    lastSignup: signup,
+  });
+
+  events.emit("signup", {
+    signup,
   });
 }
 

@@ -8,7 +8,13 @@ import {
   type,
   upload,
 } from "./actions";
-import { Action, Context, FlowBuilderInterface, RuntimeValue } from "./types";
+import {
+  Action,
+  Context,
+  FlowBuilderInterface,
+  FlowResult,
+  RuntimeValue,
+} from "./types";
 
 export abstract class AbstractFlowBuilder<
   InputState,
@@ -46,10 +52,15 @@ export abstract class AbstractFlowBuilder<
         value = await normalizer(value);
       }
 
-      return {
+      const nextState = {
         ...state,
         [key]: value,
       } as State & { [key in Key]: string };
+
+      return {
+        completed: true,
+        state: nextState,
+      };
     });
   }
 
@@ -66,15 +77,19 @@ export abstract class AbstractFlowBuilder<
       context: Context<State, Options>
     ) => FlowBuilderInterface<State, FalseState, Options>
   ): FlowBuilderInterface<InputState, TrueState | FalseState, Options> {
-    return this.deriveAndModifyState(async (context) => {
-      const checkPasses = await check(context);
+    return this.deriveAndModifyState(
+      async (
+        context
+      ): Promise<FlowResult<InputState, TrueState | FalseState>> => {
+        const checkPasses = await check(context);
 
-      const flow = checkPasses
-        ? ifTrue(createFlow(), context)
-        : ifFalse(createFlow(), context);
+        const flow = checkPasses
+          ? ifTrue(createFlow(), context)
+          : ifFalse(createFlow(), context);
 
-      return await flow.run(context);
-    });
+        return flow.run(context);
+      }
+    );
   }
 
   click(
@@ -86,7 +101,13 @@ export abstract class AbstractFlowBuilder<
   evaluate<NextState extends State>(
     func: (context: Context<State, Options>) => Promise<NextState>
   ): FlowBuilderInterface<InputState, NextState, Options> {
-    return this.deriveAndModifyState(func);
+    return this.deriveAndModifyState(async (context) => {
+      const nextState = await func(context);
+      return {
+        completed: true,
+        state: nextState,
+      };
+    });
   }
 
   expect(
@@ -105,14 +126,19 @@ export abstract class AbstractFlowBuilder<
     generator: (context: Context<State, Options>) => Value | Promise<Value>
   ): FlowBuilderInterface<InputState, NextState, Options> {
     return this.deriveAndModifyState(
-      async (context: Context<State, Options>): Promise<NextState> => {
+      async (context: Context<State, Options>) => {
         const rawValue = generator(context);
         const value = rawValue instanceof Promise ? await rawValue : rawValue;
 
-        return {
+        const nextState = {
           ...(context.state ?? {}),
           [key]: value,
         } as NextState;
+
+        return {
+          completed: true,
+          state: nextState,
+        };
       }
     );
   }
@@ -123,7 +149,9 @@ export abstract class AbstractFlowBuilder<
     return this.derive(navigate(url));
   }
 
-  abstract run(context: Context<InputState, Options>): Promise<State>;
+  abstract run(
+    context: Context<InputState, Options>
+  ): Promise<FlowResult<InputState, State>>;
 
   select(
     selector: RuntimeValue<string, State, Options>,
@@ -178,6 +206,8 @@ export abstract class AbstractFlowBuilder<
   ): FlowBuilderInterface<InputState, State, Options>;
 
   protected abstract deriveAndModifyState<NextState extends State>(
-    converter: (context: Context<State, Options>) => Promise<NextState>
+    converter: (
+      context: Context<State, Options>
+    ) => Promise<FlowResult<InputState, NextState>>
   ): FlowBuilderInterface<InputState, NextState, Options>;
 }
