@@ -83,8 +83,19 @@ export class BrowserHelper {
     return this._launch();
   }
 
+  async newIncognitoPage(): Promise<Page> {
+    const browser = await this.launch();
+    const context = await browser.createIncognitoBrowserContext();
+    const page = await context.newPage();
+    page.on("close", () => {
+      context.close();
+    });
+    return page;
+  }
+
   async newPage(): Promise<Page> {
     const browser = await this.launch();
+
     return await browser.newPage();
   }
 

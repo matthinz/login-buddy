@@ -18,4 +18,5 @@ export type VerifyOptions = {
   throttleSsn?: boolean | undefined;
   ssn?: string | undefined;
   until?: string;
+  getLinkToHybridFlow?: () => Promise<string | undefined>;
 };

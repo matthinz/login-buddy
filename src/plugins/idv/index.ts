@@ -1,6 +1,11 @@
 import getopts from "getopts";
 
-import { GlobalState, PluginOptions, ProgramOptions } from "../../types";
+import {
+  GlobalState,
+  Message,
+  PluginOptions,
+  ProgramOptions,
+} from "../../types";
 import { VERIFY_FLOW } from "./flow";
 import {
   ThreatMetrixResult,
@@ -8,6 +13,7 @@ import {
   VerifyOptions,
 } from "./types";
 import { BrowserHelper } from "../../browser";
+import { EventBus } from "../../events";
 
 const DEFAULT_PHONE = "3602345678";
 
@@ -18,14 +24,15 @@ const BAD_PHONE = "703-555-5555";
 export function idvPlugin({ browser, events, programOptions }: PluginOptions) {
   events.on("command:verify", async ({ args, state }) => {
     const options = parseOptions(args, programOptions);
-    await verify(browser, state.current(), options);
+    await verify(options, browser, state.current(), events);
   });
 }
 
 async function verify(
+  options: VerifyOptions,
   browser: BrowserHelper,
   state: GlobalState,
-  options: VerifyOptions
+  events: EventBus
 ) {
   const { lastSignup } = state;
 
@@ -41,7 +48,10 @@ async function verify(
   };
 
   await VERIFY_FLOW.run({
-    options,
+    options: {
+      ...options,
+      getLinkToHybridFlow: createHybridFlowLinkMonitor(events),
+    },
     page,
     state: inputState,
   });
@@ -107,8 +117,8 @@ export function parseOptions(
   return {
     badId,
     baseURL,
-    hybrid,
     gpo,
+    hybrid,
     phone,
     ssn,
     threatMetrix: threatMetrix as ThreatMetrixResult,
@@ -116,4 +126,55 @@ export function parseOptions(
     throttleSsn,
     until,
   };
+}
+
+function createHybridFlowLinkMonitor(
+  events: EventBus
+): () => Promise<string | undefined> {
+  const TIMEOUT = 4 * 1000;
+  const POLL_INTERVAL = 300;
+  let messages: Message[] = [];
+
+  events.on("message", ({ message }) => {
+    if (message.type !== "sms") {
+      return;
+    }
+    messages.push(message);
+  });
+
+  return () =>
+    new Promise((resolve) => {
+      const startedAt = new Date();
+      check();
+
+      function check() {
+        messages.sort((x, y) => {
+          return x.time.getTime() - y.time.getTime();
+        });
+
+        for (let i = messages.length - 1; i >= 0; i--) {
+          const message = messages[i];
+
+          const looksLikeHybridMessage = message.body.includes(
+            "Take a photo of your ID"
+          );
+
+          if (looksLikeHybridMessage) {
+            const m = /https?:\/\/[^\s]+/.exec(messages[i].body);
+            if (m) {
+              messages = [];
+              resolve(m[0]);
+              return;
+            }
+          }
+        }
+
+        if (Date.now() - startedAt.getTime() > TIMEOUT) {
+          messages = [];
+          return;
+        }
+
+        setTimeout(check, POLL_INTERVAL);
+      }
+    });
 }

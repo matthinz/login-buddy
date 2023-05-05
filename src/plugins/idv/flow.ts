@@ -219,8 +219,16 @@ function uploadId<State extends InputState>(
             .submit(
               'form[action="/verify/doc_auth/upload?combined=true&type=mobile"] button[type=submit]'
             )
-            .evaluate(async () => {
-              throw new Error("TODO: Implement hybrid flow");
+            .evaluate(async ({ options }) => {
+              const link =
+                options.getLinkToHybridFlow &&
+                (await options.getLinkToHybridFlow());
+
+              if (!link) {
+                throw new Error("Could not determine link to hybrid flow");
+              }
+
+              throw new Error("TODO: Implement hybrid flow doc capture");
             }),
 
         // Standard flow
