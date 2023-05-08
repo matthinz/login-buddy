@@ -1,4 +1,5 @@
 import { Context } from "./flow-builder";
+import { FlowHooks } from "./flow-builder/types";
 
 /**
  * Helper for use with .branch() or .when() to limit to a certain path.
@@ -21,5 +22,22 @@ export function selectorFound<State, Options>(
 ): (context: Context<State, Options>) => Promise<boolean> {
   return async ({ page }) => {
     return !!(await page.$(selector));
+  };
+}
+
+export function untilPathIncludes<State, Options>(
+  value: string | void
+): FlowHooks<State, Options> {
+  return {
+    beforeAction(action, context) {
+      if (value == null) {
+        return;
+      }
+
+      const { pathname } = new URL(context.page.url());
+      if (pathname.includes(value)) {
+        return false;
+      }
+    },
   };
 }

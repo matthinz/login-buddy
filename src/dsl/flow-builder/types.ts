@@ -12,6 +12,8 @@ export type Action<State, Options> =
   | TypeAction<State, Options>
   | UploadAction<State, Options>;
 
+export type ActionType = Action<unknown, unknown>["type"];
+
 export type RuntimeValue<T extends RawValue, State, Options> =
   | T
   | ((context: Context<State, Options>) => T | Promise<T>);
@@ -24,6 +26,7 @@ export type AssertAction<State, Options> = {
 };
 
 export type Context<State, Options> = Readonly<{
+  hooks?: FlowHooks<State, Options>;
   options: Options;
   page: Page;
   state: State;
@@ -74,6 +77,19 @@ export type UploadAction<State, Options> = {
   filename(context: Context<State, Options>): Promise<string>;
   perform(context: Context<State, Options>): Promise<void>;
 };
+
+export interface FlowHooks<State, Options> {
+  /**
+   * Hook to allow stopping a flow.
+   * Should return `false` or `Promise<false>` to stop the flow.
+   * @param action
+   * @param context
+   */
+  beforeAction?: (
+    action: Action<State, Options>,
+    context: Context<State, Options>
+  ) => boolean | void | Promise<boolean | void>;
+}
 
 export type FlowResult<InputState, State extends InputState> =
   | {

@@ -1,6 +1,12 @@
 import { FlowBuilder } from ".";
 import { AbstractFlowBuilder } from "./base";
-import { Action, Context, FlowBuilderInterface, FlowResult } from "./types";
+import {
+  Action,
+  Context,
+  FlowBuilderInterface,
+  FlowHooks,
+  FlowResult,
+} from "./types";
 
 export class ConvertingFlowBuilder<
   InputState,
@@ -28,16 +34,18 @@ export class ConvertingFlowBuilder<
     context: Context<InputState, Options>
   ): Promise<FlowResult<InputState, State>> {
     const prevResult = await this.prev.run(context);
+
     if (!prevResult.completed) {
       return prevResult;
     }
 
-    const newContext = {
+    const contextToConvert: Context<PrevState, Options> = {
       ...context,
+      hooks: undefined,
       state: prevResult.state,
     };
 
-    return this.converter(newContext);
+    return await this.converter(contextToConvert);
   }
 
   protected override derive(

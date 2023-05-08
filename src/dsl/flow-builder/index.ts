@@ -4,8 +4,6 @@ import { ConvertingFlowBuilder } from "./converter";
 
 export { Context, FlowBuilderInterface } from "./types";
 
-export { pickFromState } from "./utils";
-
 export class FlowBuilder<
   InputState,
   State extends InputState,
@@ -40,6 +38,7 @@ export class FlowBuilder<
 
     const newContext = {
       ...context,
+      hooks: undefined,
       state: prevState,
     };
 

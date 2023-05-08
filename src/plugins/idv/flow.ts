@@ -124,8 +124,7 @@ function enterGpoOtp<State extends InputState>(
 
         return { ...state, gpoOtp };
       })
-
-      .generate("gpoOtp", async () => {
+      .generate("gpoOtp", async (): Promise<string> => {
         throw new Error("TODO: Prompt for GPO OTP");
       })
       .type('[name="gpo_verify_form[otp]"]', ({ state: { gpoOtp } }) => gpoOtp)
@@ -164,7 +163,7 @@ function enterPhone<InputState, State extends InputState & { phone: string }>(
 
 function enterSsn<InputState, State extends InputState>(
   flow: FlowBuilderInterface<InputState, State, VerifyOptions>
-): FlowBuilderInterface<InputState, State, VerifyOptions> {
+): FlowBuilderInterface<InputState, State & { ssn: string }, VerifyOptions> {
   return flow
     .expect("/verify/ssn")
     .generate("ssn", ({ options }) => {
@@ -248,6 +247,7 @@ function uploadId<State extends InputState>(
 
               await MOBILE_DOCUMENT_CAPTURE_FLOW.run({
                 ...context,
+                hooks: undefined,
                 options: {
                   ...context.options,
                   uploadUrl: new URL(link),

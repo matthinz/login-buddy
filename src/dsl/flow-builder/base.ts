@@ -1,4 +1,3 @@
-import { Page } from "puppeteer";
 import { createFlow } from "..";
 import {
   click,
@@ -60,13 +59,17 @@ export abstract class AbstractFlowBuilder<
   evaluate<NextState extends State>(
     func: (context: Context<State, Options>) => Promise<NextState>
   ): FlowBuilderInterface<InputState, NextState, Options> {
-    return this.deriveAndModifyState(async (context) => {
-      const nextState = await func(context);
-      return {
-        completed: true,
-        state: nextState,
-      };
-    });
+    return this.deriveAndModifyState(
+      async (
+        context: Context<State, Options>
+      ): Promise<FlowResult<InputState, NextState>> => {
+        const nextState = await func(context);
+        return {
+          completed: true,
+          state: nextState,
+        };
+      }
+    );
   }
 
   expect(
