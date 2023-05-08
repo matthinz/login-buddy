@@ -10,11 +10,11 @@ export class FlowBuilder<
   Options
 > extends AbstractFlowBuilder<InputState, State, Options> {
   private prev: FlowBuilderInterface<InputState, State, Options> | undefined;
-  private actions: Action<State, Options>[];
+  private actions: Action<InputState, State, Options>[];
 
   constructor(
     prev: FlowBuilderInterface<InputState, State, Options> | undefined,
-    actions: Action<State, Options>[]
+    actions: Action<InputState, State, Options>[]
   ) {
     super();
     this.prev = prev;
@@ -22,34 +22,46 @@ export class FlowBuilder<
   }
 
   async run(
-    context: Context<InputState, Options>
+    context: Context<InputState, InputState, Options>
   ): Promise<FlowResult<InputState, State>> {
-    let prevState: State;
+    let state: State;
 
     if (this.prev) {
       const prevResult = await this.prev.run(context);
       if (!prevResult.completed) {
         return prevResult;
       }
-      prevState = prevResult.state;
+      state = prevResult.state;
     } else {
-      prevState = context.state as State;
+      state = context.state as State;
     }
 
-    const newContext = {
+    const finalContext: Context<InputState, State, Options> = {
       ...context,
-      hooks: undefined,
-      state: prevState,
+      state,
     };
 
-    const finalContext = await this.actions.reduce(
-      (promise, action) =>
-        promise.then(async (context) => {
-          await action.perform(context);
-          return context;
-        }),
-      Promise.resolve(newContext)
-    );
+    for (let i = 0; i < this.actions.length; i++) {
+      const action = this.actions[i];
+
+      if (finalContext.hooks?.beforeAction) {
+        const ok = await finalContext.hooks.beforeAction(
+          action.type,
+          finalContext
+        );
+
+        if (ok === false) {
+          // TODO
+          // @ts-ignore
+          return {
+            completed: false,
+            state: finalContext.state,
+          };
+        }
+      }
+
+      await action.perform(finalContext);
+    }
 
     return {
       completed: true,
@@ -58,14 +70,14 @@ export class FlowBuilder<
   }
 
   protected override derive(
-    action: Action<State, Options>
+    action: Action<InputState, State, Options>
   ): FlowBuilderInterface<InputState, State, Options> {
     return new FlowBuilder(this.prev, [...this.actions, action]);
   }
 
   protected override deriveAndModifyState<NextState extends State>(
     converter: (
-      context: Context<State, Options>
+      context: Context<InputState, State, Options>
     ) => Promise<FlowResult<InputState, NextState>>
   ): FlowBuilderInterface<InputState, NextState, Options> {
     return new ConvertingFlowBuilder(this, converter);

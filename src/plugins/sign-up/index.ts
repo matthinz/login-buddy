@@ -12,6 +12,7 @@ import {
 import { SIGN_UP_FLOW } from "./flow";
 import { SignupOptions, SignupState } from "./types";
 import { EventBus } from "../../events";
+import { untilPathIncludes } from "../../dsl";
 
 export { SignupState } from "./types";
 
@@ -61,6 +62,7 @@ async function signUp(
   const page = await browser.newPage();
 
   const result = await SIGN_UP_FLOW.run({
+    hooks: untilPathIncludes(options.until),
     options,
     page,
     state: {},

@@ -4,10 +4,10 @@ import { FlowHooks } from "./flow-builder/types";
 /**
  * Helper for use with .branch() or .when() to limit to a certain path.
  */
-export function atPath<State, Options>(
+export function atPath<InputState, State extends InputState, Options>(
   path: string
-): (context: Context<State, Options>) => boolean {
-  return ({ page }: Context<State, Options>) => {
+): (context: Context<InputState, State, Options>) => boolean {
+  return ({ page }: Context<InputState, State, Options>) => {
     const url = new URL(page.url());
     return url.pathname === path;
   };
@@ -17,14 +17,20 @@ export function atPath<State, Options>(
  * Helper for use with .branch() or .when() used to check whether a selector
  * is present on the current page.
  */
-export function selectorFound<State, Options>(
+export function selectorFound<InputState, State extends InputState, Options>(
   selector: string
-): (context: Context<State, Options>) => Promise<boolean> {
+): (context: Context<InputState, State, Options>) => Promise<boolean> {
   return async ({ page }) => {
     return !!(await page.$(selector));
   };
 }
 
+/**
+ * Helper that generates a `hooks` value that will stop a flow once it's
+ * reached a URL with `value` in the pathname.
+ * @param value
+ * @returns
+ */
 export function untilPathIncludes<State, Options>(
   value: string | void
 ): FlowHooks<State, Options> {

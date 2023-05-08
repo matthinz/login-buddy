@@ -1,93 +1,97 @@
 import { Page } from "puppeteer";
+import { InputType } from "zlib";
 
 export type RawValue = string | number | boolean | object | URL | Buffer;
 
-export type Action<State, Options> =
-  | AssertAction<State, Options>
-  | ClickAction<State, Options>
-  | SelectAction<State, Options>
-  | SubmitAction<State, Options>
-  | ExpectUrlAction<State, Options>
-  | NavigateAction<State, Options>
-  | TypeAction<State, Options>
-  | UploadAction<State, Options>;
+export type Action<InputState, State extends InputState, Options> =
+  | AssertAction<InputState, State, Options>
+  | ClickAction<InputState, State, Options>
+  | SelectAction<InputState, State, Options>
+  | SubmitAction<InputState, State, Options>
+  | ExpectUrlAction<InputState, State, Options>
+  | NavigateAction<InputState, State, Options>
+  | TypeAction<InputState, State, Options>
+  | UploadAction<InputState, State, Options>;
 
-export type ActionType = Action<unknown, unknown>["type"];
+export type ActionType = Action<unknown, unknown, unknown>["type"];
 
-export type RuntimeValue<T extends RawValue, State, Options> =
-  | T
-  | ((context: Context<State, Options>) => T | Promise<T>);
+export type RuntimeValue<
+  T extends RawValue,
+  InputState,
+  State extends InputState,
+  Options
+> = T | ((context: Context<InputState, State, Options>) => T | Promise<T>);
 
-export type AssertAction<State, Options> = {
+export type AssertAction<InputState, State extends InputState, Options> = {
   readonly type: "assert";
-  message(context: Context<State, Options>): Promise<string>;
-  check(context: Context<State, Options>): Promise<boolean>;
-  perform: (context: Context<State, Options>) => Promise<void>;
+  message(context: Context<InputState, State, Options>): Promise<string>;
+  check(context: Context<InputState, State, Options>): Promise<boolean>;
+  perform: (context: Context<InputState, State, Options>) => Promise<void>;
 };
 
-export type Context<State, Options> = Readonly<{
-  hooks?: FlowHooks<State, Options>;
+export type Context<InputState, State extends InputState, Options> = Readonly<{
+  hooks?: FlowHooks<InputState, Options>;
   options: Options;
   page: Page;
   state: State;
 }>;
 
-export type ClickAction<State, Options> = {
+export type ClickAction<InputState, State extends InputState, Options> = {
   readonly type: "click";
-  selector(context: Context<State, Options>): Promise<string>;
-  perform(context: Context<State, Options>): Promise<void>;
+  selector(context: Context<InputState, State, Options>): Promise<string>;
+  perform(context: Context<InputState, State, Options>): Promise<void>;
 };
 
-export type ExpectUrlAction<State, Options> = {
+export type ExpectUrlAction<InputState, State extends InputState, Options> = {
   readonly type: "expect_url";
-  url(context: Context<State, Options>): Promise<URL>;
-  perform(context: Context<State, Options>): Promise<void>;
+  url(context: Context<InputState, State, Options>): Promise<URL>;
+  perform(context: Context<InputState, State, Options>): Promise<void>;
 };
 
-export type NavigateAction<State, Options> = {
+export type NavigateAction<InputState, State extends InputState, Options> = {
   readonly type: "navigate";
-  url(context: Context<State, Options>): Promise<URL>;
-  perform(context: Context<State, Options>): Promise<void>;
+  url(context: Context<InputState, State, Options>): Promise<URL>;
+  perform(context: Context<InputState, State, Options>): Promise<void>;
 };
 
-export type SelectAction<State, Options> = {
+export type SelectAction<InputState, State extends InputState, Options> = {
   readonly type: "select";
-  selector(context: Context<State, Options>): Promise<string>;
-  value(context: Context<State, Options>): Promise<string>;
-  perform(context: Context<State, Options>): Promise<void>;
+  selector(context: Context<InputState, State, Options>): Promise<string>;
+  value(context: Context<InputState, State, Options>): Promise<string>;
+  perform(context: Context<InputState, State, Options>): Promise<void>;
 };
 
-export type SubmitAction<State, Options> = {
+export type SubmitAction<InputState, State extends InputState, Options> = {
   readonly type: "submit";
-  selector(context: Context<State, Options>): Promise<string>;
-  perform(context: Context<State, Options>): Promise<void>;
+  selector(context: Context<InputState, State, Options>): Promise<string>;
+  perform(context: Context<InputState, State, Options>): Promise<void>;
 };
 
-export type TypeAction<State, Options> = {
+export type TypeAction<InputState, State extends InputState, Options> = {
   readonly type: "type";
-  selector(context: Context<State, Options>): Promise<string>;
-  value(context: Context<State, Options>): Promise<string>;
-  perform(context: Context<State, Options>): Promise<void>;
+  selector(context: Context<InputState, State, Options>): Promise<string>;
+  value(context: Context<InputState, State, Options>): Promise<string>;
+  perform(context: Context<InputState, State, Options>): Promise<void>;
 };
 
-export type UploadAction<State, Options> = {
+export type UploadAction<InputState, State extends InputState, Options> = {
   readonly type: "upload";
-  selector(context: Context<State, Options>): Promise<string>;
-  contents(context: Context<State, Options>): Promise<string | Buffer>;
-  filename(context: Context<State, Options>): Promise<string>;
-  perform(context: Context<State, Options>): Promise<void>;
+  selector(context: Context<InputState, State, Options>): Promise<string>;
+  contents(
+    context: Context<InputState, State, Options>
+  ): Promise<string | Buffer>;
+  filename(context: Context<InputState, State, Options>): Promise<string>;
+  perform(context: Context<InputState, State, Options>): Promise<void>;
 };
 
-export interface FlowHooks<State, Options> {
+export interface FlowHooks<InputState, Options> {
   /**
    * Hook to allow stopping a flow.
    * Should return `false` or `Promise<false>` to stop the flow.
-   * @param action
-   * @param context
    */
   beforeAction?: (
-    action: Action<State, Options>,
-    context: Context<State, Options>
+    action: ActionType,
+    context: Omit<Context<InputState, InputState, Options>, "hooks">
   ) => boolean | void | Promise<boolean | void>;
 }
 
@@ -108,36 +112,38 @@ export interface FlowBuilderInterface<
 > {
   branch<TrueState extends State, FalseState extends State>(
     check: (
-      context: Context<State, Options>
+      context: Context<InputState, State, Options>
     ) => boolean | void | Promise<boolean | void>,
     ifTrue: (
       flow: FlowBuilderInterface<State, State, Options>,
-      context: Context<State, Options>
+      context: Context<InputState, State, Options>
     ) => FlowBuilderInterface<State, TrueState, Options>,
     ifFalse: (
       flow: FlowBuilderInterface<State, State, Options>,
-      context: Context<State, Options>
+      context: Context<InputState, State, Options>
     ) => FlowBuilderInterface<State, FalseState, Options>
   ): FlowBuilderInterface<InputState, TrueState | FalseState, Options>;
 
   click(selector: string): FlowBuilderInterface<InputState, State, Options>;
 
   click(
-    selector: (context: Context<State, Options>) => Promise<string> | string
+    selector: (
+      context: Context<InputState, State, Options>
+    ) => Promise<string> | string
   ): FlowBuilderInterface<InputState, State, Options>;
 
   evaluate<NextState extends State>(
-    func: (context: Context<State, Options>) => Promise<NextState>
+    func: (context: Context<InputState, State, Options>) => Promise<NextState>
   ): FlowBuilderInterface<InputState, NextState, Options>;
 
   expect(url: string | URL): FlowBuilderInterface<InputState, State, Options>;
 
   expect(
-    url: (context: Context<State, Options>) => string | URL
+    url: (context: Context<InputState, State, Options>) => string | URL
   ): FlowBuilderInterface<InputState, State, Options>;
 
   expect(
-    url: (context: Context<State, Options>) => Promise<string | URL>
+    url: (context: Context<InputState, State, Options>) => Promise<string | URL>
   ): FlowBuilderInterface<InputState, State, Options>;
 
   expect(
@@ -146,18 +152,22 @@ export interface FlowBuilderInterface<
   ): FlowBuilderInterface<InputState, State, Options>;
 
   expect(
-    url: (context: Context<State, Options>) => string | URL,
+    url: (context: Context<InputState, State, Options>) => string | URL,
     normalizer: (url: URL) => string | URL
   ): FlowBuilderInterface<InputState, State, Options>;
 
   expect(
-    url: (context: Context<State, Options>) => Promise<string | URL>,
+    url: (
+      context: Context<InputState, State, Options>
+    ) => Promise<string | URL>,
     normalizer: (url: URL) => string | URL
   ): FlowBuilderInterface<InputState, State, Options>;
 
   generate<Key extends string, Value>(
     key: Key,
-    generator: (context: Context<State, Options>) => Value | Promise<Value>
+    generator: (
+      context: Context<InputState, State, Options>
+    ) => Value | Promise<Value>
   ): FlowBuilderInterface<InputState, State & { [key in Key]: Value }, Options>;
 
   navigateTo(url: string): FlowBuilderInterface<InputState, State, Options>;
@@ -165,11 +175,11 @@ export interface FlowBuilderInterface<
   navigateTo(url: URL): FlowBuilderInterface<InputState, State, Options>;
 
   navigateTo(
-    url: RuntimeValue<string | URL, State, Options>
+    url: RuntimeValue<string | URL, InputState, State, Options>
   ): FlowBuilderInterface<InputState, State, Options>;
 
   run(
-    context: Context<InputState, Options>
+    context: Context<InputState, InputState, Options>
   ): Promise<FlowResult<InputState, State>>;
 
   select(
@@ -178,18 +188,26 @@ export interface FlowBuilderInterface<
   ): FlowBuilderInterface<InputState, State, Options>;
 
   select(
-    selector: (context: Context<State, Options>) => Promise<string> | string,
+    selector: (
+      context: Context<InputState, State, Options>
+    ) => Promise<string> | string,
     value: string
   ): FlowBuilderInterface<InputState, State, Options>;
 
   select(
     selector: string,
-    value: (context: Context<State, Options>) => Promise<string> | string
+    value: (
+      context: Context<InputState, State, Options>
+    ) => Promise<string> | string
   ): FlowBuilderInterface<InputState, State, Options>;
 
   select(
-    selector: (context: Context<State, Options>) => Promise<string> | string,
-    value: (context: Context<State, Options>) => Promise<string> | string
+    selector: (
+      context: Context<InputState, State, Options>
+    ) => Promise<string> | string,
+    value: (
+      context: Context<InputState, State, Options>
+    ) => Promise<string> | string
   ): FlowBuilderInterface<InputState, State, Options>;
 
   submit(): FlowBuilderInterface<InputState, State, Options>;
@@ -197,7 +215,9 @@ export interface FlowBuilderInterface<
   submit(selector: string): FlowBuilderInterface<InputState, State, Options>;
 
   submit(
-    selector: (context: Context<State, Options>) => Promise<string> | string
+    selector: (
+      context: Context<InputState, State, Options>
+    ) => Promise<string> | string
   ): FlowBuilderInterface<InputState, State, Options>;
 
   then<NextState extends State>(
@@ -213,38 +233,46 @@ export interface FlowBuilderInterface<
 
   type(
     selector: string,
-    value: (context: Context<State, Options>) => string | Promise<string>
+    value: (
+      context: Context<InputState, State, Options>
+    ) => string | Promise<string>
   ): FlowBuilderInterface<InputState, State, Options>;
 
   type(
-    selector: (context: Context<State, Options>) => string | Promise<string>,
+    selector: (
+      context: Context<InputState, State, Options>
+    ) => string | Promise<string>,
     value: string
   ): FlowBuilderInterface<InputState, State, Options>;
 
   type(
-    selector: (context: Context<State, Options>) => string | Promise<string>,
-    value: (context: Context<State, Options>) => string | Promise<string>
+    selector: (
+      context: Context<InputState, State, Options>
+    ) => string | Promise<string>,
+    value: (
+      context: Context<InputState, State, Options>
+    ) => string | Promise<string>
   ): FlowBuilderInterface<InputState, State, Options>;
 
   upload(
-    selector: RuntimeValue<string, State, Options>,
-    filename: RuntimeValue<string, State, Options>,
-    contents: RuntimeValue<string | Buffer, State, Options>
+    selector: RuntimeValue<string, InputState, State, Options>,
+    filename: RuntimeValue<string, InputState, State, Options>,
+    contents: RuntimeValue<string | Buffer, InputState, State, Options>
   ): FlowBuilderInterface<InputState, State, Options>;
 
   waitUntil(
     check: (
-      context: Context<State, Options>
+      context: Context<InputState, State, Options>
     ) => boolean | void | Promise<boolean | void>
   ): FlowBuilderInterface<InputState, State, Options>;
 
   when<NextState extends State>(
     check: (
-      context: Context<State, Options>
+      context: Context<InputState, State, Options>
     ) => boolean | void | Promise<boolean | void>,
     ifTrue: (
       flow: FlowBuilderInterface<State, State, Options>,
-      context: Context<State, Options>
+      context: Context<InputState, State, Options>
     ) => FlowBuilderInterface<State, NextState, Options>
   ): FlowBuilderInterface<InputState, State | NextState, Options>;
 }

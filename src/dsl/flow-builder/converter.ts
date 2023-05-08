@@ -16,13 +16,13 @@ export class ConvertingFlowBuilder<
 > extends AbstractFlowBuilder<InputState, State, Options> {
   private prev: FlowBuilderInterface<InputState, PrevState, Options>;
   private converter: (
-    context: Context<PrevState, Options>
+    context: Context<InputState, PrevState, Options>
   ) => Promise<FlowResult<InputState, State>>;
 
   constructor(
     prev: FlowBuilderInterface<InputState, PrevState, Options>,
     converter: (
-      context: Context<PrevState, Options>
+      context: Context<InputState, PrevState, Options>
     ) => Promise<FlowResult<InputState, State>>
   ) {
     super();
@@ -31,7 +31,7 @@ export class ConvertingFlowBuilder<
   }
 
   async run(
-    context: Context<InputState, Options>
+    context: Context<InputState, InputState, Options>
   ): Promise<FlowResult<InputState, State>> {
     const prevResult = await this.prev.run(context);
 
@@ -39,9 +39,8 @@ export class ConvertingFlowBuilder<
       return prevResult;
     }
 
-    const contextToConvert: Context<PrevState, Options> = {
+    const contextToConvert: Context<InputState, PrevState, Options> = {
       ...context,
-      hooks: undefined,
       state: prevResult.state,
     };
 
@@ -49,14 +48,14 @@ export class ConvertingFlowBuilder<
   }
 
   protected override derive(
-    action: Action<State, Options>
+    action: Action<InputState, State, Options>
   ): FlowBuilderInterface<InputState, State, Options> {
     return new FlowBuilder(this, [action]);
   }
 
   protected override deriveAndModifyState<NextState extends State>(
     converter: (
-      context: Context<State, Options>
+      context: Context<InputState, State, Options>
     ) => Promise<FlowResult<InputState, NextState>>
   ): FlowBuilderInterface<InputState, NextState, Options> {
     return new ConvertingFlowBuilder(this, converter);

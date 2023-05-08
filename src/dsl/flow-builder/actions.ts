@@ -14,23 +14,29 @@ import {
   UploadAction,
 } from "./types";
 
-export function assert<State, Options>(
+export function assert<InputState, State extends InputState, Options>(
   check: (
-    context: Context<State, Options>
+    context: Context<InputState, State, Options>
   ) => boolean | void | Promise<boolean | void>,
   message?:
     | string
-    | ((context: Context<State, Options>) => string | Promise<string>)
-): AssertAction<State, Options> {
-  let messageFunc: (context: Context<State, Options>) => Promise<string>;
+    | ((
+        context: Context<InputState, State, Options>
+      ) => string | Promise<string>)
+): AssertAction<InputState, State, Options> {
+  let messageFunc: (
+    context: Context<InputState, State, Options>
+  ) => Promise<string>;
 
   if (message == null) {
     messageFunc = () => Promise.resolve("");
   } else {
-    messageFunc = bindRuntimeValueResolver<string, State, Options>(message);
+    messageFunc = bindRuntimeValueResolver<string, InputState, State, Options>(
+      message
+    );
   }
 
-  const checkFunc = async (context: Context<State, Options>) => {
+  const checkFunc = async (context: Context<InputState, State, Options>) => {
     const result = check(context);
     if (result === true || result === false) {
       return result;
@@ -46,7 +52,7 @@ export function assert<State, Options>(
     type: "assert",
     check: checkFunc,
     message: messageFunc,
-    async perform(context: Context<State, Options>) {
+    async perform(context: Context<InputState, State, Options>) {
       if (await checkFunc(context)) {
         return;
       }
@@ -57,25 +63,25 @@ export function assert<State, Options>(
   };
 }
 
-export function click<State, Options>(
-  selector: RuntimeValue<string, State, Options>
-): ClickAction<State, Options> {
+export function click<InputState, State extends InputState, Options>(
+  selector: RuntimeValue<string, InputState, State, Options>
+): ClickAction<InputState, State, Options> {
   const selectorFunc = bindRuntimeValueResolver(selector);
   return {
     type: "click",
     selector: selectorFunc,
-    async perform(context: Context<State, Options>) {
+    async perform(context: Context<InputState, State, Options>) {
       const selector = await selectorFunc(context);
       await context.page.click(selector);
     },
   };
 }
 
-export function expectUrl<State, Options>(
-  url: RuntimeValue<URL | string, State, Options>,
+export function expectUrl<InputState, State extends InputState, Options>(
+  url: RuntimeValue<URL | string, InputState, State, Options>,
   normalizer?: (input: URL) => string | URL
-): ExpectUrlAction<State, Options> {
-  const urlFunc = async (context: Context<State, Options>) => {
+): ExpectUrlAction<InputState, State, Options> {
+  const urlFunc = async (context: Context<InputState, State, Options>) => {
     const resolved = await resolveRuntimeValue(url, context);
     return resolveURL(resolved, context.options);
   };
@@ -110,10 +116,14 @@ export function expectUrl<State, Options>(
   };
 }
 
-export function navigate<State, Options extends unknown | { baseURL: URL }>(
-  url: RuntimeValue<string | URL, State, Options>
-): NavigateAction<State, Options> {
-  const urlFunc = async (context: Context<State, Options>) => {
+export function navigate<
+  InputState,
+  State extends InputState,
+  Options extends unknown | { baseURL: URL }
+>(
+  url: RuntimeValue<string | URL, InputState, State, Options>
+): NavigateAction<InputState, State, Options> {
+  const urlFunc = async (context: Context<InputState, State, Options>) => {
     const resolved = await resolveRuntimeValue(url, context);
     return resolveURL(resolved, context.options);
   };
@@ -121,24 +131,24 @@ export function navigate<State, Options extends unknown | { baseURL: URL }>(
   return {
     type: "navigate",
     url: urlFunc,
-    async perform(context: Context<State, Options>) {
+    async perform(context: Context<InputState, State, Options>) {
       const url = await urlFunc(context);
       await context.page.goto(url.toString());
     },
   };
 }
 
-export function select<State, Options>(
-  selector: RuntimeValue<string, State, Options>,
-  value: RuntimeValue<string, State, Options>
-): SelectAction<State, Options> {
+export function select<InputState, State extends InputState, Options>(
+  selector: RuntimeValue<string, InputState, State, Options>,
+  value: RuntimeValue<string, InputState, State, Options>
+): SelectAction<InputState, State, Options> {
   const selectorFunc = bindRuntimeValueResolver(selector);
   const valueFunc = bindRuntimeValueResolver(value);
   return {
     type: "select",
     selector: selectorFunc,
     value: valueFunc,
-    async perform(context: Context<State, Options>) {
+    async perform(context: Context<InputState, State, Options>) {
       const [selector, value] = await Promise.all([
         selectorFunc(context),
         valueFunc(context),
@@ -151,14 +161,14 @@ export function select<State, Options>(
   };
 }
 
-export function submit<State, Options>(
-  selector: RuntimeValue<string, State, Options>
-): SubmitAction<State, Options> {
+export function submit<InputState, State extends InputState, Options>(
+  selector: RuntimeValue<string, InputState, State, Options>
+): SubmitAction<InputState, State, Options> {
   const selectorFunc = bindRuntimeValueResolver(selector);
   return {
     type: "submit",
     selector: selectorFunc,
-    async perform(context: Context<State, Options>) {
+    async perform(context: Context<InputState, State, Options>) {
       const selector = await selectorFunc(context);
       const { page } = context;
       await Promise.all([page.click(selector), page.waitForNavigation()]);
@@ -167,17 +177,17 @@ export function submit<State, Options>(
   };
 }
 
-export function type<State, Options>(
-  selector: RuntimeValue<string, State, Options>,
-  value: RuntimeValue<string, State, Options>
-): TypeAction<State, Options> {
+export function type<InputState, State extends InputState, Options>(
+  selector: RuntimeValue<string, InputState, State, Options>,
+  value: RuntimeValue<string, InputState, State, Options>
+): TypeAction<InputState, State, Options> {
   const selectorFunc = bindRuntimeValueResolver(selector);
   const valueFunc = bindRuntimeValueResolver(value);
   return {
     type: "type",
     selector: selectorFunc,
     value: valueFunc,
-    async perform(context: Context<State, Options>) {
+    async perform(context: Context<InputState, State, Options>) {
       const [selector, value] = await Promise.all([
         selectorFunc(context),
         valueFunc(context),
@@ -188,11 +198,11 @@ export function type<State, Options>(
   };
 }
 
-export function upload<State, Options>(
-  selector: RuntimeValue<string, State, Options>,
-  filename: RuntimeValue<string, State, Options>,
-  contents: RuntimeValue<string | Buffer, State, Options>
-): UploadAction<State, Options> {
+export function upload<InputState, State extends InputState, Options>(
+  selector: RuntimeValue<string, InputState, State, Options>,
+  filename: RuntimeValue<string, InputState, State, Options>,
+  contents: RuntimeValue<string | Buffer, InputState, State, Options>
+): UploadAction<InputState, State, Options> {
   const selectorFunc = bindRuntimeValueResolver(selector);
   const filenameFunc = bindRuntimeValueResolver(filename);
   const contentsFunc = bindRuntimeValueResolver(contents);
@@ -201,7 +211,7 @@ export function upload<State, Options>(
     selector: selectorFunc,
     filename: filenameFunc,
     contents: contentsFunc,
-    async perform(context: Context<State, Options>): Promise<void> {
+    async perform(context: Context<InputState, State, Options>): Promise<void> {
       const [selector, filename, contents] = await Promise.all([
         selectorFunc(context),
         filenameFunc(context),
@@ -232,10 +242,15 @@ export function upload<State, Options>(
   };
 }
 
-async function resolveRuntimeValue<T extends RawValue, State, Options>(
+async function resolveRuntimeValue<
+  T extends RawValue,
+  InputState,
+  State extends InputState,
+  Options
+>(
   this: any,
-  value: RuntimeValue<T, State, Options>,
-  context: Context<State, Options>
+  value: RuntimeValue<T, InputState, State, Options>,
+  context: Context<InputState, State, Options>
 ): Promise<T> {
   if (typeof value === "function") {
     const result = value(context);
@@ -244,9 +259,14 @@ async function resolveRuntimeValue<T extends RawValue, State, Options>(
   return value;
 }
 
-function bindRuntimeValueResolver<T extends RawValue, State, Options>(
-  value: RuntimeValue<T, State, Options>
-): (context: Context<State, Options>) => Promise<T> {
+function bindRuntimeValueResolver<
+  T extends RawValue,
+  InputState,
+  State extends InputState,
+  Options
+>(
+  value: RuntimeValue<T, InputState, State, Options>
+): (context: Context<InputState, State, Options>) => Promise<T> {
   // TODO: Figure this out.
   // @ts-ignore
   return resolveRuntimeValue.bind(undefined, value);

@@ -14,6 +14,7 @@ import {
 } from "./types";
 import { BrowserHelper } from "../../browser";
 import { EventBus } from "../../events";
+import { untilPathIncludes } from "../../dsl";
 
 const DEFAULT_PHONE = "3602345678";
 
@@ -48,6 +49,7 @@ async function verify(
   };
 
   await VERIFY_FLOW.run({
+    hooks: untilPathIncludes(options.until),
     options: {
       ...options,
       getLinkToHybridFlow: createHybridFlowLinkMonitor(events),

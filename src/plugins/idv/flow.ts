@@ -281,7 +281,9 @@ function generateSsn(prefix = "666"): string {
   return result;
 }
 
-function generateIdYaml<State>({ options }: Context<State, VerifyOptions>) {
+function generateIdYaml<InputState, State extends InputState>({
+  options,
+}: Context<InputState, State, VerifyOptions>) {
   return options.badId ? generateBadIdYaml() : generateGoodIdYaml();
 }
 

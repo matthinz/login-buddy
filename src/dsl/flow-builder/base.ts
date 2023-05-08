@@ -12,6 +12,7 @@ import {
   Action,
   Context,
   FlowBuilderInterface,
+  FlowHooks,
   FlowResult,
   RuntimeValue,
 } from "./types";
@@ -24,15 +25,15 @@ export abstract class AbstractFlowBuilder<
 {
   branch<TrueState extends State, FalseState extends State>(
     check: (
-      context: Context<State, Options>
+      context: Context<InputState, State, Options>
     ) => boolean | void | Promise<boolean | void>,
     ifTrue: (
       flow: FlowBuilderInterface<State, State, Options>,
-      context: Context<State, Options>
+      context: Context<InputState, State, Options>
     ) => FlowBuilderInterface<State, TrueState, Options>,
     ifFalse: (
       flow: FlowBuilderInterface<State, State, Options>,
-      context: Context<State, Options>
+      context: Context<InputState, State, Options>
     ) => FlowBuilderInterface<State, FalseState, Options>
   ): FlowBuilderInterface<InputState, TrueState | FalseState, Options> {
     return this.deriveAndModifyState(
@@ -51,17 +52,17 @@ export abstract class AbstractFlowBuilder<
   }
 
   click(
-    selector: RuntimeValue<string, State, Options>
+    selector: RuntimeValue<string, InputState, State, Options>
   ): FlowBuilderInterface<InputState, State, Options> {
     return this.derive(click(selector));
   }
 
   evaluate<NextState extends State>(
-    func: (context: Context<State, Options>) => Promise<NextState>
+    func: (context: Context<InputState, State, Options>) => Promise<NextState>
   ): FlowBuilderInterface<InputState, NextState, Options> {
     return this.deriveAndModifyState(
       async (
-        context: Context<State, Options>
+        context: Context<InputState, State, Options>
       ): Promise<FlowResult<InputState, NextState>> => {
         const nextState = await func(context);
         return {
@@ -73,7 +74,7 @@ export abstract class AbstractFlowBuilder<
   }
 
   expect(
-    url: RuntimeValue<string | URL, State, Options>,
+    url: RuntimeValue<string | URL, InputState, State, Options>,
     normalizer?: (input: URL) => string | URL
   ): FlowBuilderInterface<InputState, State, Options> {
     return this.derive(expectUrl(url, normalizer));
@@ -85,10 +86,12 @@ export abstract class AbstractFlowBuilder<
     NextState extends State & { [key in Key]: Value }
   >(
     key: Key,
-    generator: (context: Context<State, Options>) => Value | Promise<Value>
+    generator: (
+      context: Context<InputState, State, Options>
+    ) => Value | Promise<Value>
   ): FlowBuilderInterface<InputState, NextState, Options> {
     return this.deriveAndModifyState(
-      async (context: Context<State, Options>) => {
+      async (context: Context<InputState, State, Options>) => {
         const rawValue = generator(context);
         const value = rawValue instanceof Promise ? await rawValue : rawValue;
 
@@ -106,24 +109,24 @@ export abstract class AbstractFlowBuilder<
   }
 
   navigateTo(
-    url: RuntimeValue<string | URL, State, Options>
+    url: RuntimeValue<string | URL, InputState, State, Options>
   ): FlowBuilderInterface<InputState, State, Options> {
     return this.derive(navigate(url));
   }
 
   abstract run(
-    context: Context<InputState, Options>
+    context: Context<InputState, InputState, Options>
   ): Promise<FlowResult<InputState, State>>;
 
   select(
-    selector: RuntimeValue<string, State, Options>,
-    value: RuntimeValue<string, State, Options>
+    selector: RuntimeValue<string, InputState, State, Options>,
+    value: RuntimeValue<string, InputState, State, Options>
   ): FlowBuilderInterface<InputState, State, Options> {
     return this.derive(select(selector, value));
   }
 
   submit(
-    selector?: RuntimeValue<string, State, Options>
+    selector?: RuntimeValue<string, InputState, State, Options>
   ): FlowBuilderInterface<InputState, State, Options> {
     return this.derive(submit(selector ?? "form button[type=submit]"));
   }
@@ -137,23 +140,23 @@ export abstract class AbstractFlowBuilder<
   }
 
   type(
-    selector: RuntimeValue<string, State, Options>,
-    value: RuntimeValue<string, State, Options>
+    selector: RuntimeValue<string, InputState, State, Options>,
+    value: RuntimeValue<string, InputState, State, Options>
   ): FlowBuilderInterface<InputState, State, Options> {
     return this.derive(type(selector, value));
   }
 
   upload(
-    selector: RuntimeValue<string, State, Options>,
-    filename: RuntimeValue<string, State, Options>,
-    contents: RuntimeValue<string, State, Options>
+    selector: RuntimeValue<string, InputState, State, Options>,
+    filename: RuntimeValue<string, InputState, State, Options>,
+    contents: RuntimeValue<string, InputState, State, Options>
   ): FlowBuilderInterface<InputState, State, Options> {
     return this.derive(upload(selector, filename, contents));
   }
 
   waitUntil(
     check: (
-      context: Context<State, Options>
+      context: Context<InputState, State, Options>
     ) => boolean | void | Promise<boolean | void>
   ): FlowBuilderInterface<InputState, State, Options> {
     const POLL_INTERVAL = 300;
@@ -189,23 +192,23 @@ export abstract class AbstractFlowBuilder<
 
   when<NextState extends State>(
     check: (
-      context: Context<State, Options>
+      context: Context<InputState, State, Options>
     ) => boolean | void | Promise<boolean | void>,
     ifTrue: (
       flow: FlowBuilderInterface<State, State, Options>,
-      context: Context<State, Options>
+      context: Context<InputState, State, Options>
     ) => FlowBuilderInterface<State, NextState, Options>
   ): FlowBuilderInterface<InputState, State | NextState, Options> {
     return this.branch(check, ifTrue, (flow) => flow);
   }
 
   protected abstract derive(
-    action: Action<State, Options>
+    action: Action<InputState, State, Options>
   ): FlowBuilderInterface<InputState, State, Options>;
 
   protected abstract deriveAndModifyState<NextState extends State>(
     converter: (
-      context: Context<State, Options>
+      context: Context<InputState, State, Options>
     ) => Promise<FlowResult<InputState, NextState>>
   ): FlowBuilderInterface<InputState, NextState, Options>;
 }
