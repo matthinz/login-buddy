@@ -18,7 +18,7 @@ import {
 } from "./types";
 
 export abstract class AbstractFlowBuilder<
-  InputState,
+  InputState extends {},
   State extends InputState,
   Options
 > implements FlowBuilderInterface<InputState, State, Options>

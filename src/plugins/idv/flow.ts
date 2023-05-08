@@ -132,7 +132,10 @@ function enterGpoOtp<State extends InputState>(
   );
 }
 
-function enterPhone<InputState, State extends InputState & { phone: string }>(
+function enterPhone<
+  InputState extends {},
+  State extends InputState & { phone: string }
+>(
   flow: FlowBuilderInterface<InputState, State, VerifyOptions>
 ): FlowBuilderInterface<InputState, State, VerifyOptions> {
   return (
@@ -161,7 +164,7 @@ function enterPhone<InputState, State extends InputState & { phone: string }>(
   );
 }
 
-function enterSsn<InputState, State extends InputState>(
+function enterSsn<InputState extends {}, State extends InputState>(
   flow: FlowBuilderInterface<InputState, State, VerifyOptions>
 ): FlowBuilderInterface<InputState, State & { ssn: string }, VerifyOptions> {
   return flow
@@ -194,7 +197,7 @@ function enterSsn<InputState, State extends InputState>(
     .submit();
 }
 
-function verifyYourInformation<InputState, State extends InputState>(
+function verifyYourInformation<InputState extends {}, State extends InputState>(
   flow: FlowBuilderInterface<InputState, State, VerifyOptions>
 ): FlowBuilderInterface<InputState, State, VerifyOptions> {
   return flow
@@ -281,13 +284,13 @@ function generateSsn(prefix = "666"): string {
   return result;
 }
 
-function generateIdYaml<InputState, State extends InputState>({
+function generateIdYaml<InputState extends {}, State extends InputState>({
   options,
 }: Context<InputState, State, VerifyOptions>) {
   return options.badId ? generateBadIdYaml() : generateGoodIdYaml();
 }
 
-function doDocumentCapture<State>(
+function doDocumentCapture<State extends {}>(
   flow: FlowBuilderInterface<State, State, VerifyOptions>
 ): FlowBuilderInterface<State, State, VerifyOptions> {
   return flow

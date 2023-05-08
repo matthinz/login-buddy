@@ -4,9 +4,11 @@ import { FlowHooks } from "./flow-builder/types";
 /**
  * Helper for use with .branch() or .when() to limit to a certain path.
  */
-export function atPath<InputState, State extends InputState, Options>(
-  path: string
-): (context: Context<InputState, State, Options>) => boolean {
+export function atPath<
+  InputState extends {},
+  State extends InputState,
+  Options
+>(path: string): (context: Context<InputState, State, Options>) => boolean {
   return ({ page }: Context<InputState, State, Options>) => {
     const url = new URL(page.url());
     return url.pathname === path;
@@ -17,7 +19,11 @@ export function atPath<InputState, State extends InputState, Options>(
  * Helper for use with .branch() or .when() used to check whether a selector
  * is present on the current page.
  */
-export function selectorFound<InputState, State extends InputState, Options>(
+export function selectorFound<
+  InputState extends {},
+  State extends InputState,
+  Options
+>(
   selector: string
 ): (context: Context<InputState, State, Options>) => Promise<boolean> {
   return async ({ page }) => {
@@ -31,7 +37,7 @@ export function selectorFound<InputState, State extends InputState, Options>(
  * @param value
  * @returns
  */
-export function untilPathIncludes<State, Options>(
+export function untilPathIncludes<State extends {}, Options>(
   value: string | void
 ): FlowHooks<State, Options> {
   return {

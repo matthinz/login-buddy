@@ -14,7 +14,11 @@ import {
   UploadAction,
 } from "./types";
 
-export function assert<InputState, State extends InputState, Options>(
+export function assert<
+  InputState extends {},
+  State extends InputState,
+  Options
+>(
   check: (
     context: Context<InputState, State, Options>
   ) => boolean | void | Promise<boolean | void>,
@@ -63,7 +67,7 @@ export function assert<InputState, State extends InputState, Options>(
   };
 }
 
-export function click<InputState, State extends InputState, Options>(
+export function click<InputState extends {}, State extends InputState, Options>(
   selector: RuntimeValue<string, InputState, State, Options>
 ): ClickAction<InputState, State, Options> {
   const selectorFunc = bindRuntimeValueResolver(selector);
@@ -77,7 +81,11 @@ export function click<InputState, State extends InputState, Options>(
   };
 }
 
-export function expectUrl<InputState, State extends InputState, Options>(
+export function expectUrl<
+  InputState extends {},
+  State extends InputState,
+  Options
+>(
   url: RuntimeValue<URL | string, InputState, State, Options>,
   normalizer?: (input: URL) => string | URL
 ): ExpectUrlAction<InputState, State, Options> {
@@ -117,7 +125,7 @@ export function expectUrl<InputState, State extends InputState, Options>(
 }
 
 export function navigate<
-  InputState,
+  InputState extends {},
   State extends InputState,
   Options extends unknown | { baseURL: URL }
 >(
@@ -138,7 +146,11 @@ export function navigate<
   };
 }
 
-export function select<InputState, State extends InputState, Options>(
+export function select<
+  InputState extends {},
+  State extends InputState,
+  Options
+>(
   selector: RuntimeValue<string, InputState, State, Options>,
   value: RuntimeValue<string, InputState, State, Options>
 ): SelectAction<InputState, State, Options> {
@@ -161,7 +173,11 @@ export function select<InputState, State extends InputState, Options>(
   };
 }
 
-export function submit<InputState, State extends InputState, Options>(
+export function submit<
+  InputState extends {},
+  State extends InputState,
+  Options
+>(
   selector: RuntimeValue<string, InputState, State, Options>
 ): SubmitAction<InputState, State, Options> {
   const selectorFunc = bindRuntimeValueResolver(selector);
@@ -177,7 +193,7 @@ export function submit<InputState, State extends InputState, Options>(
   };
 }
 
-export function type<InputState, State extends InputState, Options>(
+export function type<InputState extends {}, State extends InputState, Options>(
   selector: RuntimeValue<string, InputState, State, Options>,
   value: RuntimeValue<string, InputState, State, Options>
 ): TypeAction<InputState, State, Options> {
@@ -198,7 +214,11 @@ export function type<InputState, State extends InputState, Options>(
   };
 }
 
-export function upload<InputState, State extends InputState, Options>(
+export function upload<
+  InputState extends {},
+  State extends InputState,
+  Options
+>(
   selector: RuntimeValue<string, InputState, State, Options>,
   filename: RuntimeValue<string, InputState, State, Options>,
   contents: RuntimeValue<string | Buffer, InputState, State, Options>
@@ -244,7 +264,7 @@ export function upload<InputState, State extends InputState, Options>(
 
 async function resolveRuntimeValue<
   T extends RawValue,
-  InputState,
+  InputState extends {},
   State extends InputState,
   Options
 >(
@@ -261,7 +281,7 @@ async function resolveRuntimeValue<
 
 function bindRuntimeValueResolver<
   T extends RawValue,
-  InputState,
+  InputState extends {},
   State extends InputState,
   Options
 >(

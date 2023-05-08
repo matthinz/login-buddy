@@ -5,7 +5,7 @@ import { ConvertingFlowBuilder } from "./converter";
 export { Context, FlowBuilderInterface } from "./types";
 
 export class FlowBuilder<
-  InputState,
+  InputState extends {},
   State extends InputState,
   Options
 > extends AbstractFlowBuilder<InputState, State, Options> {
@@ -51,8 +51,6 @@ export class FlowBuilder<
         );
 
         if (ok === false) {
-          // TODO
-          // @ts-ignore
           return {
             completed: false,
             state: finalContext.state,

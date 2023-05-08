@@ -1,9 +1,8 @@
 import { Page } from "puppeteer";
-import { InputType } from "zlib";
 
 export type RawValue = string | number | boolean | object | URL | Buffer;
 
-export type Action<InputState, State extends InputState, Options> =
+export type Action<InputState extends {}, State extends InputState, Options> =
   | AssertAction<InputState, State, Options>
   | ClickAction<InputState, State, Options>
   | SelectAction<InputState, State, Options>
@@ -13,68 +12,104 @@ export type Action<InputState, State extends InputState, Options> =
   | TypeAction<InputState, State, Options>
   | UploadAction<InputState, State, Options>;
 
-export type ActionType = Action<unknown, unknown, unknown>["type"];
+export type ActionType = Action<{}, {}, {}>["type"];
 
 export type RuntimeValue<
   T extends RawValue,
-  InputState,
+  InputState extends {},
   State extends InputState,
   Options
 > = T | ((context: Context<InputState, State, Options>) => T | Promise<T>);
 
-export type AssertAction<InputState, State extends InputState, Options> = {
-  readonly type: "assert";
-  message(context: Context<InputState, State, Options>): Promise<string>;
-  check(context: Context<InputState, State, Options>): Promise<boolean>;
-  perform: (context: Context<InputState, State, Options>) => Promise<void>;
-};
-
-export type Context<InputState, State extends InputState, Options> = Readonly<{
+export type Context<
+  InputState extends {},
+  State extends InputState,
+  Options
+> = Readonly<{
   hooks?: FlowHooks<InputState, Options>;
   options: Options;
   page: Page;
   state: State;
 }>;
 
-export type ClickAction<InputState, State extends InputState, Options> = {
+export type AssertAction<
+  InputState extends {},
+  State extends InputState,
+  Options
+> = {
+  readonly type: "assert";
+  message(context: Context<InputState, State, Options>): Promise<string>;
+  check(context: Context<InputState, State, Options>): Promise<boolean>;
+  perform: (context: Context<InputState, State, Options>) => Promise<void>;
+};
+
+export type ClickAction<
+  InputState extends {},
+  State extends InputState,
+  Options
+> = {
   readonly type: "click";
   selector(context: Context<InputState, State, Options>): Promise<string>;
   perform(context: Context<InputState, State, Options>): Promise<void>;
 };
 
-export type ExpectUrlAction<InputState, State extends InputState, Options> = {
+export type ExpectUrlAction<
+  InputState extends {},
+  State extends InputState,
+  Options
+> = {
   readonly type: "expect_url";
   url(context: Context<InputState, State, Options>): Promise<URL>;
   perform(context: Context<InputState, State, Options>): Promise<void>;
 };
 
-export type NavigateAction<InputState, State extends InputState, Options> = {
+export type NavigateAction<
+  InputState extends {},
+  State extends InputState,
+  Options
+> = {
   readonly type: "navigate";
   url(context: Context<InputState, State, Options>): Promise<URL>;
   perform(context: Context<InputState, State, Options>): Promise<void>;
 };
 
-export type SelectAction<InputState, State extends InputState, Options> = {
+export type SelectAction<
+  InputState extends {},
+  State extends InputState,
+  Options
+> = {
   readonly type: "select";
   selector(context: Context<InputState, State, Options>): Promise<string>;
   value(context: Context<InputState, State, Options>): Promise<string>;
   perform(context: Context<InputState, State, Options>): Promise<void>;
 };
 
-export type SubmitAction<InputState, State extends InputState, Options> = {
+export type SubmitAction<
+  InputState extends {},
+  State extends InputState,
+  Options
+> = {
   readonly type: "submit";
   selector(context: Context<InputState, State, Options>): Promise<string>;
   perform(context: Context<InputState, State, Options>): Promise<void>;
 };
 
-export type TypeAction<InputState, State extends InputState, Options> = {
+export type TypeAction<
+  InputState extends {},
+  State extends InputState,
+  Options
+> = {
   readonly type: "type";
   selector(context: Context<InputState, State, Options>): Promise<string>;
   value(context: Context<InputState, State, Options>): Promise<string>;
   perform(context: Context<InputState, State, Options>): Promise<void>;
 };
 
-export type UploadAction<InputState, State extends InputState, Options> = {
+export type UploadAction<
+  InputState extends {},
+  State extends InputState,
+  Options
+> = {
   readonly type: "upload";
   selector(context: Context<InputState, State, Options>): Promise<string>;
   contents(
@@ -84,7 +119,7 @@ export type UploadAction<InputState, State extends InputState, Options> = {
   perform(context: Context<InputState, State, Options>): Promise<void>;
 };
 
-export interface FlowHooks<InputState, Options> {
+export interface FlowHooks<InputState extends {}, Options> {
   /**
    * Hook to allow stopping a flow.
    * Should return `false` or `Promise<false>` to stop the flow.
@@ -102,11 +137,11 @@ export type FlowResult<InputState, State extends InputState> =
     }
   | {
       completed: false;
-      state: InputState extends {} ? InputState & Partial<State> : InputState;
+      state: InputState & Partial<State>;
     };
 
 export interface FlowBuilderInterface<
-  InputState,
+  InputState extends {},
   State extends InputState,
   Options
 > {

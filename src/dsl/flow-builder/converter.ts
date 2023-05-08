@@ -9,7 +9,7 @@ import {
 } from "./types";
 
 export class ConvertingFlowBuilder<
-  InputState,
+  InputState extends {},
   PrevState extends InputState,
   State extends PrevState,
   Options

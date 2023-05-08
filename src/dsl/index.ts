@@ -4,7 +4,7 @@ export { Context, FlowBuilderInterface } from "./flow-builder";
 
 export * from "./utils";
 
-export function createFlow<State, Options>(): FlowBuilderInterface<
+export function createFlow<State extends {}, Options>(): FlowBuilderInterface<
   State,
   State,
   Options
