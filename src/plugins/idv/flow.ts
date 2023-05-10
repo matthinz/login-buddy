@@ -1,5 +1,11 @@
 import { VerifyOptions } from "./types";
-import { atPath, Context, FlowBuilderInterface, createFlow } from "../../dsl";
+import {
+  atPath,
+  Context,
+  FlowBuilderInterface,
+  createFlow,
+  notAtPath,
+} from "../../dsl";
 import { generateBadIdYaml, generateGoodIdYaml } from "./id";
 
 type InputState = {
@@ -148,10 +154,8 @@ function enterPhone<
       .branch(
         ({ options }) => options.throttlePhone,
         (flow) =>
-          flow.when(
-            ({ frame }) =>
-              new URL(frame.url()).pathname !== "/verify/phone/errors/failure",
-            (flow) => flow.click(".usa-button.usa-button--big").then(enterPhone)
+          flow.when(notAtPath("/verify/phone/errors/failure"), (flow) =>
+            flow.click(".usa-button.usa-button--big").then(enterPhone)
           ),
         (flow) =>
           flow

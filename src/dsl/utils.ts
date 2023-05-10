@@ -15,6 +15,17 @@ export function atPath<
   };
 }
 
+export function notAtPath<
+  InputState extends {},
+  State extends InputState,
+  Options
+>(path: string): (context: Context<InputState, State, Options>) => boolean {
+  return ({ frame }: Context<InputState, State, Options>) => {
+    const url = new URL(frame.url());
+    return url.pathname !== path;
+  };
+}
+
 /**
  * Helper for use with .branch() or .when() used to check whether a selector
  * is present on the current page.

@@ -1,4 +1,4 @@
-import { createFlow } from "../../dsl";
+import { atPath, createFlow } from "../../dsl";
 import { getOtp } from "../otp";
 import { SignupState } from "../sign-up";
 import { LogInOptions } from "./types";
@@ -25,8 +25,7 @@ export const LOG_IN = createFlow<SignupState, LogInOptions>()
 
   .branch(
     // Enter a backup code
-    ({ frame }) =>
-      new URL(frame.url()).pathname === "/login/two_factor/backup_code",
+    atPath("/login/two_factor/backup_code"),
     (flow) =>
       flow
         .expect("/login/two_factor/backup_code")
@@ -46,16 +45,10 @@ export const LOG_IN = createFlow<SignupState, LogInOptions>()
   )
 
   // Enter an OTP
-  .when(
-    ({ frame }) =>
-      new URL(frame.url()).pathname === "/login/two_factor/authenticator",
-    (flow) =>
-      flow
-        .expect("/login/two_factor/authenticator")
-        .generate("code", ({ state }) => getOtp(state).code)
-        .type(
-          "input[autocomplete=one-time-code]",
-          ({ state: { code } }) => code
-        )
-        .submit()
+  .when(atPath("/login/two_factor/authenticator"), (flow) =>
+    flow
+      .expect("/login/two_factor/authenticator")
+      .generate("code", ({ state }) => getOtp(state).code)
+      .type("input[autocomplete=one-time-code]", ({ state: { code } }) => code)
+      .submit()
   );
