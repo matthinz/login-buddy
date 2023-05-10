@@ -1,4 +1,4 @@
-import { Page } from "puppeteer";
+import { Frame, Page } from "puppeteer";
 
 export type RawValue = string | number | boolean | object | URL | Buffer;
 
@@ -28,7 +28,7 @@ export type Context<
 > = Readonly<{
   hooks?: FlowHooks<InputState, Options>;
   options: Options;
-  page: Page;
+  frame: Frame;
   state: State;
 }>;
 

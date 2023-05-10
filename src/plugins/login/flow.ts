@@ -25,8 +25,8 @@ export const LOG_IN = createFlow<SignupState, LogInOptions>()
 
   .branch(
     // Enter a backup code
-    ({ page }) =>
-      new URL(page.url()).pathname === "/login/two_factor/backup_code",
+    ({ frame }) =>
+      new URL(frame.url()).pathname === "/login/two_factor/backup_code",
     (flow) =>
       flow
         .expect("/login/two_factor/backup_code")
@@ -47,8 +47,8 @@ export const LOG_IN = createFlow<SignupState, LogInOptions>()
 
   // Enter an OTP
   .when(
-    ({ page }) =>
-      new URL(page.url()).pathname === "/login/two_factor/authenticator",
+    ({ frame }) =>
+      new URL(frame.url()).pathname === "/login/two_factor/authenticator",
     (flow) =>
       flow
         .expect("/login/two_factor/authenticator")

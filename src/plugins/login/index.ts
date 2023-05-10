@@ -24,11 +24,11 @@ async function login(
   browser: BrowserHelper,
   options: LogInOptions
 ): Promise<void> {
-  const page = await browser.tryToReusePage(options.baseURL);
+  const frame = (await browser.tryToReusePage(options.baseURL)).mainFrame();
 
   await LOG_IN.run({
     options,
-    page,
+    frame,
     state: options.signup,
   });
 }

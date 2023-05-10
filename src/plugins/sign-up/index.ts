@@ -59,12 +59,12 @@ async function signUp(
   events: EventBus,
   state: StateManager<GlobalState>
 ): Promise<SignupState | undefined> {
-  const page = await browser.newPage();
+  const frame = (await browser.newPage()).mainFrame();
 
   const result = await SIGN_UP_FLOW.run({
     hooks: untilPathIncludes(options.until),
     options,
-    page,
+    frame,
     state: {},
   });
 

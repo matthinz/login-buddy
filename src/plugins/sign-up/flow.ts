@@ -69,8 +69,8 @@ export const SIGN_UP_FLOW = createFlow<Partial<SignupState>, SignupOptions>()
 
   // Re-enter password when field is present
   .when(
-    async ({ page }) =>
-      !!(await page.$('[name="password_form[password_confirmation]"]')),
+    async ({ frame }) =>
+      !!(await frame.$('[name="password_form[password_confirmation]"]')),
     (flow) =>
       flow.type(
         '[name="password_form[password_confirmation]"]',
@@ -91,8 +91,8 @@ export const SIGN_UP_FLOW = createFlow<Partial<SignupState>, SignupOptions>()
         .submit("button[type=submit]")
         .expect("/backup_code_setup")
         .submit("button[type=submit]")
-        .evaluate(async ({ page, state }) => {
-          const backupCodes = await page.evaluate((): string[] => {
+        .evaluate(async ({ frame, state }) => {
+          const backupCodes = await frame.evaluate((): string[] => {
             return [].map.call(
               document.querySelectorAll<HTMLElement>("main code"),
               (el: HTMLElement): string => el.innerText
@@ -113,8 +113,8 @@ export const SIGN_UP_FLOW = createFlow<Partial<SignupState>, SignupOptions>()
         .submit("button[type=submit]")
         .expect("/authenticator_setup")
         .type("input[name=name]", "Login Buddy")
-        .evaluate(async ({ page, state }) => {
-          const code = (await page.evaluate(() => {
+        .evaluate(async ({ frame, state }) => {
+          const code = (await frame.evaluate(() => {
             return (
               document.querySelector<HTMLElement>("#qr-code")?.innerText ?? ""
             );
@@ -152,8 +152,8 @@ export const SIGN_UP_FLOW = createFlow<Partial<SignupState>, SignupOptions>()
 
         .expect("/login/two_factor/sms?otp_make_default_number=&reauthn=false")
 
-        .evaluate(async ({ page, state }) => {
-          const otp = await page.$eval(
+        .evaluate(async ({ frame, state }) => {
+          const otp = await frame.$eval(
             "[autocomplete=one-time-code]",
             (el) => (el as HTMLInputElement).value
           );

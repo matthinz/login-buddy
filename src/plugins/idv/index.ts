@@ -41,7 +41,7 @@ async function verify(
     throw new Error("You need to run `signup` before you can verify.");
   }
 
-  const page = await browser.newPage();
+  const frame = (await browser.newPage()).mainFrame();
 
   const inputState = {
     ...lastSignup,
@@ -53,11 +53,11 @@ async function verify(
     options: {
       ...options,
       getLinkToHybridFlow: createHybridFlowLinkMonitor(events),
-      getMobileBrowserPage() {
-        return browser.newIncognitoPage();
+      getMobileBrowserFrame() {
+        return browser.newIncognitoPage().then((page) => page.mainFrame());
       },
     },
-    page,
+    frame,
     state: inputState,
   });
 }

@@ -1,4 +1,4 @@
-import { Page } from "puppeteer";
+import { Frame } from "puppeteer";
 
 export const THREATMETRIX_RESULTS = [
   "no_result",
@@ -22,5 +22,5 @@ export type VerifyOptions = {
   until?: string;
   uploadUrl?: URL;
   getLinkToHybridFlow?: () => Promise<string | undefined>;
-  getMobileBrowserPage?: () => Promise<Page>;
+  getMobileBrowserFrame?: () => Promise<Frame>;
 };

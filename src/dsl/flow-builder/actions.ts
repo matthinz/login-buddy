@@ -76,7 +76,7 @@ export function click<InputState extends {}, State extends InputState, Options>(
     selector: selectorFunc,
     async perform(context: Context<InputState, State, Options>) {
       const selector = await selectorFunc(context);
-      await context.page.click(selector);
+      await context.frame.click(selector);
     },
   };
 }
@@ -98,7 +98,7 @@ export function expectUrl<
     url: urlFunc,
     async perform(context) {
       const expected = await urlFunc(context);
-      const actual = new URL(context.page.url());
+      const actual = new URL(context.frame.url());
 
       // By default, strip hash + querystring
       normalizer =
@@ -141,7 +141,7 @@ export function navigate<
     url: urlFunc,
     async perform(context: Context<InputState, State, Options>) {
       const url = await urlFunc(context);
-      await context.page.goto(url.toString());
+      await context.frame.goto(url.toString());
     },
   };
 }
@@ -166,9 +166,9 @@ export function select<
         valueFunc(context),
       ]);
 
-      const { page } = context;
+      const { frame } = context;
 
-      await page.select(selector, value);
+      await frame.select(selector, value);
     },
   };
 }
@@ -186,9 +186,9 @@ export function submit<
     selector: selectorFunc,
     async perform(context: Context<InputState, State, Options>) {
       const selector = await selectorFunc(context);
-      const { page } = context;
-      await Promise.all([page.click(selector), page.waitForNavigation()]);
-      await page.waitForNetworkIdle();
+      const { frame } = context;
+      await Promise.all([frame.click(selector), frame.waitForNavigation()]);
+      await frame.page().waitForNetworkIdle();
     },
   };
 }
@@ -209,7 +209,7 @@ export function type<InputState extends {}, State extends InputState, Options>(
         valueFunc(context),
       ]);
 
-      await context.page.type(selector, value);
+      await context.frame.type(selector, value);
     },
   };
 }
@@ -248,13 +248,13 @@ export function upload<
         });
       await fs.writeFile(tempFile, contents ?? "");
 
-      const { page } = context;
+      const { frame } = context;
 
-      await page.waitForSelector(selector, { timeout: 3000 });
+      await frame.waitForSelector(selector, { timeout: 3000 });
 
       const [fileChooser] = await Promise.all([
-        page.waitForFileChooser(),
-        page.click(selector),
+        frame.page().waitForFileChooser(),
+        frame.click(selector),
       ]);
 
       await fileChooser.accept([path.resolve(tempFile)]);

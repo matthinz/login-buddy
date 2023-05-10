@@ -77,8 +77,8 @@ export const VERIFY_FLOW = createFlow<InputState, VerifyOptions>()
               // "Save your personal key"
               .expect("/verify/personal_key")
 
-              .evaluate(async ({ page, state }) => {
-                const personalKey = (await page.evaluate(() => {
+              .evaluate(async ({ frame, state }) => {
+                const personalKey = (await frame.evaluate(() => {
                   // @ts-ignore
                   return document.querySelector<HTMLElement>(
                     ".personal-key-block"
@@ -102,9 +102,9 @@ function enterGpoOtp<State extends InputState>(
       .expect("/verify/come_back_later")
       .navigateTo("/account/verify")
       // "Welcome back"
-      .evaluate(async ({ page, state }) => {
+      .evaluate(async ({ frame, state }) => {
         // Locally, IDP will put the OTP on the page for us to read.
-        let gpoOtp = await page.evaluate(() =>
+        let gpoOtp = await frame.evaluate(() =>
           // @ts-ignore
           {
             const otpInput = document.querySelector(
@@ -149,8 +149,8 @@ function enterPhone<
         ({ options }) => options.throttlePhone,
         (flow) =>
           flow.when(
-            ({ page }) =>
-              new URL(page.url()).pathname !== "/verify/phone/errors/failure",
+            ({ frame }) =>
+              new URL(frame.url()).pathname !== "/verify/phone/errors/failure",
             (flow) => flow.click(".usa-button.usa-button--big").then(enterPhone)
           ),
         (flow) =>
@@ -179,8 +179,10 @@ function enterSsn<InputState extends {}, State extends InputState>(
       }
     })
     .type('[name="doc_auth[ssn]"]', ({ state: { ssn } }) => ssn)
-    .evaluate(async ({ page, options, state }) => {
-      const $mockProfilingResult = await page.$("[name=mock_profiling_result]");
+    .evaluate(async ({ frame, options, state }) => {
+      const $mockProfilingResult = await frame.$(
+        "[name=mock_profiling_result]"
+      );
       if (!$mockProfilingResult) {
         if (options.threatMetrix !== "no_result") {
           throw new Error("ThreatMetrix mock not found on the page");
@@ -233,7 +235,10 @@ function uploadId<State extends InputState>(
             )
             .evaluate(async (context) => {
               const {
-                options: { getLinkToHybridFlow, getMobileBrowserPage },
+                options: {
+                  getLinkToHybridFlow,
+                  getMobileBrowserFrame: getMobileBrowserPage,
+                },
               } = context;
 
               const link = getLinkToHybridFlow && (await getLinkToHybridFlow());
@@ -246,7 +251,7 @@ function uploadId<State extends InputState>(
                 throw new Error("getMobileBrowserPage not provided");
               }
 
-              const page = await getMobileBrowserPage();
+              const frame = await getMobileBrowserPage();
 
               await MOBILE_DOCUMENT_CAPTURE_FLOW.run({
                 ...context,
@@ -255,10 +260,10 @@ function uploadId<State extends InputState>(
                   ...context.options,
                   uploadUrl: new URL(link),
                 },
-                page,
+                frame,
               });
 
-              await page.close();
+              await frame.page().close();
 
               return context.state;
             })
