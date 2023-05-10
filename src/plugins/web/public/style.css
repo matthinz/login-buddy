@@ -1,0 +1,29 @@
+html,body {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    font-family: sans-serif;
+}
+
+body {
+    display: flex;
+    flex-direction: column;
+}
+
+iframe {
+    border: none;
+    display: block;
+}
+
+iframe#toolbar {
+    height: 80px;
+}
+
+iframe#browser {
+flex: 1;
+}
+
+.toolbar {
+    background: #ccc;
+    margin: 1em;
+}

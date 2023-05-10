@@ -35,6 +35,16 @@ export type ProgramOptions = Readonly<
     baseURL: URL;
 
     /**
+     * Whether or not to expose a GUI.
+     */
+    gui: boolean;
+
+    /**
+     * Port to serve the GUI from. Defaults to 3001.
+     */
+    guiPort: number;
+
+    /**
      * What kind of IDP environment are we working in?
      */
     environment: "local" | "dev" | "int" | string;

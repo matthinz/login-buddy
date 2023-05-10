@@ -7,7 +7,12 @@ const DEFAULT_BASE_EMAIL = "test@example.org";
 const DEFAULT_BASE_PHONE = "3602345678";
 
 export async function resolveOptions(argv: string[]): Promise<ProgramOptions> {
-  const options = getopts(argv);
+  const options = getopts(argv, {
+    boolean: ["gui"],
+    alias: {
+      guiPort: ["gui-port"],
+    },
+  });
   const environment = options["env"] ?? "local";
   let baseURL: URL;
   let idpRoot: string | undefined;
@@ -47,6 +52,11 @@ export async function resolveOptions(argv: string[]): Promise<ProgramOptions> {
     options.phone ?? process.env["LOGIN_BUDDY_PHONE"] ?? DEFAULT_BASE_PHONE
   );
 
+  const gui = !!options.gui;
+
+  let guiPort = options.guiPort == null ? parseInt(options.guiPort, 10) : NaN;
+  guiPort = isNaN(guiPort) ? 3001 : guiPort;
+
   if (environment === "local") {
     idpRoot = await findIdpRoot();
 
@@ -56,6 +66,8 @@ export async function resolveOptions(argv: string[]): Promise<ProgramOptions> {
         baseEmail,
         basePhone,
         environment,
+        gui,
+        guiPort,
         idpRoot,
         ignoreSslErrors,
         watchForEmails: true,
@@ -68,6 +80,8 @@ export async function resolveOptions(argv: string[]): Promise<ProgramOptions> {
     baseEmail,
     basePhone,
     environment,
+    gui,
+    guiPort,
     idpRoot,
     ignoreSslErrors: false,
     watchForEmails: false,

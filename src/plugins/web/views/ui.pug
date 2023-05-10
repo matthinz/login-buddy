@@ -1,0 +1,7 @@
+doctype html 
+html(lang="en")
+    head
+        link(href=`${publicPath}/style.css?${cacheBuster}`, type="text/css", rel="stylesheet")
+    body
+        iframe#toolbar(src=`${toolbarPath}`)
+        iframe#browser(src='/')

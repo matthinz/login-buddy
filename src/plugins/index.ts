@@ -8,3 +8,4 @@ export { resetPlugin } from "./reset";
 export { screenshotPlugin } from "./screenshot";
 export { signOutPlugin } from "./sign-out";
 export { signUpPlugin } from "./sign-up";
+export { webPlugin } from "./web";
