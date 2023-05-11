@@ -1,12 +1,6 @@
 import { FlowBuilder } from ".";
 import { AbstractFlowBuilder } from "./base";
-import {
-  Action,
-  Context,
-  FlowBuilderInterface,
-  FlowHooks,
-  FlowResult,
-} from "./types";
+import { Action, Context, FlowBuilderInterface, FlowResult } from "./types";
 
 export class ConvertingFlowBuilder<
   InputState extends {},

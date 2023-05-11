@@ -337,37 +337,48 @@ function resolveURL<Options extends unknown | { baseURL: URL }>(
 
 function waitForThePageToDoSomething(page: Page): Promise<void> {
   // This promise will resolve when the page initiates a request related to navigation
-  const navigationRequestPromise = new Promise<HTTPRequest>((resolve) => {
-    const handler = (request: HTTPRequest) => {
-      if (request.isNavigationRequest()) {
-        page.off("request", handler);
-        resolve(request);
-      }
-    };
-    page.on("request", handler);
-  });
+  const navigationRequestPromise = new Promise<"navigationRequest">(
+    (resolve) => {
+      const handler = (request: HTTPRequest) => {
+        if (request.isNavigationRequest()) {
+          page.off("request", handler);
+          resolve("navigationRequest");
+        }
+      };
+      page.on("request", handler);
+    }
+  );
 
-  return Promise.race([delay(MEDIUM_WAIT), navigationRequestPromise]).then(
-    (req) => {
-      if (req) {
-        // Navigation has been initiated--wait for it to complete.
-        return page
-          .waitForNavigation({
-            timeout: REALLY_LONG_WAIT,
-            waitUntil: "load",
-          })
-          .then(() => {});
-      }
+  // This promise will resolve when the page has actually navigated
+  const navigationPromise = page
+    .waitForNavigation({
+      timeout: REALLY_LONG_WAIT,
+      waitUntil: "load",
+    })
+    .then<"navigation">(() => "navigation")
+    .catch(() => {});
 
-      // No navigation request found during window. Maybe there were some
-      // AJAX requests or something. Just wait for the network to be idle for
-      // a bit
+  return Promise.race([
+    navigationRequestPromise,
+    navigationPromise,
+    delay(MEDIUM_WAIT),
+  ]).then((winner) => {
+    if (winner === "navigation") {
+      // We've already navigated, just go with it
+      return;
+    } else if (winner === "navigationRequest") {
+      // We've had a request come in that will eventually lead to navigation.
+      // Wait for that all to settle
+      return navigationPromise.then(() => {});
+    } else {
+      // Navigation has not been initiated. There might be XHR requests pending
+      // or something. Just wait for everything to settle.
       return page.waitForNetworkIdle({
         idleTime: SHORT_WAIT,
         timeout: LONG_WAIT,
       });
     }
-  );
+  });
 }
 
 function delay(duration: number): Promise<void> {

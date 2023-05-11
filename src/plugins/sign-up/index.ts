@@ -16,12 +16,7 @@ import { untilPathIncludes } from "../../dsl";
 
 export { SignupState } from "./types";
 
-export function signUpPlugin({
-  browser,
-  programOptions,
-  events,
-  state,
-}: PluginOptions) {
+export function signUpPlugin({ browser, events, state }: PluginOptions) {
   events.on("command:signup", async ({ args, frameId, programOptions }) => {
     const options = parseOptions(args, programOptions);
     const frame =
