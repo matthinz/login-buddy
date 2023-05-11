@@ -20,6 +20,7 @@
     "utf8": "^3.0.0"
   },
   "devDependencies": {
+    "@prettier/plugin-pug": "^2.5.0",
     "@types/express": "^4.17.17",
     "@types/node": "^18.11.13",
     "@types/quoted-printable": "^1.0.0",

@@ -67,6 +67,13 @@
     "@jridgewell/resolve-uri" "^3.0.3"
     "@jridgewell/sourcemap-codec" "^1.4.10"
 
+"@prettier/plugin-pug@^2.5.0":
+  version "2.5.0"
+  resolved "https://registry.yarnpkg.com/@prettier/plugin-pug/-/plugin-pug-2.5.0.tgz#dd10a099c802326638b2a0596bccd98816884a29"
+  integrity sha512-wanovQUyfTLPGp6M622R7qPX7QMsJHmxFCMckOdOtZd0cWr7zv6uI7EGXOAL4qUp5wY9ZolIxp23JkMCWX5Mvg==
+  dependencies:
+    pug-lexer "^5.0.1"
+
 "@tsconfig/node10@^1.0.7":
   version "1.0.9"
   resolved "https://registry.yarnpkg.com/@tsconfig/node10/-/node10-1.0.9.tgz#df4907fc07a886922637b15e02d4cebc4c0021b2"
