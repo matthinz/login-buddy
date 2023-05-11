@@ -8,7 +8,9 @@ export function idpReverseProxy({ programOptions }: PluginOptions) {
     target: `${programOptions.baseURL}`,
   });
 
-  proxy.on("proxyReq", (proxyReq, req, res) => {});
+  proxy.on("proxyReq", (proxyReq, req, res) => {
+    proxyReq.host = programOptions.baseURL.host;
+  });
 
   proxy.on("proxyRes", (proxyRes, req, res) => {
     if (proxyRes.statusCode) {

@@ -1,6 +1,8 @@
-doctype html 
+doctype html
 html(lang="en")
     head
         link(href=`${publicPath}/style.css?${cacheBuster}`, type="text/css", rel="stylesheet")
     body.toolbar
-        p hi
+        form(method="post" action=commandPath)
+            input(type="hidden" name="frame_id" value=frameId)
+            button(type=submit, name="action", value="sign-up") Sign up

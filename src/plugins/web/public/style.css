@@ -15,15 +15,15 @@ iframe {
     display: block;
 }
 
-iframe#toolbar {
+iframe.toolbar {
     height: 80px;
 }
 
-iframe#browser {
+iframe.browser {
 flex: 1;
 }
 
-.toolbar {
+body.toolbar {
     background: #ccc;
     margin: 1em;
 }

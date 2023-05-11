@@ -3,5 +3,5 @@ html(lang="en")
     head
         link(href=`${publicPath}/style.css?${cacheBuster}`, type="text/css", rel="stylesheet")
     body
-        iframe#toolbar(src=`${toolbarPath}`)
-        iframe#browser(src='/')
+        iframe.toolbar(id=`toolbar-${frameId}`, src=`${toolbarPath}?frame_id=${encodeURIComponent(frameId)}`)
+        iframe.browser(id=`browser-${frameId}`, src='/')

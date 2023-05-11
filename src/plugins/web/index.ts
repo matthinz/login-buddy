@@ -15,7 +15,9 @@ export function webPlugin(options: PluginOptions) {
 
   const app = createExpressApp(options);
 
+  const url = `http://localhost:${guiPort}/__login_buddy__/`;
+
   app.listen(guiPort, () => {
-    console.error(`Listening on http://127.0.0.1:${guiPort}`);
+    options.browser.newPage().then((page) => page.goto(url));
   });
 }

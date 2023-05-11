@@ -32,6 +32,7 @@ export function cliPlugin({ programOptions, events, state }: PluginOptions) {
     const command = args.shift();
     const event: CommandEvent = {
       args,
+      programOptions,
       state,
     };
 

@@ -1,3 +1,4 @@
+import { Frame } from "puppeteer";
 import { BrowserHelper } from "./browser";
 import { EventBus } from "./events";
 import { SignupState } from "./plugins/sign-up";
@@ -113,6 +114,8 @@ export type AskEvent = {
 
 export type CommandEvent = {
   args: string[];
+  frameId?: string;
+  programOptions: ProgramOptions;
   state: StateManager<GlobalState>;
 };
 

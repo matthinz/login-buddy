@@ -1,6 +1,6 @@
 import chalk from "chalk";
 import getopts from "getopts";
-import { BrowserHelper } from "../../browser";
+import { Frame } from "puppeteer";
 import { resolveSpOptions } from "../../sp";
 import {
   GlobalState,
@@ -22,9 +22,12 @@ export function signUpPlugin({
   events,
   state,
 }: PluginOptions) {
-  events.on("command:signup", async ({ args }) => {
+  events.on("command:signup", async ({ args, frameId, programOptions }) => {
     const options = parseOptions(args, programOptions);
-    await signUp(options, browser, events, state);
+    const frame =
+      (await browser.getFrameById(frameId)) ??
+      (await browser.newPage()).mainFrame();
+    await signUp(options, frame, events, state);
   });
 
   events.on("signup", ({ signup: { email, password, phone, backupCodes } }) => {
@@ -55,12 +58,10 @@ export function signUpPlugin({
 
 async function signUp(
   options: SignupOptions,
-  browser: BrowserHelper,
+  frame: Frame,
   events: EventBus,
   state: StateManager<GlobalState>
 ): Promise<SignupState | undefined> {
-  const frame = (await browser.newPage()).mainFrame();
-
   const result = await SIGN_UP_FLOW.run({
     hooks: untilPathIncludes(options.until),
     options,

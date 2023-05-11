@@ -1,4 +1,4 @@
-import { Browser, Page } from "puppeteer";
+import { Browser, Frame, Page } from "puppeteer";
 
 export class BrowserHelper {
   private readonly _launch: () => Promise<Browser>;
@@ -74,6 +74,25 @@ export class BrowserHelper {
         }
       })
     );
+  }
+
+  async getFrameById(frameId?: string): Promise<Frame | undefined> {
+    if (!this.browser) {
+      return;
+    }
+
+    if (!frameId) {
+      return;
+    }
+
+    const pages = await this.browser.pages();
+    for (const page of pages) {
+      for (const frame of page.frames()) {
+        if (frame.name() === `browser-${frameId}`) {
+          return frame;
+        }
+      }
+    }
   }
 
   launch(): Promise<Browser> {
