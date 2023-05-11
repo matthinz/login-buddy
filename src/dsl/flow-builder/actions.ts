@@ -13,6 +13,11 @@ import {
   TypeAction,
   UploadAction,
 } from "./types";
+import { HTTPRequest, Page } from "puppeteer";
+
+const SHORT_WAIT = 1 * 1000;
+const MEDIUM_WAIT = 2.5 * 1000;
+const LONG_WAIT = 5 * 1000;
 
 export function assert<
   InputState extends {},
@@ -76,7 +81,32 @@ export function click<InputState extends {}, State extends InputState, Options>(
     selector: selectorFunc,
     async perform(context: Context<InputState, State, Options>) {
       const selector = await selectorFunc(context);
-      await context.frame.click(selector);
+      const { frame } = context;
+
+      try {
+        await context.frame.click(selector);
+        return;
+      } catch (err: any) {
+        if (err.message.includes("not clickable")) {
+          if (await clickFallback()) {
+            return;
+          }
+        }
+
+        err.message = `${err.message} (selector: ${selector})`;
+        throw err;
+      }
+
+      function clickFallback(): Promise<boolean> {
+        return frame.evaluate((selector) => {
+          const el = document.querySelector<HTMLElement>(selector);
+          if (!el) {
+            return false;
+          }
+          el.click();
+          return true;
+        }, selector);
+      }
     },
   };
 }
@@ -187,15 +217,18 @@ export function submit<
     async perform(context: Context<InputState, State, Options>) {
       const selector = await selectorFunc(context);
       const { frame } = context;
-      await Promise.all([frame.click(selector), frame.waitForNavigation()]);
-      await frame.page().waitForNetworkIdle();
+
+      await Promise.all([
+        frame.click(selector),
+        waitForThePageToDoSomething(frame.page()),
+      ]);
     },
   };
 }
 
 export function type<InputState extends {}, State extends InputState, Options>(
   selector: RuntimeValue<string, InputState, State, Options>,
-  value: RuntimeValue<string, InputState, State, Options>
+  value: RuntimeValue<string | number, InputState, State, Options>
 ): TypeAction<InputState, State, Options> {
   const selectorFunc = bindRuntimeValueResolver(selector);
   const valueFunc = bindRuntimeValueResolver(value);
@@ -209,7 +242,7 @@ export function type<InputState extends {}, State extends InputState, Options>(
         valueFunc(context),
       ]);
 
-      await context.frame.type(selector, value);
+      await context.frame.type(selector, String(value));
     },
   };
 }
@@ -250,7 +283,7 @@ export function upload<
 
       const { frame } = context;
 
-      await frame.waitForSelector(selector, { timeout: 3000 });
+      await frame.waitForSelector(selector, { timeout: LONG_WAIT });
 
       const [fileChooser] = await Promise.all([
         frame.page().waitForFileChooser(),
@@ -299,4 +332,43 @@ function resolveURL<Options extends unknown | { baseURL: URL }>(
   // XXX: Derive from a baseURL without
   const { baseURL } = options ?? ({} as any);
   return baseURL instanceof URL ? new URL(value, baseURL) : new URL(value);
+}
+
+function waitForThePageToDoSomething(page: Page): Promise<void> {
+  // This promise will resolve when the page initiates a request related to navigation
+  const navigationRequestPromise = new Promise<HTTPRequest>((resolve) => {
+    const handler = (request: HTTPRequest) => {
+      if (request.isNavigationRequest()) {
+        page.off("request", handler);
+        resolve(request);
+      }
+    };
+    page.on("request", handler);
+  });
+
+  return Promise.race([delay(MEDIUM_WAIT), navigationRequestPromise]).then(
+    (req) => {
+      if (req) {
+        // Navigation has been initiated--wait for it to complete.
+        return page
+          .waitForNavigation({
+            timeout: LONG_WAIT,
+            waitUntil: "load",
+          })
+          .then(() => {});
+      }
+
+      // No navigation request found during window. Maybe there were some
+      // AJAX requests or something. Just wait for the network to be idle for
+      // a bit
+      return page.waitForNetworkIdle({
+        idleTime: SHORT_WAIT,
+        timeout: LONG_WAIT,
+      });
+    }
+  );
+}
+
+function delay(duration: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, duration));
 }

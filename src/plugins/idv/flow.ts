@@ -5,6 +5,7 @@ import {
   FlowBuilderInterface,
   createFlow,
   notAtPath,
+  selectorFound,
 } from "../../dsl";
 import { generateBadIdYaml, generateGoodIdYaml } from "./id";
 
@@ -40,6 +41,80 @@ export const VERIFY_FLOW = createFlow<InputState, VerifyOptions>()
   .then(uploadId)
 
   // NOTE: Pause for processing documents
+
+  .when(
+    ({ options }) => options.inPerson,
+    (flow) =>
+      flow
+        .generate("firstName", () => "Testy")
+        .generate("lastName", () => "McTesterson")
+        .generate("birthDate", () => new Date(1989, 3, 15))
+        .generate("stateIdNumber", () => "FOOBAR")
+        .generate("issuingState", () => "WA")
+
+        .generate("address1", () => "1234 Fake St")
+        .generate("address2", () => "Apt 99")
+        .generate("city", () => "Imaginarytown")
+        .generate("state", () => "OH")
+        .generate("zip", () => "45454")
+
+        .waitUntil(selectorFound("form .usa-button--outline"))
+        .click("form .usa-button--outline")
+        .submit(".usa-button")
+        .type(".usa-input", "Baltimore")
+        .click("button[type=submit].usa-button")
+        .waitUntil(selectorFound(".location-collection-item .usa-button"))
+        .click(".location-collection-item .usa-button")
+        .waitUntil(selectorFound('[name="state_id[first_name]"]'))
+        .type(
+          '[name="state_id[first_name]"]',
+          ({ state: { firstName } }) => firstName
+        )
+        .type(
+          '[name="state_id[last_name]"]',
+          ({ state: { lastName } }) => lastName
+        )
+        .type(
+          '[name="state_id[dob][month]"]',
+          ({ state: { birthDate } }) => birthDate.getMonth() + 1
+        )
+        .type('[name="state_id[dob][day]"]', ({ state: { birthDate } }) =>
+          birthDate.getDate()
+        )
+        .type('[name="state_id[dob][year]"]', ({ state: { birthDate } }) =>
+          birthDate.getFullYear()
+        )
+        .type(
+          '[name="state_id[state_id_number]"]',
+          ({ state: { stateIdNumber } }) => stateIdNumber
+        )
+        .select(
+          '[name="state_id[state_id_jurisdiction]"]',
+          ({ state: { issuingState } }) => issuingState
+        )
+
+        .submit()
+
+        .type(
+          '[name="in_person_address[address1]"]',
+          ({ state: { address1 } }) => address1
+        )
+        .type(
+          '[name="in_person_address[address2]"]',
+          ({ state: { address2 } }) => address2
+        )
+        .type('[name="in_person_address[city]"]', ({ state: { city } }) => city)
+        .select(
+          '[name="in_person_address[state]"]',
+          ({ state: { state } }) => state
+        )
+        .type(
+          '[name="in_person_address[zipcode]"]',
+          ({ state: { zip } }) => zip
+        )
+        .click("label[for=in_person_address_same_address_as_id_true]")
+        .submit()
+  )
 
   // "Enter your Social Security number"
   .then(enterSsn)
@@ -172,7 +247,9 @@ function enterSsn<InputState extends {}, State extends InputState>(
   flow: FlowBuilderInterface<InputState, State, VerifyOptions>
 ): FlowBuilderInterface<InputState, State & { ssn: string }, VerifyOptions> {
   return flow
-    .expect("/verify/ssn")
+    .expect(({ options }) =>
+      options.inPerson ? "/verify/in_person/ssn" : "/verify/ssn"
+    )
     .generate("ssn", ({ options }) => {
       if (options.throttleSsn) {
         return generateSsn("123");
@@ -207,7 +284,9 @@ function verifyYourInformation<InputState extends {}, State extends InputState>(
   flow: FlowBuilderInterface<InputState, State, VerifyOptions>
 ): FlowBuilderInterface<InputState, State, VerifyOptions> {
   return flow
-    .expect("/verify/verify_info")
+    .expect(({ options }) =>
+      options.inPerson ? "/verify/in_person/verify" : "/verify/verify_info"
+    )
     .click(".usa-checkbox__label")
     .submit("button[type=submit].usa-button--big")
 

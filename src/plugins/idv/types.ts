@@ -14,6 +14,7 @@ export type VerifyOptions = {
   baseURL: URL;
   gpo: boolean;
   hybrid: boolean;
+  inPerson: boolean;
   phone?: string | undefined;
   threatMetrix: ThreatMetrixResult;
   throttlePhone?: boolean | undefined;

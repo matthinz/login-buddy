@@ -26,6 +26,16 @@ export function notAtPath<
   };
 }
 
+export function stateValue<
+  InputState extends {},
+  State extends InputState,
+  Options
+>(
+  key: keyof State
+): (context: Context<InputState, State, Options>) => State[typeof key] {
+  return (context: Context<InputState, State, Options>) => context.state[key];
+}
+
 /**
  * Helper for use with .branch() or .when() used to check whether a selector
  * is present on the current page.

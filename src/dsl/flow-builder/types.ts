@@ -101,7 +101,7 @@ export type TypeAction<
 > = {
   readonly type: "type";
   selector(context: Context<InputState, State, Options>): Promise<string>;
-  value(context: Context<InputState, State, Options>): Promise<string>;
+  value(context: Context<InputState, State, Options>): Promise<string | number>;
   perform(context: Context<InputState, State, Options>): Promise<void>;
 };
 
@@ -263,21 +263,21 @@ export interface FlowBuilderInterface<
 
   type(
     selector: string,
-    value: string
+    value: string | number
   ): FlowBuilderInterface<InputState, State, Options>;
 
   type(
     selector: string,
     value: (
       context: Context<InputState, State, Options>
-    ) => string | Promise<string>
+    ) => string | number | Promise<string | number>
   ): FlowBuilderInterface<InputState, State, Options>;
 
   type(
     selector: (
       context: Context<InputState, State, Options>
     ) => string | Promise<string>,
-    value: string
+    value: string | number
   ): FlowBuilderInterface<InputState, State, Options>;
 
   type(
@@ -286,7 +286,7 @@ export interface FlowBuilderInterface<
     ) => string | Promise<string>,
     value: (
       context: Context<InputState, State, Options>
-    ) => string | Promise<string>
+    ) => string | number | Promise<string | number>
   ): FlowBuilderInterface<InputState, State, Options>;
 
   upload(

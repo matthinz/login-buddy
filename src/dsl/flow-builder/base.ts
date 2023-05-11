@@ -141,7 +141,7 @@ export abstract class AbstractFlowBuilder<
 
   type(
     selector: RuntimeValue<string, InputState, State, Options>,
-    value: RuntimeValue<string, InputState, State, Options>
+    value: RuntimeValue<string | number, InputState, State, Options>
   ): FlowBuilderInterface<InputState, State, Options> {
     return this.derive(type(selector, value));
   }
@@ -172,8 +172,13 @@ export abstract class AbstractFlowBuilder<
             try {
               checkPassed = await check(context);
             } catch (err: any) {
-              reject(err);
-              return;
+              const canIgnore = err.message.includes(
+                "Execution context was destroyed"
+              );
+              if (!canIgnore) {
+                reject(err);
+                return;
+              }
             }
 
             if (checkPassed) {

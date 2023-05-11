@@ -71,6 +71,7 @@ export function parseOptions(
       threatMetrix: ["threatmetrix"],
       badId: ["bad-id"],
       badPhone: ["bad-phone"],
+      inPerson: ["in-person", "ipp"],
       throttlePhone: ["throttle-phone"],
       throttleSsn: ["throttle-ssn"],
     },
@@ -82,7 +83,9 @@ export function parseOptions(
     throw new Error("Invalid value for --threatmetrix");
   }
 
-  const badId = !!raw.badId;
+  const inPerson = !!raw.inPerson;
+
+  const badId = !!raw.badId || inPerson;
 
   const gpo = !!raw.gpo;
 
@@ -124,6 +127,7 @@ export function parseOptions(
     baseURL,
     gpo,
     hybrid,
+    inPerson,
     phone,
     ssn,
     threatMetrix: threatMetrix as ThreatMetrixResult,
