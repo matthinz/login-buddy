@@ -5,4 +5,11 @@ html(lang="en")
     body.toolbar
         form(method="post" action=commandPath)
             input(type="hidden" name="frame_id" value=frameId)
-            button(type=submit, name="action", value="sign-up") Sign up
+            if signup
+                p
+                    ="You're logged in as "
+                    span= signup.email
+                button(type="submit", name="action", value="log-out") Log out
+            else
+                button(type="submit", name="action", value="sign-up") Sign up
+        script(src=`${publicPath}/script.js?${cacheBuster}`)

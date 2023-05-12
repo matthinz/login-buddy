@@ -52,6 +52,7 @@ export function ui({ publicPath, toolbarPath }: Options) {
 export function toolbar({
   commandPath,
   publicPath,
+  state,
 }: PluginOptions & { commandPath: string; publicPath: string }) {
   return (req: Request, res: Response) => {
     const { frame_id: frameId } = req.query;
@@ -65,6 +66,7 @@ export function toolbar({
       commandPath,
       frameId,
       publicPath,
+      signup: state.current().lastSignup,
     });
   };
 }
