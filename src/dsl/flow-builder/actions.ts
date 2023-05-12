@@ -13,7 +13,7 @@ import {
   TypeAction,
   UploadAction,
 } from "./types";
-import { HTTPRequest, Page } from "puppeteer";
+import { Frame, HTTPRequest, Page } from "puppeteer";
 
 const SHORT_WAIT = 1 * 1000;
 const MEDIUM_WAIT = 2.5 * 1000;
@@ -222,7 +222,7 @@ export function submit<
 
       await Promise.all([
         frame.click(selector),
-        waitForThePageToDoSomething(frame.page()),
+        waitForTheFrameToDoSomething(frame),
       ]);
     },
   };
@@ -345,7 +345,17 @@ function resolveURL<Options extends unknown | { baseURL: URL }>(
   return baseURL instanceof URL ? new URL(value, baseURL) : new URL(value);
 }
 
-function waitForThePageToDoSomething(page: Page): Promise<void> {
+function waitForTheFrameToDoSomething(frame: Frame): Promise<void> {
+  const page = frame.page();
+
+  // This promise will resolve when the page has actually navigated
+  const navigationPromise = frame
+    .waitForNavigation({
+      timeout: JUST_A_RIDICULOUSLY_LONG_WAIT,
+    })
+    .then(() => "navigation")
+    .catch(() => {});
+
   // This promise will resolve when the page initiates a request related to navigation
   const navigationRequestPromise = new Promise<"navigationRequest">(
     (resolve) => {
@@ -358,15 +368,6 @@ function waitForThePageToDoSomething(page: Page): Promise<void> {
       page.on("request", handler);
     }
   );
-
-  // This promise will resolve when the page has actually navigated
-  const navigationPromise = page
-    .waitForNavigation({
-      timeout: JUST_A_RIDICULOUSLY_LONG_WAIT,
-      waitUntil: "load",
-    })
-    .then(() => "navigation")
-    .catch(() => {});
 
   return Promise.race([
     navigationRequestPromise,
