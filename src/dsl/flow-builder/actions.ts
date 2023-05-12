@@ -18,7 +18,8 @@ import { HTTPRequest, Page } from "puppeteer";
 const SHORT_WAIT = 1 * 1000;
 const MEDIUM_WAIT = 2.5 * 1000;
 const LONG_WAIT = 5 * 1000;
-const REALLY_LONG_WAIT = 10 * 1000;
+const REALLY_LONG_WAIT = 2 * LONG_WAIT;
+const JUST_A_RIDICULOUSLY_LONG_WAIT = 2 * REALLY_LONG_WAIT;
 
 export function assert<
   InputState extends {},
@@ -352,10 +353,10 @@ function waitForThePageToDoSomething(page: Page): Promise<void> {
   // This promise will resolve when the page has actually navigated
   const navigationPromise = page
     .waitForNavigation({
-      timeout: REALLY_LONG_WAIT,
+      timeout: JUST_A_RIDICULOUSLY_LONG_WAIT,
       waitUntil: "load",
     })
-    .then<"navigation">(() => "navigation")
+    .then(() => "navigation")
     .catch(() => {});
 
   return Promise.race([
