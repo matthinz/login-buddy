@@ -243,8 +243,17 @@ export function type<InputState extends {}, State extends InputState, Options>(
         selectorFunc(context),
         valueFunc(context),
       ]);
+      const { frame } = context;
 
-      await context.frame.type(selector, String(value));
+      // Clear the input
+      await frame.evaluate((selector) => {
+        const el = document.querySelector<HTMLInputElement>(selector);
+        if (el) {
+          el.value = "";
+        }
+      }, selector);
+
+      await frame.type(selector, String(value));
     },
   };
 }
