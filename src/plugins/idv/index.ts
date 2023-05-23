@@ -72,10 +72,17 @@ export function parseOptions(
       badId: ["bad-id"],
       badPhone: ["bad-phone"],
       inPerson: ["in-person", "ipp"],
+      mvaTimeout: ["mva-timeout", "mva-error"],
       throttlePhone: ["throttle-phone"],
       throttleSsn: ["throttle-ssn"],
     },
-    boolean: ["badId", "badPhone", "throttlePhone", "throttleSsn"],
+    boolean: [
+      "badId",
+      "badPhone",
+      "mvaTimeout",
+      "throttlePhone",
+      "throttleSsn",
+    ],
   });
 
   let threatMetrix = raw.threatMetrix == null ? "pass" : raw.threatMetrix;
@@ -122,12 +129,15 @@ export function parseOptions(
     ? undefined
     : String(raw.ssn);
 
+  const mvaTimeout = !!raw.mvaTimeout;
+
   return {
     badId,
     baseURL,
     gpo,
     hybrid,
     inPerson,
+    mvaTimeout,
     phone,
     ssn,
     threatMetrix: threatMetrix as ThreatMetrixResult,

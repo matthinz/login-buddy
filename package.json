@@ -17,7 +17,8 @@
     "puppeteer": "^19.2.2",
     "quoted-printable": "^1.0.1",
     "totp-generator": "^0.0.14",
-    "utf8": "^3.0.0"
+    "utf8": "^3.0.0",
+    "yaml": "^2.3.0"
   },
   "devDependencies": {
     "@prettier/plugin-pug": "^2.5.0",

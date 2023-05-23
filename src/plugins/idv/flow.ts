@@ -375,7 +375,20 @@ function generateSsn(prefix = "666"): string {
 function generateIdYaml<InputState extends {}, State extends InputState>({
   options,
 }: Context<InputState, State, VerifyOptions>) {
-  return options.badId ? generateBadIdYaml() : generateGoodIdYaml();
+  if (options.badId) {
+    return generateBadIdYaml();
+  }
+
+  const result = generateGoodIdYaml(
+    options.mvaTimeout && {
+      // Have to use an AAMVA-supported jurisdiction
+      state: "WA",
+      state_id_jurisdiction: "WA",
+      state_id_number: "mvatimeout",
+    }
+  );
+
+  return result;
 }
 
 function doDocumentCapture<State extends {}>(

@@ -55,6 +55,7 @@ Take the account created via `signup` through the Identity Verification (IdV) fl
 | `--bad-id`                                            | Use a bad identity document.                                                  |
 | `--bad-phone`                                         | Use a phone number that will fail during phone verification                   |
 | `--gpo`                                               | Verify using GPO (the "send me a letter" flow).                               |
+| `--mva-timeout`                                       | Simulate a timeout talking to AAMVA                                           |
 | `--phone <string>`                                    | Specify the phone number to use during verification.                          |
 | `--ssn <string>`                                      | Social Security Number to enter during verification.                          |
 | `--threatMetrix <no_result / review / reject / pass>` | Simulate the given result from ThreatMetrix.                                  |

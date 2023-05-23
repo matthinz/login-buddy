@@ -15,6 +15,7 @@ export type VerifyOptions = {
   gpo: boolean;
   hybrid: boolean;
   inPerson: boolean;
+  mvaTimeout: boolean;
   phone?: string | undefined;
   threatMetrix: ThreatMetrixResult;
   throttlePhone?: boolean | undefined;
