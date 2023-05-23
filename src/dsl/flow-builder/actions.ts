@@ -372,7 +372,7 @@ function waitForTheFrameToDoSomething(frame: Frame): Promise<void> {
   return Promise.race([
     navigationRequestPromise,
     navigationPromise,
-    delay(MEDIUM_WAIT),
+    delay(JUST_A_RIDICULOUSLY_LONG_WAIT),
   ]).then((winner) => {
     if (winner === "navigation") {
       // We've already navigated, just go with it
