@@ -310,9 +310,7 @@ function uploadId<State extends InputState>(
         (flow) =>
           flow
             .type('[name="doc_auth[phone]"]', ({ state: { phone } }) => phone)
-            .submit(
-              'form[action="/verify/doc_auth/upload?combined=true&type=mobile"] button[type=submit]'
-            )
+            .submit('form[action*="type=mobile"] button[type=submit]')
             .evaluate(async (context) => {
               const {
                 options: {
@@ -352,9 +350,7 @@ function uploadId<State extends InputState>(
         // Standard flow
         (flow) =>
           flow
-            .submit(
-              'form[action="/verify/doc_auth/upload?type=desktop"] button[type=submit]'
-            )
+            .submit('form[action*="?type=desktop"] button[type=submit]')
             .expect("/verify/document_capture")
             .then(doDocumentCapture)
       )
