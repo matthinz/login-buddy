@@ -148,10 +148,13 @@ export function expectUrl<
         return result;
       };
 
-      const anyMatch = expected.some((url) => {
-        const n = normalizer ?? defaultNormalizer;
-        n(url).toString() === n(actual).toString();
-      });
+      const n = normalizer ?? defaultNormalizer;
+
+      const normalizedActual = n(actual).toString();
+
+      const anyMatch = expected.some(
+        (url) => n(url).toString() === normalizedActual
+      );
 
       if (!anyMatch) {
         const err: Error & { code?: string } = new Error(
