@@ -305,7 +305,7 @@ function uploadId<State extends InputState>(
   return (
     flow
       // "How would you like to upload your state-issued ID?"
-      .expect("/verify/doc_auth/upload")
+      .expect(["/verify/doc_auth/upload", "/verify/hybrid_handoff"])
       .branch(
         ({ options }) => options.hybrid,
 

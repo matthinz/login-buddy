@@ -118,12 +118,20 @@ export function expectUrl<
   State extends InputState,
   Options
 >(
-  url: RuntimeValue<URL | string, InputState, State, Options>,
+  url: RuntimeValue<
+    URL | string | (URL | string)[],
+    InputState,
+    State,
+    Options
+  >,
   normalizer?: (input: URL) => string | URL
 ): ExpectUrlAction<InputState, State, Options> {
   const urlFunc = async (context: Context<InputState, State, Options>) => {
     const resolved = await resolveRuntimeValue(url, context);
-    return resolveURL(resolved, context.options);
+
+    const urls = Array.isArray(resolved) ? resolved : [resolved];
+
+    return urls.map((url) => resolveURL(url, context.options));
   };
   return {
     type: "expect_url",
@@ -133,19 +141,19 @@ export function expectUrl<
       const actual = new URL(context.frame.url());
 
       // By default, strip hash + querystring
-      normalizer =
-        normalizer ??
-        ((input: URL): string | URL => {
-          const result = new URL(input);
-          result.hash = "";
-          result.search = "";
-          return result;
-        });
+      const defaultNormalizer = (input: URL): string | URL => {
+        const result = new URL(input);
+        result.hash = "";
+        result.search = "";
+        return result;
+      };
 
-      const theyMatch =
-        normalizer(expected).toString() === normalizer(actual).toString();
+      const anyMatch = expected.some((url) => {
+        const n = normalizer ?? defaultNormalizer;
+        n(url).toString() === n(actual).toString();
+      });
 
-      if (!theyMatch) {
+      if (!anyMatch) {
         const err: Error & { code?: string } = new Error(
           `Expected URL ${expected.toString()}, but got ${actual.toString()}`
         );

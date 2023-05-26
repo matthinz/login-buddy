@@ -74,7 +74,12 @@ export abstract class AbstractFlowBuilder<
   }
 
   expect(
-    url: RuntimeValue<string | URL, InputState, State, Options>,
+    url: RuntimeValue<
+      string | URL | (string | URL)[],
+      InputState,
+      State,
+      Options
+    >,
     normalizer?: (input: URL) => string | URL
   ): FlowBuilderInterface<InputState, State, Options> {
     return this.derive(expectUrl(url, normalizer));

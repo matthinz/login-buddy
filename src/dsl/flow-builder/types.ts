@@ -59,7 +59,7 @@ export type ExpectUrlAction<
   Options
 > = {
   readonly type: "expect_url";
-  url(context: Context<InputState, State, Options>): Promise<URL>;
+  url(context: Context<InputState, State, Options>): Promise<URL[]>;
   perform(context: Context<InputState, State, Options>): Promise<void>;
 };
 
@@ -172,6 +172,10 @@ export interface FlowBuilderInterface<
   ): FlowBuilderInterface<InputState, NextState, Options>;
 
   expect(url: string | URL): FlowBuilderInterface<InputState, State, Options>;
+
+  expect(
+    url: (string | URL)[]
+  ): FlowBuilderInterface<InputState, State, Options>;
 
   expect(
     url: (context: Context<InputState, State, Options>) => string | URL
