@@ -185,23 +185,20 @@ function enterGpoOtp<State extends InputState>(
       // "Welcome back"
       .evaluate(async ({ frame, state }) => {
         // Locally, IDP will put the OTP on the page for us to read.
-        let gpoOtp = await frame.evaluate(() =>
-          // @ts-ignore
-          {
-            const otpInput = document.querySelector(
-              '[name="gpo_verify_form[otp]"]'
-            ) as HTMLInputElement | undefined;
+        let gpoOtp = await frame.evaluate(() => {
+          const otpInput = document.querySelector(
+            '[name="gpo_verify_form[otp]"]'
+          ) as HTMLInputElement | undefined;
 
-            if (!otpInput) {
-              return;
-            }
-
-            const result = otpInput.value;
-            otpInput.value = "";
-
-            return result;
+          if (!otpInput) {
+            return;
           }
-        );
+
+          const result = otpInput.value;
+          otpInput.value = "";
+
+          return result;
+        });
 
         return { ...state, gpoOtp };
       })
