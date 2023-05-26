@@ -13,13 +13,7 @@ import {
   TypeAction,
   UploadAction,
 } from "./types";
-import { Frame, HTTPRequest, Page } from "puppeteer";
-
-const SHORT_WAIT = 1 * 1000;
-const MEDIUM_WAIT = 2.5 * 1000;
-const LONG_WAIT = 5 * 1000;
-const REALLY_LONG_WAIT = 2 * LONG_WAIT;
-const JUST_A_RIDICULOUSLY_LONG_WAIT = 2 * REALLY_LONG_WAIT;
+import { LONG_WAIT, waitForTheFrameToDoSomething } from "./waiting";
 
 export function assert<
   InputState extends {},
@@ -354,55 +348,4 @@ function resolveURL<Options extends unknown | { baseURL: URL }>(
   // XXX: Derive from a baseURL without
   const { baseURL } = options ?? ({} as any);
   return baseURL instanceof URL ? new URL(value, baseURL) : new URL(value);
-}
-
-function waitForTheFrameToDoSomething(frame: Frame): Promise<void> {
-  const page = frame.page();
-
-  // This promise will resolve when the page has actually navigated
-  const navigationPromise = frame
-    .waitForNavigation({
-      timeout: JUST_A_RIDICULOUSLY_LONG_WAIT,
-    })
-    .then(() => "navigation")
-    .catch(() => {});
-
-  // This promise will resolve when the page initiates a request related to navigation
-  const navigationRequestPromise = new Promise<"navigationRequest">(
-    (resolve) => {
-      const handler = (request: HTTPRequest) => {
-        if (request.isNavigationRequest()) {
-          page.off("request", handler);
-          resolve("navigationRequest");
-        }
-      };
-      page.on("request", handler);
-    }
-  );
-
-  return Promise.race([
-    navigationRequestPromise,
-    navigationPromise,
-    delay(JUST_A_RIDICULOUSLY_LONG_WAIT),
-  ]).then((winner) => {
-    if (winner === "navigation") {
-      // We've already navigated, just go with it
-      return;
-    } else if (winner === "navigationRequest") {
-      // We've had a request come in that will eventually lead to navigation.
-      // Wait for that all to settle
-      return navigationPromise.then(() => {});
-    } else {
-      // Navigation has not been initiated. There might be XHR requests pending
-      // or something. Just wait for everything to settle.
-      return page.waitForNetworkIdle({
-        idleTime: SHORT_WAIT,
-        timeout: LONG_WAIT,
-      });
-    }
-  });
-}
-
-function delay(duration: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, duration));
 }

@@ -1,3 +1,4 @@
+import { ConsoleMessage } from "puppeteer";
 import { createFlow } from "..";
 import {
   click,
@@ -64,11 +65,21 @@ export abstract class AbstractFlowBuilder<
       async (
         context: Context<InputState, State, Options>
       ): Promise<FlowResult<InputState, NextState>> => {
-        const nextState = await func(context);
-        return {
-          completed: true,
-          state: nextState,
-        };
+        function handleConsoleMessage(msg: ConsoleMessage) {
+          console.error(msg.text());
+        }
+
+        context.frame.page().on("console", handleConsoleMessage);
+
+        try {
+          const nextState = await func(context);
+          return {
+            completed: true,
+            state: nextState,
+          };
+        } finally {
+          context.frame.page().off("console", handleConsoleMessage);
+        }
       }
     );
   }
