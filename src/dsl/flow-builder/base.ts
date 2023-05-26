@@ -97,6 +97,17 @@ export abstract class AbstractFlowBuilder<
   ): FlowBuilderInterface<InputState, NextState, Options> {
     return this.deriveAndModifyState(
       async (context: Context<InputState, State, Options>) => {
+        const { state } = context;
+        if (state && typeof state === "object") {
+          if ((state as Record<string, unknown>)[key] != null) {
+            // This key is already present, don't need to generate it
+            return {
+              completed: true,
+              state: state as NextState, // XXX: technically state[key] could not be a Value
+            };
+          }
+        }
+
         const rawValue = generator(context);
         const value = rawValue instanceof Promise ? await rawValue : rawValue;
 
