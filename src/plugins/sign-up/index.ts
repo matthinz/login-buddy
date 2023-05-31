@@ -73,6 +73,7 @@ async function signUp(
   state.update({
     ...state.current(),
     lastSignup: signup,
+    loggedIn: true,
   });
 
   events.emit("signup", {

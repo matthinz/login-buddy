@@ -4,6 +4,7 @@ import { resolveSpOptions } from "../../sp";
 import { GlobalState, PluginOptions, ProgramOptions } from "../../types";
 import { LOG_IN } from "./flow";
 import { LogInOptions } from "./types";
+import { Frame } from "puppeteer";
 
 /**
  * Plugin providing a "login" command.
@@ -14,18 +15,22 @@ export function loginPlugin({
   programOptions,
   state,
 }: PluginOptions) {
-  events.on("command:login", async ({ args }) => {
+  events.on("command:login", async ({ args, frameId }) => {
     const options = parseArgs(args, state.current(), programOptions);
-    await login(browser, options);
+    const frame =
+      (await browser.getFrameById(frameId)) ??
+      (await browser.tryToReusePage(options.baseURL)).mainFrame();
+
+    await login(options, frame);
+
+    state.update({
+      ...state.current(),
+      loggedIn: true,
+    });
   });
 }
 
-async function login(
-  browser: BrowserHelper,
-  options: LogInOptions
-): Promise<void> {
-  const frame = (await browser.tryToReusePage(options.baseURL)).mainFrame();
-
+async function login(options: LogInOptions, frame: Frame): Promise<void> {
   await LOG_IN.run({
     options,
     frame,

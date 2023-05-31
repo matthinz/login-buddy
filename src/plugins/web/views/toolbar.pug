@@ -1,15 +1,22 @@
 doctype html
 html(lang="en")
-    head
-        link(href=`${publicPath}/style.css?${cacheBuster}`, type="text/css", rel="stylesheet")
-    body.toolbar
-        form(method="post" action=commandPath)
-            input(type="hidden" name="frame_id" value=frameId)
-            if signup
-                p
-                    ="You're logged in as "
-                    span= signup.email
-                button(type="submit", name="action", value="log-out") Log out
-            else
-                button(type="submit", name="action", value="sign-up") Sign up
-        script(src=`${publicPath}/script.js?${cacheBuster}`)
+  head
+    link(
+      href=`${publicPath}/style.css?${cacheBuster}`,
+      type="text/css",
+      rel="stylesheet"
+    )
+  body.toolbar
+    form(method="post", action=commandPath)
+      input(type="hidden", name="frame_id", value=frameId)
+      if lastSignup && loggedIn
+        p
+          span= lastSignup.email
+          button(type="submit", name="action", value="sign-out") Sign out
+      else if lastSignup && !loggedIn
+        p
+          span= lastSignup.email
+          button(type="submit", name="action", value="sign-in") Sign in
+      else
+        button(type="submit", name="action", value="sign-up") Sign up
+    script(src=`${publicPath}/script.js?${cacheBuster}`)

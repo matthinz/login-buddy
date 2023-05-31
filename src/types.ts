@@ -78,6 +78,7 @@ export type ProgramOptions = Readonly<
 
 export type GlobalState = {
   lastSignup?: SignupState;
+  loggedIn: boolean;
 };
 
 export type SpMethod = "saml" | "oidc";

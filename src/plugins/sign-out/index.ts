@@ -1,38 +1,49 @@
 import getopts from "getopts";
-import { Browser, launch, Page } from "puppeteer";
 import { GlobalState, PluginOptions, ProgramOptions } from "../../types";
 import { BrowserHelper } from "../../browser";
+import { Frame } from "puppeteer";
 
 type SignOutOptions = {
   baseURL: URL;
+  frame?: Frame;
+  cleanUp: boolean;
   completely: boolean;
 };
 
-const ALIASES = ["logout", "signout"];
+const ALIASES = ["logout", "signout", "sign-out", "log-out"];
 
-export function signOutPlugin({
-  browser,
-  events,
-  programOptions,
-}: PluginOptions) {
+export function signOutPlugin({ browser, events }: PluginOptions) {
   ALIASES.forEach((alias) => {
-    events.on(`command:${alias}`, async ({ args, state }) => {
-      const options = parseOptions(args, programOptions);
-      const nextState = await signOut(state.current(), options, browser);
-      state.update(nextState);
-    });
+    events.on(
+      `command:${alias}`,
+      async ({ args, frameId, programOptions, state }) => {
+        const options = parseOptions(args, programOptions);
+        const frame =
+          (await browser.getFrameById(frameId)) ??
+          (await browser.newPage()).mainFrame();
+        const nextState = await signOut(
+          state.current(),
+          options,
+          frame,
+          browser
+        );
+        state.update(nextState);
+      }
+    );
   });
 }
 
 async function signOut(
   state: GlobalState,
-  { baseURL, completely }: SignOutOptions,
+  { baseURL, cleanUp, completely }: SignOutOptions,
+  frame: Frame,
   browser: BrowserHelper
 ): Promise<GlobalState> {
-  const page = await browser.newPage();
   const url = new URL("/logout", baseURL);
 
-  await page.goto(url.toString());
+  const page = frame.page();
+
+  await frame.goto(url.toString());
   await page.waitForNetworkIdle();
 
   const message =
@@ -59,10 +70,13 @@ async function signOut(
     console.log(message);
   }
 
-  await browser.closeAllPagesForHostname(baseURL.hostname);
+  if (cleanUp) {
+    await browser.closeAllPagesForHostname(baseURL.hostname);
+  }
 
   return {
     ...state,
+    loggedIn: false,
   };
 }
 
@@ -70,10 +84,17 @@ export function parseOptions(
   args: string[],
   { baseURL }: ProgramOptions
 ): SignOutOptions {
-  const raw = getopts(args);
+  const raw = getopts(args, {
+    alias: {
+      cleanUp: ["clean-up", "tidy"],
+    },
+    boolean: ["cleanUp", "completely"],
+  });
   const completely = raw.completely == null ? false : !!raw.completely;
+  const cleanUp = raw.cleanUp == null ? true : !!raw.completely;
 
   return {
+    cleanUp,
     completely,
     baseURL,
   };

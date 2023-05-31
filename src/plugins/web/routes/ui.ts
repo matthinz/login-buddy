@@ -30,6 +30,34 @@ export function command({
       events.emit("command:signup", event);
     }
 
+    if (action === "sign-out") {
+      const event: CommandEvent = {
+        args: ["--no-clean-up"],
+        frameId,
+        programOptions: {
+          ...programOptions,
+          // Override baseURL to get it to run through the proxy
+          baseURL: new URL(`http://localhost:${programOptions.guiPort}`),
+        },
+        state,
+      };
+      events.emit("command:logout", event);
+    }
+
+    if (action === "sign-in") {
+      const event: CommandEvent = {
+        args: [],
+        frameId,
+        programOptions: {
+          ...programOptions,
+          // Override baseURL to get it to run through the proxy
+          baseURL: new URL(`http://localhost:${programOptions.guiPort}`),
+        },
+        state,
+      };
+      events.emit("command:login", event);
+    }
+
     res.redirect(`${toolbarPath}?frame_id=${encodeURIComponent(frameId)}`);
   };
 }
@@ -62,11 +90,11 @@ export function toolbar({
     }
 
     return res.render("toolbar", {
+      ...state.current(),
       cacheBuster: Date.now(),
       commandPath,
       frameId,
       publicPath,
-      signup: state.current().lastSignup,
     });
   };
 }

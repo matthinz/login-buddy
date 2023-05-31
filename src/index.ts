@@ -17,7 +17,9 @@ run(process.argv.slice(2)).catch((err) => {
 async function run(argv: string[]) {
   const programOptions = await resolveOptions(argv);
   const events = new EventBus();
-  const state = createState({});
+  const state = createState({
+    loggedIn: false,
+  });
   const browser = new BrowserHelper(createBrowserLauncher(programOptions));
 
   const pluginOptions: PluginOptions = {
