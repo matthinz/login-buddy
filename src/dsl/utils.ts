@@ -26,6 +26,28 @@ export function notAtPath<
   };
 }
 
+export function optionNotSet<
+  InputState extends {},
+  State extends InputState,
+  Options extends Record<string, unknown>,
+  Name extends keyof Options
+>(name: Name): (context: Context<InputState, State, Options>) => boolean {
+  return ({ options }) => {
+    return !options[name];
+  };
+}
+
+export function optionSet<
+  InputState extends {},
+  State extends InputState,
+  Options extends Record<string, unknown>,
+  Name extends keyof Options
+>(name: Name): (context: Context<InputState, State, Options>) => boolean {
+  return ({ options }) => {
+    return !!options[name];
+  };
+}
+
 export function stateValue<
   InputState extends {},
   State extends InputState,

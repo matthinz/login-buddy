@@ -5,6 +5,8 @@ import {
   createFlow,
   notAtPath,
   selectorFound,
+  optionSet,
+  optionNotSet,
 } from "../../../dsl";
 import { doDocumentCapture } from "./document-capture";
 
@@ -15,15 +17,12 @@ type InputState = {
 };
 
 export const MOBILE_DOCUMENT_CAPTURE_FLOW = createFlow<{}, VerifyOptions>()
-  .when(
-    ({ options }) => !!options.uploadUrl,
-    (flow, { options: { uploadUrl } }) => {
-      if (uploadUrl) {
-        return flow.navigateTo(uploadUrl);
-      }
-      return flow;
+  .when(optionSet("uploadUrl"), (flow, { options: { uploadUrl } }) => {
+    if (uploadUrl) {
+      return flow.navigateTo(uploadUrl);
     }
-  )
+    return flow;
+  })
   .then(doDocumentCapture)
   .expect("/verify/hybrid_mobile/capture_complete");
 
@@ -49,57 +48,52 @@ export const VERIFY_FLOW = createFlow<InputState, VerifyOptions>()
   // "Verify your information"
   .then(verifyYourInformation)
 
-  .when(
-    ({ options }) => !options.throttleSsn,
-    (flow) =>
-      flow
-        .branch(
-          ({ options }) => options.gpo,
-          // Branch: Use GPO
-          (useGpo) =>
-            // "Want a letter?"
-            useGpo
-              .navigateTo("/verify/usps")
-              .submit('form[action="/verify/usps"] button[type=submit]'),
-          // Branch: Don't use GPO
-          enterPhone
-        )
+  .when(optionNotSet("throttleSsn"), (flow) =>
+    flow
+      .branch(
+        ({ options }) => options.gpo,
+        // Branch: Use GPO
+        (useGpo) =>
+          // "Want a letter?"
+          useGpo
+            .navigateTo("/verify/usps")
+            .submit('form[action="/verify/usps"] button[type=submit]'),
+        // Branch: Don't use GPO
+        enterPhone
+      )
 
-        // Bail if we have been phone throttled
-        .when(
-          ({ options }) => !options.throttlePhone,
-          (flow) =>
-            flow
+      // Bail if we have been phone throttled
+      .when(optionNotSet("throttlePhone"), (flow) =>
+        flow
 
-              // "Re-enter your Login.gov password to protect your data"
-              .expect("/verify/review")
-              .type(
-                '[name="user[password]"]',
-                ({ state: { password } }) => password
-              )
-              .submit('form[action="/verify/review"] button[type=submit]')
+          // "Re-enter your Login.gov password to protect your data"
+          .expect("/verify/review")
+          .type(
+            '[name="user[password]"]',
+            ({ state: { password } }) => password
+          )
+          .submit('form[action="/verify/review"] button[type=submit]')
 
-              // Handle OTP before and after personal key
-              .when(atPath("/verify/come_back_later"), enterGpoOtp)
+          // Handle OTP before and after personal key
+          .when(atPath("/verify/come_back_later"), enterGpoOtp)
 
-              // "Save your personal key"
-              .expect("/verify/personal_key")
+          // "Save your personal key"
+          .expect("/verify/personal_key")
 
-              .evaluate(async ({ frame, state }) => {
-                const personalKey = (await frame.evaluate(() => {
-                  // @ts-ignore
-                  return document.querySelector<HTMLElement>(
-                    ".personal-key-block"
-                  ).innerText;
-                })) as string;
-                return { ...state, personalKey };
-              })
+          .evaluate(async ({ frame, state }) => {
+            const personalKey = (await frame.evaluate(() => {
+              // @ts-ignore
+              return document.querySelector<HTMLElement>(".personal-key-block")
+                .innerText;
+            })) as string;
+            return { ...state, personalKey };
+          })
 
-              .click("label[for=acknowledgment]")
-              .submit()
+          .click("label[for=acknowledgment]")
+          .submit()
 
-              .when(atPath("/verify/come_back_later"), enterGpoOtp)
-        )
+          .when(atPath("/verify/come_back_later"), enterGpoOtp)
+      )
   );
 
 function doInPerson<State extends InputState>(
