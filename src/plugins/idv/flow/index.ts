@@ -1,13 +1,12 @@
-import { VerifyOptions } from "./types";
+import { VerifyOptions } from "../types";
 import {
   atPath,
-  Context,
   FlowBuilderInterface,
   createFlow,
   notAtPath,
   selectorFound,
-} from "../../dsl";
-import { generateBadIdYaml, generateGoodIdYaml } from "./id";
+} from "../../../dsl";
+import { doDocumentCapture } from "./document-capture";
 
 type InputState = {
   email: string;
@@ -363,32 +362,4 @@ function generateSsn(prefix = "666"): string {
     result += String(Math.floor(Math.random() * 10));
   }
   return result;
-}
-
-function generateIdYaml<InputState extends {}, State extends InputState>({
-  options,
-}: Context<InputState, State, VerifyOptions>) {
-  if (options.badId) {
-    return generateBadIdYaml();
-  }
-
-  const result = generateGoodIdYaml(
-    options.mvaTimeout && {
-      // Have to use an AAMVA-supported jurisdiction
-      state: "WA",
-      state_id_jurisdiction: "WA",
-      state_id_number: "mvatimeout",
-    }
-  );
-
-  return result;
-}
-
-function doDocumentCapture<State extends {}>(
-  flow: FlowBuilderInterface<State, State, VerifyOptions>
-): FlowBuilderInterface<State, State, VerifyOptions> {
-  return flow
-    .upload("#file-input-1", "proofing.yml", generateIdYaml)
-    .upload("#file-input-2", "proofing.yml", generateIdYaml)
-    .submit();
 }
