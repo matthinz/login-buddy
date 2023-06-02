@@ -1,5 +1,4 @@
 import getopts from "getopts";
-import { BrowserHelper } from "../../browser";
 import { resolveSpOptions } from "../../sp";
 import { GlobalState, PluginOptions, ProgramOptions } from "../../types";
 import { LOG_IN } from "./flow";

@@ -51,15 +51,9 @@ function generateIdYaml<InputState extends {}, State extends InputState>({
 }
 
 function generateGoodIdYaml(
-  documentTweaks?:
-    | (Record<string, unknown> | void | false)
-    | (Record<string, unknown> | void | false)[]
+  ...documentTweaks: (Record<string, unknown> | void | false)[]
 ): string {
   const data = JSON.parse(JSON.stringify(ID_YAML));
-
-  documentTweaks = Array.isArray(documentTweaks)
-    ? documentTweaks
-    : [documentTweaks];
 
   return stringify({
     ...data,
