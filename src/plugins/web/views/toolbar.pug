@@ -12,11 +12,12 @@ html(lang="en")
       if lastSignup && loggedIn
         p
           span= lastSignup.email
-          button(type="submit", name="action", value="sign-out") Sign out
+          button(type="submit", name="command", value="logout") Sign out
       else if lastSignup && !loggedIn
         p
           span= lastSignup.email
-          button(type="submit", name="action", value="sign-in") Sign in
+          button(type="submit", name="command", value="login") Sign in
+          button(type="submit", name="command", value="signup") Sign up again
       else
-        button(type="submit", name="action", value="sign-up") Sign up
+        button(type="submit", name="command", value="signup") Sign up
     script(src=`${publicPath}/script.js?${cacheBuster}`)

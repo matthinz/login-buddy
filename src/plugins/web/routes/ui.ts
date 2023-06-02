@@ -7,6 +7,12 @@ type Options = PluginOptions & {
   toolbarPath: string;
 };
 
+const commandHandlers: { [key: string]: string[] } = {
+  login: [],
+  logout: ["--no-clean-up"],
+  signup: [],
+};
+
 export function command({
   events,
   programOptions,
@@ -14,51 +20,35 @@ export function command({
   toolbarPath,
 }: Options) {
   return (req: Request, res: Response) => {
-    const { action, frame_id: frameId } = req.body;
+    const { command, frame_id: frameId } = req.body;
 
-    if (action === "sign-up") {
-      const event: CommandEvent = {
-        args: [],
-        frameId,
-        programOptions: {
-          ...programOptions,
-          // Override baseURL to get it to run through the proxy
-          baseURL: new URL(`http://localhost:${programOptions.guiPort}`),
-        },
-        state,
-      };
-      events.emit("command:signup", event);
+    const args = commandHandlers[command];
+
+    if (!args) {
+      res.sendStatus(400);
+      return;
     }
 
-    if (action === "sign-out") {
-      const event: CommandEvent = {
-        args: ["--no-clean-up"],
-        frameId,
-        programOptions: {
-          ...programOptions,
-          // Override baseURL to get it to run through the proxy
-          baseURL: new URL(`http://localhost:${programOptions.guiPort}`),
-        },
-        state,
-      };
-      events.emit("command:logout", event);
-    }
+    const event: CommandEvent = {
+      args,
+      frameId,
+      programOptions: {
+        ...programOptions,
+        // Override baseURL to get it to run through the proxy
+        baseURL: new URL(`http://localhost:${programOptions.guiPort}`),
+      },
+      state,
+    };
 
-    if (action === "sign-in") {
-      const event: CommandEvent = {
-        args: [],
-        frameId,
-        programOptions: {
-          ...programOptions,
-          // Override baseURL to get it to run through the proxy
-          baseURL: new URL(`http://localhost:${programOptions.guiPort}`),
-        },
-        state,
-      };
-      events.emit("command:login", event);
-    }
-
-    res.redirect(`${toolbarPath}?frame_id=${encodeURIComponent(frameId)}`);
+    events
+      .emit(`command:${command}`, event)
+      .then(() => {
+        res.redirect(`${toolbarPath}?frame_id=${encodeURIComponent(frameId)}`);
+      })
+      .catch((err) => {
+        console.error(err);
+        res.sendStatus(500);
+      });
   };
 }
 
@@ -81,7 +71,10 @@ export function toolbar({
   commandPath,
   publicPath,
   state,
-}: PluginOptions & { commandPath: string; publicPath: string }) {
+}: PluginOptions & {
+  commandPath: string;
+  publicPath: string;
+}) {
   return (req: Request, res: Response) => {
     const { frame_id: frameId } = req.query;
     if (!frameId) {

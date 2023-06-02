@@ -21,6 +21,7 @@ export function signOutPlugin({ browser, events }: PluginOptions) {
         const frame =
           (await browser.getFrameById(frameId)) ??
           (await browser.newPage()).mainFrame();
+
         const nextState = await signOut(
           state.current(),
           options,
@@ -44,7 +45,6 @@ async function signOut(
   const page = frame.page();
 
   await frame.goto(url.toString());
-  await page.waitForNetworkIdle();
 
   const message =
     (await page.evaluate(() => {
