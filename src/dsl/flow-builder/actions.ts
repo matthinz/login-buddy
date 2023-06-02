@@ -189,7 +189,7 @@ export function select<
   Options
 >(
   selector: RuntimeValue<string, InputState, State, Options>,
-  value: RuntimeValue<string, InputState, State, Options>
+  value: RuntimeValue<string | number, InputState, State, Options>
 ): SelectAction<InputState, State, Options> {
   const selectorFunc = bindRuntimeValueResolver(selector);
   const valueFunc = bindRuntimeValueResolver(value);
@@ -205,7 +205,7 @@ export function select<
 
       const { frame } = context;
 
-      await frame.select(selector, value);
+      await frame.select(selector, String(value));
     },
   };
 }

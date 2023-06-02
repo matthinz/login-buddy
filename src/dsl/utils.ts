@@ -15,6 +15,16 @@ export function atPath<
   };
 }
 
+/**
+ * Helper for use with e.g. .generate().
+ */
+export function fromState<
+  State extends Record<string, unknown>,
+  Key extends keyof State
+>(key: Key): (context: Context<any, State, any>) => string | number {
+  return ({ state }) => state[key] as string | number;
+}
+
 export function notAtPath<
   InputState extends {},
   State extends InputState,
@@ -46,16 +56,6 @@ export function optionSet<
   return ({ options }) => {
     return !!options[name];
   };
-}
-
-export function stateValue<
-  InputState extends {},
-  State extends InputState,
-  Options
->(
-  key: keyof State
-): (context: Context<InputState, State, Options>) => State[typeof key] {
-  return (context: Context<InputState, State, Options>) => context.state[key];
 }
 
 /**

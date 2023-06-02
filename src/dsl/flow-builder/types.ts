@@ -1,6 +1,6 @@
 import { Frame, Page } from "puppeteer";
 
-export type RawValue = string | number | boolean | object | URL | Buffer;
+export type RawValue = string | number | boolean | object | Date | URL | Buffer;
 
 export type Action<InputState extends {}, State extends InputState, Options> =
   | AssertAction<InputState, State, Options>
@@ -80,7 +80,7 @@ export type SelectAction<
 > = {
   readonly type: "select";
   selector(context: Context<InputState, State, Options>): Promise<string>;
-  value(context: Context<InputState, State, Options>): Promise<string>;
+  value(context: Context<InputState, State, Options>): Promise<string | number>;
   perform(context: Context<InputState, State, Options>): Promise<void>;
 };
 
@@ -223,7 +223,7 @@ export interface FlowBuilderInterface<
 
   select(
     selector: string,
-    value: string
+    value: string | number
   ): FlowBuilderInterface<InputState, State, Options>;
 
   select(
@@ -237,7 +237,7 @@ export interface FlowBuilderInterface<
     selector: string,
     value: (
       context: Context<InputState, State, Options>
-    ) => Promise<string> | string
+    ) => Promise<string | number> | string | number
   ): FlowBuilderInterface<InputState, State, Options>;
 
   select(
@@ -246,7 +246,7 @@ export interface FlowBuilderInterface<
     ) => Promise<string> | string,
     value: (
       context: Context<InputState, State, Options>
-    ) => Promise<string> | string
+    ) => Promise<string | number> | string | number
   ): FlowBuilderInterface<InputState, State, Options>;
 
   submit(): FlowBuilderInterface<InputState, State, Options>;

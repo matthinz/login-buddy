@@ -147,7 +147,7 @@ export abstract class AbstractFlowBuilder<
 
   select(
     selector: RuntimeValue<string, InputState, State, Options>,
-    value: RuntimeValue<string, InputState, State, Options>
+    value: RuntimeValue<string | number, InputState, State, Options>
   ): FlowBuilderInterface<InputState, State, Options> {
     return this.derive(select(selector, value));
   }
