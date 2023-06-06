@@ -71,6 +71,7 @@ export function parseOptions(
       threatMetrix: ["threatmetrix"],
       badId: ["bad-id"],
       badPhone: ["bad-phone"],
+      barcodeReadError: ["barcode-read-error", "bad-barcode"],
       inPerson: ["in-person", "ipp"],
       mvaTimeout: ["mva-timeout", "mva-error"],
       throttlePhone: ["throttle-phone"],
@@ -79,6 +80,7 @@ export function parseOptions(
     boolean: [
       "badId",
       "badPhone",
+      "barcodeReadError",
       "mvaTimeout",
       "throttlePhone",
       "throttleSsn",
@@ -131,8 +133,11 @@ export function parseOptions(
 
   const mvaTimeout = !!raw.mvaTimeout;
 
+  const barcodeReadError = !!raw.barcodeReadError;
+
   return {
     badId,
+    barcodeReadError,
     baseURL,
     gpo,
     hybrid,

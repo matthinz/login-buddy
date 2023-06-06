@@ -11,6 +11,7 @@ export type ThreatMetrixResult = typeof THREATMETRIX_RESULTS[number];
 
 export type VerifyOptions = {
   badId?: boolean | undefined;
+  barcodeReadError: boolean;
   baseURL: URL;
   gpo: boolean;
   hybrid: boolean;

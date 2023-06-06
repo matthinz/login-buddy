@@ -38,7 +38,11 @@ function generateIdYaml<InputState extends {}, State extends InputState>({
     return generateBadIdYaml();
   }
 
-  const result = generateGoodIdYaml(
+  if (options.barcodeReadError) {
+    return generateBarcodeReadErrorYaml();
+  }
+
+  return generateGoodIdYaml(
     options.mvaTimeout && {
       // Have to use an AAMVA-supported jurisdiction
       state: "WA",
@@ -46,8 +50,6 @@ function generateIdYaml<InputState extends {}, State extends InputState>({
       state_id_number: "mvatimeout",
     }
   );
-
-  return result;
 }
 
 function generateGoodIdYaml(
@@ -79,6 +81,18 @@ function generateBadIdYaml(): string {
       {
         name: "1D Control Number Valid",
         result: "Failed",
+      },
+    ],
+  });
+}
+
+function generateBarcodeReadErrorYaml(): string {
+  return stringify({
+    ...ID_YAML,
+    failed_alerts: [
+      {
+        name: "2D Barcode Read",
+        result: "Attention",
       },
     ],
   });
