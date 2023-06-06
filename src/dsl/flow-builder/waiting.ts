@@ -16,7 +16,6 @@ export function waitForTheFrameToDoSomething(frame: Frame): Promise<void> {
 
     - Page navigation
     - No network activity for a few seconds after a flurry of xhr requests
-
   */
 
   const page = frame.page();
@@ -36,20 +35,48 @@ export function waitUntilNoRequests(
   page: Page,
   quietTimeInMs: number
 ): Promise<void> {
+  /*
+  When a network request returns:
+  - If there are still pending requests, break
+  - Look at the time since the last network request returned.
+  - Wait at least that long for a new request to _start_
+  - If that wait would be less than <seconds> from the start of waiting,
+    wait until then.
+ */
+
+  type PendingRequest = {
+    startedAt: number;
+    request: HTTPRequest;
+  };
+
+  type FinishedRequest = PendingRequest & {
+    finishedAt: number;
+  };
+
   return new Promise((resolve) => {
     let timer: NodeJS.Timeout | undefined;
 
-    const pendingRequests: HTTPRequest[] = [];
+    const pendingRequests: PendingRequest[] = [];
+    let lastStartedRequest: PendingRequest | undefined;
+    let lastFinishedRequest: FinishedRequest | undefined;
+
+    const waitingStartedAt = Date.now();
 
     const doResolve = () => {
       page.off("request", requestHandler);
       page.off("requestfinished", requestFinishedHandler);
-
       resolve();
     };
 
     const requestHandler = (req: HTTPRequest) => {
-      pendingRequests.push(req);
+      const pendingRequest = {
+        request: req,
+        startedAt: Date.now(),
+      };
+
+      pendingRequests.push(pendingRequest);
+
+      lastStartedRequest = pendingRequest;
 
       if (timer) {
         clearTimeout(timer);
@@ -58,14 +85,32 @@ export function waitUntilNoRequests(
     };
 
     const requestFinishedHandler = (req: HTTPRequest) => {
-      const index = pendingRequests.indexOf(req);
+      const index = pendingRequests.findIndex(({ request }) => request === req);
+
       if (index >= 0) {
+        const pendingRequest = pendingRequests[index];
         pendingRequests.splice(index, 1);
+
+        lastFinishedRequest = {
+          ...pendingRequest,
+          finishedAt: Date.now(),
+        };
       }
 
-      if (pendingRequests.length === 0) {
-        timer = setTimeout(doResolve, quietTimeInMs);
+      if (pendingRequests.length > 0) {
+        return;
       }
+
+      // We're out of pending requests. Now we want to wait at least until
+      // <quietTimeInMs> after we started waiting OR the time since the last
+      // finished request was _started_, whichever is longer
+      const timeToWait = Math.max(
+        waitingStartedAt + quietTimeInMs - Date.now(),
+        Date.now() - (lastFinishedRequest?.startedAt ?? Date.now()),
+        0
+      );
+
+      timer = setTimeout(doResolve, timeToWait);
     };
 
     page.on("request", requestHandler);
@@ -73,8 +118,4 @@ export function waitUntilNoRequests(
 
     timer = setTimeout(doResolve, quietTimeInMs);
   });
-}
-
-function delay(duration: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, duration));
 }
