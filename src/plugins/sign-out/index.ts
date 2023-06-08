@@ -91,7 +91,7 @@ export function parseOptions(
     boolean: ["cleanUp", "completely"],
   });
   const completely = raw.completely == null ? false : !!raw.completely;
-  const cleanUp = raw.cleanUp == null ? true : !!raw.completely;
+  const cleanUp = raw.cleanUp == null ? true : !!raw.cleanUp;
 
   return {
     cleanUp,
