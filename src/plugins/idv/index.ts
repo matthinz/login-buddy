@@ -41,7 +41,8 @@ async function verify(
     throw new Error("You need to run `signup` before you can verify.");
   }
 
-  const frame = (await browser.newPage()).mainFrame();
+  const page = await browser.tryToReusePage(options.baseURL);
+  const frame = page.mainFrame();
 
   const inputState = {
     ...lastSignup,

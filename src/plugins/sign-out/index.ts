@@ -20,7 +20,7 @@ export function signOutPlugin({ browser, events }: PluginOptions) {
         const options = parseOptions(args, programOptions);
         const frame =
           (await browser.getFrameById(frameId)) ??
-          (await browser.newPage()).mainFrame();
+          (await browser.tryToReusePage(options.baseURL)).mainFrame();
 
         const nextState = await signOut(
           state.current(),
