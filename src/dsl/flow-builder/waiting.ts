@@ -2,7 +2,7 @@ import { Frame, HTTPRequest, Page } from "puppeteer";
 
 export const SHORT_WAIT = 1 * 1000;
 export const MEDIUM_WAIT = 3.5 * 1000;
-export const LONG_WAIT = 5 * 1000;
+export const LONG_WAIT = 6 * 1000;
 export const REALLY_LONG_WAIT = 2 * LONG_WAIT;
 export const JUST_A_RIDICULOUSLY_LONG_WAIT = 2 * REALLY_LONG_WAIT;
 
@@ -10,7 +10,10 @@ export const JUST_A_RIDICULOUSLY_LONG_WAIT = 2 * REALLY_LONG_WAIT;
  * Attempts to wait for the page to do _something_ (e.g. navigate) after
  * some user interaction.
  */
-export function waitForTheFrameToDoSomething(frame: Frame): Promise<void> {
+export function waitForTheFrameToDoSomething(
+  frame: Frame,
+  verboseLogging = !!process.env["VERBOSE_WAIT_LOGGING"]
+): Promise<void> {
   /*
     THINGS WE WANT TO DETECT
 
@@ -27,13 +30,14 @@ export function waitForTheFrameToDoSomething(frame: Frame): Promise<void> {
       })
       .catch(() => {})
       .then(() => {}),
-    waitUntilNoRequests(page, MEDIUM_WAIT),
+    waitUntilNoRequests(page, MEDIUM_WAIT, verboseLogging),
   ]);
 }
 
 export function waitUntilNoRequests(
   page: Page,
-  quietTimeInMs: number
+  quietTimeInMs: number,
+  verboseLogging: boolean
 ): Promise<void> {
   /*
   When a network request returns:
@@ -53,19 +57,30 @@ export function waitUntilNoRequests(
     finishedAt: number;
   };
 
+  let lastPendingCountReport: string | undefined;
+
   return new Promise((resolve) => {
     let timer: NodeJS.Timeout | undefined;
 
     const pendingRequests: PendingRequest[] = [];
-    let lastStartedRequest: PendingRequest | undefined;
     let lastFinishedRequest: FinishedRequest | undefined;
-
-    const waitingStartedAt = Date.now();
 
     const doResolve = () => {
       page.off("request", requestHandler);
+      page.off("requestfailed", requestFinishedHandler);
       page.off("requestfinished", requestFinishedHandler);
+      page.off("requestservedfromcache", requestFinishedHandler);
+      page.off("framenavigated", navigationHandler);
       resolve();
+    };
+
+    const cancelTimer = () => {
+      if (!timer) {
+        return;
+      }
+      verboseLogging && console.error("Cancel timer");
+      clearTimeout(timer);
+      timer = undefined;
     };
 
     const requestHandler = (req: HTTPRequest) => {
@@ -76,12 +91,7 @@ export function waitUntilNoRequests(
 
       pendingRequests.push(pendingRequest);
 
-      lastStartedRequest = pendingRequest;
-
-      if (timer) {
-        clearTimeout(timer);
-        timer = undefined;
-      }
+      cancelTimer();
     };
 
     const requestFinishedHandler = (req: HTTPRequest) => {
@@ -97,24 +107,49 @@ export function waitUntilNoRequests(
         };
       }
 
+      const pendingCountReport =
+        pendingRequests.length < 10
+          ? pendingRequests.length.toString()
+          : `~${Math.floor(Math.ceil(pendingRequests.length / 10) * 10)}`;
+
+      if (lastPendingCountReport !== pendingCountReport) {
+        verboseLogging && console.error("%s pending", pendingCountReport);
+        lastPendingCountReport = pendingCountReport;
+      }
+
       if (pendingRequests.length > 0) {
         return;
       }
 
       // We're out of pending requests. Now we want to wait at least until
-      // <quietTimeInMs> after we started waiting OR the time since the last
+      // <quietTimeInMs> OR the 150% of the time since the last
       // finished request was _started_, whichever is longer
       const timeToWait = Math.max(
-        waitingStartedAt + quietTimeInMs - Date.now(),
-        Date.now() - (lastFinishedRequest?.startedAt ?? Date.now()),
-        0
+        quietTimeInMs,
+        (Date.now() - (lastFinishedRequest?.startedAt ?? Date.now())) * 1.5
       );
 
-      timer = setTimeout(doResolve, timeToWait);
+      verboseLogging && console.error("Wait %dms", timeToWait);
+
+      cancelTimer();
+
+      timer = setTimeout(doResolve, quietTimeInMs);
+    };
+
+    const navigationHandler = (frame: Frame) => {
+      if (frame === page.mainFrame()) {
+        verboseLogging && console.error("Navigation: reset state");
+        pendingRequests.splice(0, pendingRequests.length);
+        lastFinishedRequest = undefined;
+        cancelTimer();
+      }
     };
 
     page.on("request", requestHandler);
+    page.on("requestfailed", requestFinishedHandler);
     page.on("requestfinished", requestFinishedHandler);
+    page.on("requestservedfromcache", requestFinishedHandler);
+    page.on("framenavigated", navigationHandler);
 
     timer = setTimeout(doResolve, quietTimeInMs);
   });
