@@ -21,7 +21,7 @@ export function signUpPlugin({ browser, events, state }: PluginOptions) {
     const options = parseOptions(args, programOptions);
     const frame =
       (await browser.getFrameById(frameId)) ??
-      (await browser.newPage()).mainFrame();
+      (await browser.tryToReusePage(options.baseURL)).mainFrame();
     await signUp(options, frame, events, state);
   });
 

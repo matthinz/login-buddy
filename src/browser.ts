@@ -141,7 +141,22 @@ export class BrowserHelper {
 
     await page.goto(url.toString());
 
+    await this.closeBlankTabs();
+
     return page;
+  }
+
+  private async closeBlankTabs() {
+    const browser = await this.launch();
+    const pages = await browser.pages();
+
+    await Promise.all(
+      pages.map(async (page) => {
+        if (page.url() === "about:blank") {
+          await page.close();
+        }
+      })
+    );
   }
 
   private scorePageMatch(page: Page, url: URL): number {
