@@ -53,7 +53,7 @@ export const VERIFY_FLOW = createFlow<InputState, VerifyOptions>()
   .when(optionNotSet("throttleSsn"), (flow) =>
     flow
       .branch(
-        ({ options }) => options.gpo,
+        ({ options }) => !!options.gpo,
         // Branch: Use GPO
         (useGpo) =>
           // "Want a letter?"
@@ -76,7 +76,10 @@ export const VERIFY_FLOW = createFlow<InputState, VerifyOptions>()
           .submit('form[action="/verify/review"] button[type=submit]')
 
           // Handle OTP before and after personal key
-          .when(atPath("/verify/come_back_later"), enterGpoOtp)
+          .when(
+            ({ options }) => options.gpo === "complete",
+            (flow) => flow.when(atPath("/verify/come_back_later"), enterGpoOtp)
+          )
 
           // "Save your personal key"
           .expect("/verify/personal_key")
@@ -93,7 +96,10 @@ export const VERIFY_FLOW = createFlow<InputState, VerifyOptions>()
           .click("label[for=acknowledgment]")
           .submit()
 
-          .when(atPath("/verify/come_back_later"), enterGpoOtp)
+          .when(
+            ({ options }) => options.gpo === "complete",
+            (flow) => flow.when(atPath("/verify/come_back_later"), enterGpoOtp)
+          )
       )
   );
 

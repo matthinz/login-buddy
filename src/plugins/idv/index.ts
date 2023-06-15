@@ -73,6 +73,7 @@ export function parseOptions(
       badId: ["bad-id"],
       badPhone: ["bad-phone"],
       barcodeReadError: ["barcode-read-error", "bad-barcode"],
+      gpoPartial: ["gpo-partial"],
       inPerson: ["in-person", "ipp"],
       mvaTimeout: ["mva-timeout", "mva-error"],
       throttlePhone: ["throttle-phone"],
@@ -82,6 +83,8 @@ export function parseOptions(
       "badId",
       "badPhone",
       "barcodeReadError",
+      "gpo",
+      "gpoPartial",
       "mvaTimeout",
       "throttlePhone",
       "throttleSsn",
@@ -97,7 +100,9 @@ export function parseOptions(
 
   const badId = !!raw.badId || inPerson;
 
-  const gpo = !!raw.gpo;
+  const gpoPartial = !!raw.gpoPartial;
+
+  const gpo = gpoPartial ? "partial" : !!raw.gpo ? "complete" : false;
 
   const hybrid = !!raw.hybrid;
 

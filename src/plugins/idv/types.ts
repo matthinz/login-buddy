@@ -13,7 +13,7 @@ export type VerifyOptions = {
   badId?: boolean | undefined;
   barcodeReadError: boolean;
   baseURL: URL;
-  gpo: boolean;
+  gpo: false | "partial" | "complete";
   hybrid: boolean;
   inPerson: boolean;
   mvaTimeout: boolean;
