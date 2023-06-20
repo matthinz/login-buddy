@@ -76,6 +76,7 @@ export function parseOptions(
       gpoPartial: ["gpo-partial"],
       inPerson: ["in-person", "ipp"],
       mvaTimeout: ["mva-timeout", "mva-error"],
+      throttleGpo: ["throttle-gpo"],
       throttlePhone: ["throttle-phone"],
       throttleSsn: ["throttle-ssn"],
     },
@@ -86,6 +87,7 @@ export function parseOptions(
       "gpo",
       "gpoPartial",
       "mvaTimeout",
+      "throttleGpo",
       "throttlePhone",
       "throttleSsn",
     ],
@@ -100,9 +102,24 @@ export function parseOptions(
 
   const badId = !!raw.badId || inPerson;
 
-  const gpoPartial = !!raw.gpoPartial;
+  const { gpoPartial, throttleGpo, gpo } = raw;
 
-  const gpo = gpoPartial ? "partial" : !!raw.gpo ? "complete" : false;
+  if (throttleGpo && gpoPartial) {
+    throw new Error("Can't specify --throttle-gpo and --gpo-partial");
+  }
+
+  let shouldRequestLetter = false;
+  let shouldEnterGpoOtp = false;
+
+  if (gpo || throttleGpo) {
+    shouldRequestLetter = true;
+    shouldEnterGpoOtp = true;
+  }
+
+  if (gpoPartial) {
+    shouldRequestLetter = true;
+    shouldEnterGpoOtp = false;
+  }
 
   const hybrid = !!raw.hybrid;
 
@@ -145,13 +162,15 @@ export function parseOptions(
     badId,
     barcodeReadError,
     baseURL,
-    gpo,
     hybrid,
     inPerson,
     mvaTimeout,
     phone,
     ssn,
+    shouldEnterGpoOtp,
+    shouldRequestLetter,
     threatMetrix: threatMetrix as ThreatMetrixResult,
+    throttleGpo,
     throttlePhone,
     throttleSsn,
     until,

@@ -10,7 +10,7 @@ import { doDocumentCapture } from "./document-capture";
 import { doInPersonProofing } from "./ipp";
 import { enterSsn } from "./ssn";
 import { enterPhone } from "./phone";
-import { enterGpoOtp } from "./gpo";
+import { enterGpoOtp, tryToCaptureGpoOtp } from "./gpo";
 
 type InputState = {
   email: string;
@@ -53,11 +53,11 @@ export const VERIFY_FLOW = createFlow<InputState, VerifyOptions>()
   .when(optionNotSet("throttleSsn"), (flow) =>
     flow
       .branch(
-        ({ options }) => !!options.gpo,
+        optionSet("shouldRequestLetter"),
         // Branch: Use GPO
-        (useGpo) =>
+        (flow) =>
           // "Want a letter?"
-          useGpo
+          flow
             .navigateTo("/verify/usps")
             .submit('form[action="/verify/usps"] button[type=submit]'),
         // Branch: Don't use GPO
@@ -76,9 +76,10 @@ export const VERIFY_FLOW = createFlow<InputState, VerifyOptions>()
           .submit('form[action="/verify/review"] button[type=submit]')
 
           // Handle OTP before and after personal key
-          .when(
-            ({ options }) => options.gpo === "complete",
-            (flow) => flow.when(atPath("/verify/come_back_later"), enterGpoOtp)
+          .when(optionSet("shouldEnterGpoOtp"), (flow) =>
+            flow.when(atPath("/verify/come_back_later"), (flow) =>
+              flow.then(tryToCaptureGpoOtp).then(enterGpoOtp)
+            )
           )
 
           // "Save your personal key"
@@ -96,9 +97,10 @@ export const VERIFY_FLOW = createFlow<InputState, VerifyOptions>()
           .click("label[for=acknowledgment]")
           .submit()
 
-          .when(
-            ({ options }) => options.gpo === "complete",
-            (flow) => flow.when(atPath("/verify/come_back_later"), enterGpoOtp)
+          .when(optionSet("shouldEnterGpoOtp"), (flow) =>
+            flow.when(atPath("/verify/come_back_later"), (flow) =>
+              flow.then(tryToCaptureGpoOtp).then(enterGpoOtp)
+            )
           )
       )
   );
