@@ -34,7 +34,7 @@ export const VERIFY_FLOW = createFlow<InputState, VerifyOptions>()
   .submit()
 
   // "How verifying your identity works"
-  .expect("/verify/doc_auth/agreement")
+  .expect(["/verify/doc_auth/agreement", "/verify/agreement"])
   .click("label[for=doc_auth_ial2_consent_given]")
   .submit()
 
