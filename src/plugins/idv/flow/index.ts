@@ -30,13 +30,24 @@ export const MOBILE_DOCUMENT_CAPTURE_FLOW = createFlow<{}, VerifyOptions>()
 
 export const VERIFY_FLOW = createFlow<InputState, VerifyOptions>()
   .navigateTo("/verify")
-  .expect("/verify/doc_auth/welcome")
-  .submit()
+  .expect([
+    "/verify/welcome",
+    "/verify/doc_auth/welcome",
+    "/verify/getting_started",
+  ])
 
-  // "How verifying your identity works"
-  .expect(["/verify/doc_auth/agreement", "/verify/agreement"])
-  .click("label[for=doc_auth_ial2_consent_given]")
-  .submit()
+  .branch(
+    atPath("/verify/getting_started"),
+    // Variant: consent checkbox on unified "getting started page"
+    (flow) => flow.click("label[for=doc_auth_ial2_consent_given]").submit(),
+    // Variant: separate welcome + getting started
+    (flow) =>
+      flow
+        .submit() // "How verifying your identity works"
+        .expect(["/verify/doc_auth/agreement", "/verify/agreement"])
+        .click("label[for=doc_auth_ial2_consent_given]")
+        .submit()
+  )
 
   .then(uploadId)
 
