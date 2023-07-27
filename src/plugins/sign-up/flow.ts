@@ -26,7 +26,7 @@ export const SIGN_UP_FLOW = createFlow<Partial<SignupState>, SignupOptions>()
         .submit("form button[type=submit]")
         // Example Sinatra App is using Login.gov...
         .expect("/")
-        .click("#new_user .usa-button--outline")
+        .click(".usa-button--outline")
         // "Create your account"
         .expect("/sign_up/enter_email"),
 
