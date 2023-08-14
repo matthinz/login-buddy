@@ -40,30 +40,41 @@ async function signOut(
   frame: Frame,
   browser: BrowserHelper
 ): Promise<GlobalState> {
-  const url = new URL("/logout", baseURL);
-
-  const page = frame.page();
+  const url = new URL("/account", baseURL);
 
   await frame.goto(url.toString());
 
-  const message =
-    (await page.evaluate(() => {
-      return (
-        document.querySelector<HTMLElement>(".usa-alert--info")?.innerText ?? ""
-      );
-    })) ?? "";
+  const actualUrl = new URL(frame.url());
+  let message: string | undefined;
+
+  if (actualUrl.pathname !== url.pathname) {
+    // Assume we got redirected and are already logged out
+    await frame.goto(new URL("/logout", baseURL).toString());
+    message = "You're already logged out.";
+  } else {
+    // Assume we're still logged in and click the "Sign out" button
+    await frame.click('form[action="/logout"].button_to button[type=submit]');
+
+    message =
+      (await frame.evaluate(() => {
+        return (
+          document.querySelector<HTMLElement>(".usa-alert--info")?.innerText ??
+          ""
+        );
+      })) ?? "";
+  }
 
   if (completely) {
-    const cookies = await page.cookies();
+    const cookies = await frame.page().cookies();
     await Promise.all(
       cookies.map(async (cookie) => {
-        await page.deleteCookie({
+        await frame.page().deleteCookie({
           name: cookie.name,
         });
       })
     );
 
-    await page.reload();
+    await frame.page().reload();
   }
 
   if (message) {
