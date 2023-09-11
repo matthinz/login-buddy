@@ -7,7 +7,7 @@ export function tryToCaptureGpoOtp<State extends {}>(
 ): FlowBuilderInterface<State, State & { gpoOtp?: string }, VerifyOptions> {
   return (
     flow
-      .navigateTo("/account/verify")
+      .navigateTo("/verify/by_mail")
       // "Welcome back"
       .evaluate(async ({ frame, state }) => {
         // Locally, IDP will put the OTP on the page for us to read.
@@ -23,12 +23,12 @@ export function tryToCaptureGpoOtp<State extends {}>(
           const result = otpInput.value;
           otpInput.value = "";
 
-          if (result) {
-            console.log(chalk.dim(`Captured GPO OTP ${result}`));
-          }
-
           return result;
         });
+
+        if (gpoOtp) {
+          console.log(chalk.dim(`Captured GPO OTP ${gpoOtp}`));
+        }
 
         return { ...state, gpoOtp };
       })

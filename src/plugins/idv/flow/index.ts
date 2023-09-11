@@ -12,6 +12,8 @@ import { enterSsn } from "./ssn";
 import { enterPhone } from "./phone";
 import { enterGpoOtp, tryToCaptureGpoOtp } from "./gpo";
 
+export { CANCEL_IDV_FLOW } from "./cancel";
+
 type InputState = {
   email: string;
   password: string;

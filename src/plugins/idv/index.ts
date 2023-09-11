@@ -1,12 +1,13 @@
 import getopts from "getopts";
 
 import {
+  CommandEvent,
   GlobalState,
   Message,
   PluginOptions,
   ProgramOptions,
 } from "../../types";
-import { VERIFY_FLOW } from "./flow";
+import { CANCEL_IDV_FLOW, VERIFY_FLOW } from "./flow";
 import {
   ThreatMetrixResult,
   THREATMETRIX_RESULTS,
@@ -22,10 +23,38 @@ const DEFAULT_PHONE = "3602345678";
 // https://developers.login.gov/testing/
 const BAD_PHONE = "703-555-5555";
 
+const aliases = {
+  verify: ["verify"],
+  cancel_idv: ["cancel_idv", "cancelidv", "startover", "start_over"],
+};
+
 export function idvPlugin({ browser, events, programOptions }: PluginOptions) {
-  events.on("command:verify", async ({ args, state }) => {
+  aliases.verify.forEach((alias) => {
+    events.on(`command:${alias}`, handleVerify);
+  });
+
+  aliases.cancel_idv.forEach((alias) => {
+    events.on(`command:${alias}`, handleCancelVerify);
+  });
+
+  async function handleVerify({ args, state }: CommandEvent) {
     const options = parseOptions(args, programOptions);
     await verify(options, browser, state.current(), events);
+  }
+
+  async function handleCancelVerify({}: CommandEvent) {
+    await cancelIdv(programOptions.baseURL, browser);
+  }
+}
+
+async function cancelIdv(baseURL: URL, browser: BrowserHelper) {
+  const page = await browser.tryToReusePage(baseURL);
+  const frame = page.mainFrame();
+
+  await CANCEL_IDV_FLOW.run({
+    frame,
+    options: { baseURL },
+    state: {},
   });
 }
 
