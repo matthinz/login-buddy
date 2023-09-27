@@ -71,8 +71,10 @@ export const VERIFY_FLOW = createFlow<InputState, VerifyOptions>()
         (flow) =>
           // "Want a letter?"
           flow
-            .navigateTo("/verify/usps")
-            .submit('form[action="/verify/usps"] button[type=submit]'),
+            .navigateTo("/verify/by_mail/request_letter")
+            .submit(
+              'form[action="/verify/by_mail/request_letter"] button[type=submit]'
+            ),
         // Branch: Don't use GPO
         enterPhone
       )
@@ -90,7 +92,7 @@ export const VERIFY_FLOW = createFlow<InputState, VerifyOptions>()
 
           // Handle OTP before and after personal key
           .when(optionSet("shouldEnterGpoOtp"), (flow) =>
-            flow.when(atPath("/verify/come_back_later"), (flow) =>
+            flow.when(atPath("/verify/by_mail/letter_enqueued"), (flow) =>
               flow.then(tryToCaptureGpoOtp).then(enterGpoOtp)
             )
           )
@@ -111,7 +113,7 @@ export const VERIFY_FLOW = createFlow<InputState, VerifyOptions>()
           .submit()
 
           .when(optionSet("shouldEnterGpoOtp"), (flow) =>
-            flow.when(atPath("/verify/come_back_later"), (flow) =>
+            flow.when(atPath("/verify/by_mail/letter_enqueued"), (flow) =>
               flow.then(tryToCaptureGpoOtp).then(enterGpoOtp)
             )
           )

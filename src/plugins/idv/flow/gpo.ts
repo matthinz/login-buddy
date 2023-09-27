@@ -7,7 +7,7 @@ export function tryToCaptureGpoOtp<State extends {}>(
 ): FlowBuilderInterface<State, State & { gpoOtp?: string }, VerifyOptions> {
   return (
     flow
-      .navigateTo("/verify/by_mail")
+      .navigateTo("/verify/by_mail/enter_code")
       // "Welcome back"
       .evaluate(async ({ frame, state }) => {
         // Locally, IDP will put the OTP on the page for us to read.
@@ -65,6 +65,6 @@ export function enterGpoOtp<State extends {}>(
     )
     .submit()
     .when(optionSet("throttleGpo"), (flow) =>
-      flow.when(atPath("/verify/by_mail"), enterGpoOtp)
+      flow.when(atPath("/verify/by_mail/enter_code"), enterGpoOtp)
     );
 }
