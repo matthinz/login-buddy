@@ -23,7 +23,9 @@ export class EventBus {
   emit(eventName: "error", event: ErrorEvent): Promise<void>;
   emit(eventName: "message", event: MessageEvent): Promise<void>;
   emit(eventName: "signup", event: SignupEvent): Promise<void>;
-  async emit<EventType>(eventName: string, event: EventType): Promise<void> {
+  emit(eventName: "idpConnectionLost"): Promise<void>
+  emit(eventName: "idpConnectionRestored"): Promise<void>
+  async emit<EventType>(eventName: string, event?: EventType): Promise<void> {
     const handlers = this.handlersByEvent[eventName];
     if (!handlers) {
       return;
@@ -48,7 +50,9 @@ export class EventBus {
   on(eventName: "error", handler: EventHandler<ErrorEvent>): void;
   on(eventName: "message", handler: EventHandler<MessageEvent>): void;
   on(eventName: "signup", handler: EventHandler<SignupEvent>): void;
-  on<EventType>(eventName: string, handler: EventHandler<EventType>): void {
+  on(eventName: "idpConnectionLost", handler: () => void): void;
+  on(eventName: "idpConnectionRestored", handler: () => void): void;
+  on<EventType>(eventName: string, handler: EventHandler<EventType> | (() => void)): void {
     this.handlersByEvent[eventName] = this.handlersByEvent[eventName] ?? [];
     this.handlersByEvent[eventName].push(handler);
   }

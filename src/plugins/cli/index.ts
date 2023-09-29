@@ -57,6 +57,18 @@ export function cliPlugin({ programOptions, events, state }: PluginOptions) {
     console.error(error);
   });
 
+  events.on("idpConnectionLost", () => {
+    console.error(
+      "\n🙀 Error polling for SMS/voice messages--is the IdP running?"
+    );
+    rl.prompt();
+  });
+
+  events.on("idpConnectionRestored", () => {
+    console.error("\n🐈 connection to the IdP restored.");
+    rl.prompt();
+  });
+
   welcome(programOptions);
 
   // Aesthetic thing: clear the fetch() api warning

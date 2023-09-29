@@ -18,7 +18,7 @@ export function phonePlugin({
   }
 
   const messages: Message[] = [];
-  let reportedError = false;
+  let connectionLost = false;
 
   pollForMessages(false);
 
@@ -27,12 +27,9 @@ export function phonePlugin({
 
     getUrl(telephonyUrl.toString())
       .catch((err: any) => {
-        if (!reportedError) {
-          reportedError = true;
-          console.error(
-            "%s: Error polling for SMS/voice messages--is IDP running?",
-            err.cause?.code
-          );
+        if (!connectionLost) {
+          connectionLost = true;
+          events.emit("idpConnectionLost")
         }
         return;
       })
@@ -42,7 +39,11 @@ export function phonePlugin({
           return;
         }
 
-        reportedError = false;
+        if (connectionLost) {
+          events.emit("idpConnectionRestored")
+        }
+
+        connectionLost = false;
 
         const $ = load(await resp.text());
 
