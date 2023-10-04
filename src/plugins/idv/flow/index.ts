@@ -125,7 +125,7 @@ function verifyYourInformation<InputState extends {}, State extends InputState>(
 ): FlowBuilderInterface<InputState, State, VerifyOptions> {
   return flow
     .expect(({ options }) =>
-      options.inPerson ? "/verify/in_person/verify" : "/verify/verify_info"
+      options.inPerson ? "/verify/in_person/verify_info" : "/verify/verify_info"
     )
     .click(".usa-checkbox__label")
     .submit("button[type=submit].usa-button--big")

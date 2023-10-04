@@ -22,7 +22,22 @@ export function doInPersonProofing<State extends {}>(
     .click("form .usa-button--outline")
     .submit(".usa-button")
 
-    .type(".usa-input", "Baltimore")
+    .type(
+      "lg-validated-field:nth-of-type(1) .usa-input",
+      ({ state }) => state.address1
+    )
+    .type(
+      "lg-validated-field:nth-of-type(2) .usa-input",
+      ({ state }) => state.city
+    )
+    .select(
+      "lg-validated-field:nth-of-type(3) select",
+      ({ state }) => state.state
+    )
+    .type(
+      "lg-validated-field:nth-of-type(4) .usa-input",
+      ({ state }) => state.zip
+    )
     .click("button[type=submit].usa-button")
 
     .waitUntil(selectorFound(".location-collection-item .usa-button"))
