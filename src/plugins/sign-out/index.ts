@@ -55,13 +55,15 @@ async function signOut(
     // Assume we're still logged in and click the "Sign out" button
     await frame.click('form[action="/logout"].button_to button[type=submit]');
 
-    message =
-      (await frame.evaluate(() => {
-        return (
-          document.querySelector<HTMLElement>(".usa-alert--info")?.innerText ??
-          ""
-        );
-      })) ?? "";
+    try {
+      message =
+        (await frame.evaluate(() => {
+          return (
+            document.querySelector<HTMLElement>(".usa-alert--info")
+              ?.innerText ?? ""
+          );
+        })) ?? "";
+    } catch {}
   }
 
   if (completely) {
