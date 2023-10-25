@@ -4,11 +4,15 @@ Login Buddy is an assistant for working on Login.gov. It automates many common t
 
 ## Requirements
 
-- Login.gov codebase installed and running on <http://localhost:3000>
+- Login.gov IdP codebase installed and running on <http://localhost:3000>
 - Node.js (see [`.nvmrc`](./.nvmrc) for version)
 - Yarn
 
-## Getting started:
+## Getting started
+
+First, create a `.env` file with your local configuration values. You can copy `.env.example` to get started.
+
+Then, install dependencies and start:
 
 ```shell
 $ yarn && yarn start
