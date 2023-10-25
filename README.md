@@ -10,13 +10,22 @@ Login Buddy is an assistant for working on Login.gov. It automates many common t
 
 ## Getting started
 
-First, create a `.env` file with your local configuration values. You can copy `.env.example` to get started.
+First, create a `.env` file with your local configuration values. You can copy `.env.example` and fill in the relevant values.
 
 Then, install dependencies and start:
 
 ```shell
 $ yarn && yarn start
 ```
+
+### Recommended IdP configuration
+
+There are a few IdP settings that you should tweak if attempting to integrate Login Buddy with a locally running instance.
+
+| Setting                             | Recommended value | Reason                                                                                                                                                |
+| ----------------------------------- | ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `development_mailer_deliver_method` | `file`            | This will write sent emails to .html files on the filesystem, which Login Buddy can parse and display the relevant information from in your terminal. |
+| `enable_load_testing_mode`          | `true`            | This allows creating an account without verifying your email address (just a little faster for local dev).                                            |
 
 ## How to use
 
