@@ -41,13 +41,13 @@ export const VERIFY_FLOW = createFlow<InputState, VerifyOptions>()
   .branch(
     atPath("/verify/getting_started"),
     // Variant: consent checkbox on unified "getting started page"
-    (flow) => flow.click("label[for=doc_auth_ial2_consent_given]").submit(),
+    (flow) => flow.click("label[for=doc_auth_idv_consent_given]").submit(),
     // Variant: separate welcome + getting started
     (flow) =>
       flow
         .submit() // "How verifying your identity works"
         .expect(["/verify/doc_auth/agreement", "/verify/agreement"])
-        .click("label[for=doc_auth_ial2_consent_given]")
+        .click("label[for=doc_auth_idv_consent_given]")
         .submit()
   )
 
@@ -83,12 +83,12 @@ export const VERIFY_FLOW = createFlow<InputState, VerifyOptions>()
       .when(optionNotSet("throttlePhone"), (flow) =>
         flow
           // "Re-enter your Login.gov password to protect your data"
-          .expect("/verify/review")
+          .expect("/verify/enter_password")
           .type(
             '[name="user[password]"]',
             ({ state: { password } }) => password
           )
-          .submit('form[action="/verify/review"] button[type=submit]')
+          .submit('form[action="/verify/enter_password"] button[type=submit]')
 
           // Handle OTP before and after personal key
           .when(optionSet("shouldEnterGpoOtp"), (flow) =>
