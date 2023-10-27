@@ -1,16 +1,7 @@
 import chalk from "chalk";
 import * as readline from "node:readline";
-import { Browser, launch } from "puppeteer";
-import { BrowserHelper } from "../../browser";
-import { EventBus } from "../../events";
 
-import {
-  CommandEvent,
-  GlobalState,
-  PluginOptions,
-  ProgramOptions,
-  StateManager,
-} from "../../types";
+import { CommandEvent, PluginOptions, ProgramOptions } from "../../types";
 import { reportMessage } from "./messages";
 
 export function cliPlugin({ programOptions, events, state }: PluginOptions) {
@@ -24,7 +15,7 @@ export function cliPlugin({ programOptions, events, state }: PluginOptions) {
 
   rl.on("line", (line) => {
     if (currentExecution) {
-      console.log("Hold on");
+      log("Hold on");
       return;
     }
 
@@ -51,22 +42,18 @@ export function cliPlugin({ programOptions, events, state }: PluginOptions) {
     rl.question(prompt, respond);
   });
 
-  events.on("message", ({ message }) => reportMessage(message));
+  events.on("message", ({ message }) => reportMessage(message, log));
 
   events.on("error", ({ error }) => {
-    console.error(error);
+    error(error);
   });
 
   events.on("idpConnectionLost", () => {
-    console.error(
-      "\n🙀 Error polling for SMS/voice messages--is the IdP running?"
-    );
-    rl.prompt();
+    error("\n🙀 Error polling for SMS/voice messages--is the IdP running?");
   });
 
   events.on("idpConnectionRestored", () => {
-    console.error("\n🐈 connection to the IdP restored.");
-    rl.prompt();
+    error("\n🐈 connection to the IdP restored.");
   });
 
   welcome(programOptions);
@@ -75,6 +62,16 @@ export function cliPlugin({ programOptions, events, state }: PluginOptions) {
   setTimeout(() => {
     rl.prompt();
   }, 500);
+
+  function error(...args: unknown[]) {
+    console.error.apply(console, args);
+    rl.prompt();
+  }
+
+  function log(...args: unknown[]) {
+    console.log.apply(console, args);
+    rl.prompt();
+  }
 }
 
 function parseLine(line: string): string[] {
@@ -128,7 +125,7 @@ function welcome({ baseURL }: ProgramOptions) {
   console.log(`
 ${chalk.bold("Welcome to Login Buddy!")}
 
-This is a little helper for you if you're doing work on the 
+This is a little helper for you if you're doing work on the
 Login.gov frontend.
 
 Some commands:
@@ -137,7 +134,7 @@ Some commands:
 - ${chalk.bold("verify")} to verify the account you just created
 - ${chalk.bold("screenshot")} to take screenshots
 
-We are using ${chalk.blue(`<${baseURL?.toString()}>`)} 
+We are using ${chalk.blue(`<${baseURL?.toString()}>`)}
 (You can change this with the --env option.)
 
 `);

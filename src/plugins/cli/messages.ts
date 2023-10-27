@@ -1,17 +1,20 @@
 import chalk from "chalk";
 import { EmailMessage, Message, TelephonyMessage } from "../../types";
 
-export function reportMessage(message: Message) {
+export function reportMessage(
+  message: Message,
+  log: (...args: unknown[]) => void
+) {
   if (message.type === "email") {
-    reportEmail(message);
+    reportEmail(message, log);
   } else {
-    reportTelephonyMessage(message);
+    reportTelephonyMessage(message, log);
   }
 }
 
-function reportEmail(message: EmailMessage) {
-  console.log(
-    chalk.dim("\n💌 New email to %s: %s\n%s\n"),
+function reportEmail(message: EmailMessage, log: (...args: unknown[]) => void) {
+  log(
+    chalk.dim("\n💌 New email to %s: %s\n%s"),
     message.to.join(","),
     chalk.bold(message.subject),
     getLinksInEmail(message)
@@ -20,9 +23,12 @@ function reportEmail(message: EmailMessage) {
   );
 }
 
-function reportTelephonyMessage(message: TelephonyMessage) {
+function reportTelephonyMessage(
+  message: TelephonyMessage,
+  log: (...args: unknown[]) => void
+) {
   const emoji = message.type === "sms" ? "💬" : "☎️";
-  console.log(
+  log(
     chalk.dim("\n%s New %s message to %s: %s"),
     emoji,
     message.type,
