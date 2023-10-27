@@ -4,6 +4,7 @@ import {
   ErrorEvent,
   EventHandler,
   MessageEvent,
+  MessagePreviewAvailableEvent,
   SignupEvent,
 } from "./types";
 
@@ -22,9 +23,13 @@ export class EventBus {
   emit(eventName: "ask", event: AskEvent): Promise<void>;
   emit(eventName: "error", event: ErrorEvent): Promise<void>;
   emit(eventName: "message", event: MessageEvent): Promise<void>;
+  emit(
+    eventName: "messagePreviewAvailable",
+    event: MessagePreviewAvailableEvent
+  ): Promise<void>;
   emit(eventName: "signup", event: SignupEvent): Promise<void>;
-  emit(eventName: "idpConnectionLost"): Promise<void>
-  emit(eventName: "idpConnectionRestored"): Promise<void>
+  emit(eventName: "idpConnectionLost"): Promise<void>;
+  emit(eventName: "idpConnectionRestored"): Promise<void>;
   async emit<EventType>(eventName: string, event?: EventType): Promise<void> {
     const handlers = this.handlersByEvent[eventName];
     if (!handlers) {
@@ -49,10 +54,17 @@ export class EventBus {
   on(eventName: "ask", handler: EventHandler<AskEvent>): void;
   on(eventName: "error", handler: EventHandler<ErrorEvent>): void;
   on(eventName: "message", handler: EventHandler<MessageEvent>): void;
+  on(
+    eventName: "messagePreviewAvailable",
+    handler: EventHandler<MessagePreviewAvailableEvent>
+  ): void;
   on(eventName: "signup", handler: EventHandler<SignupEvent>): void;
   on(eventName: "idpConnectionLost", handler: () => void): void;
   on(eventName: "idpConnectionRestored", handler: () => void): void;
-  on<EventType>(eventName: string, handler: EventHandler<EventType> | (() => void)): void {
+  on<EventType>(
+    eventName: string,
+    handler: EventHandler<EventType> | (() => void)
+  ): void {
     this.handlersByEvent[eventName] = this.handlersByEvent[eventName] ?? [];
     this.handlersByEvent[eventName].push(handler);
   }

@@ -128,6 +128,11 @@ export type MessageEvent = {
   message: Message;
 };
 
+export type MessagePreviewAvailableEvent = {
+  message: Message;
+  url: URL;
+};
+
 export type SignupEvent = {
   signup: SignupState;
 };

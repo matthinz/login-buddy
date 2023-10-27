@@ -3,23 +3,31 @@ import { EmailMessage, Message, TelephonyMessage } from "../../types";
 
 export function reportMessage(
   message: Message,
-  log: (...args: unknown[]) => void
+  log: (...args: unknown[]) => void,
+  previewUrl?: URL | undefined
 ) {
   if (message.type === "email") {
-    reportEmail(message, log);
+    reportEmail(message, log, previewUrl);
   } else {
     reportTelephonyMessage(message, log);
   }
 }
 
-function reportEmail(message: EmailMessage, log: (...args: unknown[]) => void) {
+function reportEmail(
+  message: EmailMessage,
+  log: (...args: unknown[]) => void,
+  previewURL: URL | undefined
+) {
   log(
-    chalk.dim("\n💌 New email to %s: %s\n%s"),
+    chalk.dim("\n💌 New email to %s: %s\n%s%s"),
     message.to.join(","),
     chalk.bold(message.subject),
     getLinksInEmail(message)
       .map((link) => chalk.blueBright(`   ${link}`))
-      .join("\n")
+      .join("\n"),
+    previewURL
+      ? chalk.blueBright(`\n    Preview: ${previewURL.toString()}`)
+      : ""
   );
 }
 

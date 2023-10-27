@@ -1,11 +1,19 @@
 import chalk from "chalk";
 import * as readline from "node:readline";
 
-import { CommandEvent, PluginOptions, ProgramOptions } from "../../types";
+import {
+  CommandEvent,
+  Message,
+  PluginOptions,
+  ProgramOptions,
+} from "../../types";
 import { reportMessage } from "./messages";
 
 export function cliPlugin({ programOptions, events, state }: PluginOptions) {
   let currentExecution: Promise<void> | undefined;
+
+  let lastMessage: Message | undefined;
+  let lastMessageTimer: NodeJS.Timeout | undefined;
 
   const rl = readline.createInterface({
     input: process.stdin,
@@ -42,7 +50,32 @@ export function cliPlugin({ programOptions, events, state }: PluginOptions) {
     rl.question(prompt, respond);
   });
 
-  events.on("message", ({ message }) => reportMessage(message, log));
+  events.on("message", ({ message }) => {
+    if (lastMessage) {
+      clearTimeout(lastMessageTimer);
+      lastMessageTimer = undefined;
+
+      reportMessage(lastMessage, log);
+      lastMessage = undefined;
+    }
+
+    lastMessage = message;
+    lastMessageTimer = setTimeout(() => {
+      lastMessageTimer = undefined;
+      if (lastMessage) {
+        reportMessage(lastMessage, log);
+        lastMessage = undefined;
+      }
+    }, 1000);
+  });
+
+  events.on("messagePreviewAvailable", ({ message, url }) => {
+    if (message === lastMessage) {
+      reportMessage(message, log, url);
+      clearTimeout(lastMessageTimer);
+      lastMessage = undefined;
+    }
+  });
 
   events.on("error", ({ error }) => {
     error(error);
