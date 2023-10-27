@@ -78,15 +78,15 @@ export function cliPlugin({ programOptions, events, state }: PluginOptions) {
   });
 
   events.on("error", ({ error }) => {
-    error(error);
+    err(error);
   });
 
   events.on("idpConnectionLost", () => {
-    error("\n🙀 Error polling for SMS/voice messages--is the IdP running?");
+    err("\n🙀 Error polling for SMS/voice messages--is the IdP running?");
   });
 
   events.on("idpConnectionRestored", () => {
-    error("\n🐈 connection to the IdP restored.");
+    err("\n🐈 connection to the IdP restored.");
   });
 
   welcome(programOptions);
@@ -96,7 +96,7 @@ export function cliPlugin({ programOptions, events, state }: PluginOptions) {
     rl.prompt();
   }, 500);
 
-  function error(...args: unknown[]) {
+  function err(...args: unknown[]) {
     console.error.apply(console, args);
     rl.prompt();
   }
