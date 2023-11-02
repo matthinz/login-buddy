@@ -1,4 +1,5 @@
 import chalk from "chalk";
+import * as format from "./format";
 import { EmailMessage, Message, TelephonyMessage } from "../../types";
 
 export function reportMessage(
@@ -23,11 +24,9 @@ function reportEmail(
     message.to.join(","),
     chalk.bold(message.subject),
     getLinksInEmail(message)
-      .map((link) => chalk.blueBright(`   ${link}`))
+      .map((link) => `   ${format.link(link)}`)
       .join("\n"),
-    previewURL
-      ? chalk.blueBright(`\n    Preview: ${previewURL.toString()}`)
-      : ""
+    previewURL ? `\n    Preview: ${format.link(previewURL)}` : ""
   );
 }
 

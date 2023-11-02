@@ -1,5 +1,6 @@
 import chalk from "chalk";
 import * as readline from "node:readline";
+import * as format from "./format";
 
 import {
   CommandEvent,
@@ -167,7 +168,7 @@ Some commands:
 - ${chalk.bold("verify")} to verify the account you just created
 - ${chalk.bold("screenshot")} to take screenshots
 
-We are using ${chalk.blue(`<${baseURL?.toString()}>`)}
+We are using ${format.link(baseURL)}
 (You can change this with the --env option.)
 
 `);
