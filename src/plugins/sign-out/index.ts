@@ -29,6 +29,11 @@ export function signOutPlugin({ browser, events }: PluginOptions) {
           browser
         );
         state.update(nextState);
+
+        await browser.closeAllPagesForHostname(
+          options.baseURL.hostname,
+          frame.page()
+        );
       }
     );
   });
