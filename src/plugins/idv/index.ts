@@ -116,6 +116,7 @@ export function parseOptions(
       "gpo",
       "gpoPartial",
       "mvaTimeout",
+      "pr",
       "throttleGpo",
       "throttlePhone",
       "throttleSsn",
@@ -187,6 +188,8 @@ export function parseOptions(
 
   const barcodeReadError = !!raw.barcodeReadError;
 
+  const state: string | undefined = raw.pr ? "PR" : undefined;
+
   return {
     badId,
     barcodeReadError,
@@ -196,6 +199,7 @@ export function parseOptions(
     mvaTimeout,
     phone,
     ssn,
+    state,
     shouldEnterGpoOtp,
     shouldRequestLetter,
     threatMetrix: threatMetrix as ThreatMetrixResult,

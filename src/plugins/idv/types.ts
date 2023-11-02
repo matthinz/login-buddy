@@ -24,6 +24,7 @@ export type VerifyOptions = {
   throttlePhone: boolean | undefined;
   throttleSsn: boolean | undefined;
   ssn?: string | undefined;
+  state?: string | undefined;
   until?: string;
   uploadUrl?: URL;
   getLinkToHybridFlow?: () => Promise<string | undefined>;

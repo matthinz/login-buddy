@@ -48,7 +48,13 @@ function generateIdYaml<InputState extends {}, State extends InputState>({
       state: "WA",
       state_id_jurisdiction: "WA",
       state_id_number: "mvatimeout",
-    }
+    },
+    options.state
+      ? {
+          state: options.state,
+          state_id_jurisdiction: options.state,
+        }
+      : undefined
   );
 }
 
