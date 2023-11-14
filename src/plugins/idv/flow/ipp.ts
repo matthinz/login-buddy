@@ -65,13 +65,11 @@ export function doInPersonProofing<State extends {}>(
       fromState("issuingState")
     )
 
-    .submit()
-
-    .type('[name="in_person_address[address1]"]', fromState("address1"))
-    .type('[name="in_person_address[address2]"]', fromState("address2"))
-    .type('[name="in_person_address[city]"]', fromState("state"))
-    .select('[name="in_person_address[state]"]', fromState("state"))
-    .type('[name="in_person_address[zipcode]"]', fromState("zip"))
-    .click("label[for=in_person_address_same_address_as_id_true]")
+    .type('[name="state_id[identity_doc_address1]"]', fromState("address1"))
+    .type('[name="state_id[identity_doc_address2]"]', fromState("address2"))
+    .type('[name="state_id[identity_doc_city]"]', fromState("state"))
+    .select('[name="state_id[identity_doc_address_state]"]', fromState("state"))
+    .type('[name="state_id[identity_doc_zipcode]"]', fromState("zip"))
+    .click("label[for=state_id_same_address_as_id_true]")
     .submit();
 }
