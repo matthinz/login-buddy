@@ -123,9 +123,19 @@ export function parseOptions(
     ],
   });
 
-  let threatMetrix = raw.threatMetrix == null ? "pass" : raw.threatMetrix;
-  if (!THREATMETRIX_RESULTS.includes(threatMetrix)) {
-    throw new Error("Invalid value for --threatmetrix");
+  let threatMetrix: ThreatMetrixResult | undefined;
+
+  switch (raw.threatMetrix) {
+    case "no_result":
+    case "pass":
+    case "reject":
+    case "review":
+      threatMetrix = raw.threatMetrix;
+      break;
+    default:
+      if (threatMetrix) {
+        throw new Error("Invalid value for --threatmetrix");
+      }
   }
 
   const inPerson = !!raw.inPerson;
