@@ -37,7 +37,7 @@ export async function resolveOptions(argv: string[]): Promise<ProgramOptions> {
       break;
 
     default:
-      if (/^[a-z0-9_-]$/.test(environment)) {
+      if (/^[a-z0-9_-]+$/.test(environment)) {
         baseURL = new URL(`https://idp.${environment}.identitysandbox.gov`);
         break;
       }
