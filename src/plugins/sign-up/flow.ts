@@ -13,7 +13,7 @@ export const SIGN_UP_FLOW = createFlow<Partial<SignupState>, SignupOptions>()
   .branch(
     ({ options }) => !!options.sp,
 
-    // From an SP: Start at the OIDC Sinatra app
+    // Start from an SP
     (flow) =>
       flow
         .navigateTo(({ options: { sp } }) => {
@@ -22,11 +22,25 @@ export const SIGN_UP_FLOW = createFlow<Partial<SignupState>, SignupOptions>()
           }
           return sp.url;
         })
-        .select("[name=ial]", "2")
-        .submit("form button[type=submit]")
-        // Example Sinatra App is using Login.gov...
+        .branch(
+          async ({ frame, options }) => {
+            const url = new URL(frame.url());
+            return looksLikeDashboard(url, options.baseURL);
+          },
+          // On the dashboard just click sign in
+          (flow) =>
+            flow.submit(
+              'form.button_to[action="/auth/logindotgov"] input[type=submit]'
+            ),
+          // Otherwise, assume OIDC sinatra app
+          (flow) =>
+            flow.select("[name=ial]", "2").submit("form button[type=submit]")
+        )
+
+        // <SP> is using Login.gov...
         .expect("/")
         .click(".usa-button--outline")
+
         // "Create your account"
         .expect("/sign_up/enter_email"),
 
@@ -224,4 +238,9 @@ function generatePhone({
   }
 
   return digits;
+}
+
+function looksLikeDashboard(url: URL, baseURL: URL) {
+  const expectedHost = baseURL.hostname.replace(/^idp\./, "dashboard.");
+  return expectedHost === url.hostname;
 }

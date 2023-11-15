@@ -89,6 +89,7 @@ export function parseOptions(
     alias: {
       backupCodes: ["backup-codes", "use-backup-codes"],
       sms: ["use-sms"],
+      spUrl: ["sp-url"],
       totp: ["use-totp"],
     },
   });

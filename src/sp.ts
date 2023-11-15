@@ -26,7 +26,13 @@ export function resolveSpOptions(
   }
 
   let method: SpMethod = "oidc";
-  let url = raw.spUrl == null ? undefined : new URL(String(raw.spUrl), baseURL);
+  let url: URL | undefined;
+
+  if (typeof raw.spUrl === "string") {
+    url = new URL(raw.spUrl, baseURL);
+  } else if (typeof raw.sp === "string") {
+    url = new URL(raw.sp, baseURL);
+  }
 
   if (raw.saml) {
     method = "saml";
