@@ -23,6 +23,15 @@ export function signUpPlugin({ browser, events, state }: PluginOptions) {
       (await browser.getFrameById(frameId)) ??
       (await browser.tryToReusePage(options.baseURL)).mainFrame();
     await signUp(options, frame, events, state);
+
+    if (options.alsoVerify) {
+      await events.emit("command:verify", {
+        args: [],
+        frameId,
+        programOptions,
+        state,
+      });
+    }
   });
 
   events.on("signup", ({ signup: { email, password, phone, backupCodes } }) => {
@@ -92,6 +101,7 @@ export function parseOptions(
       spUrl: ["sp-url"],
       totp: ["use-totp"],
     },
+    boolean: ["sms", "totp", "verify"],
   });
 
   if (raw.email != null) {
@@ -122,7 +132,10 @@ export function parseOptions(
 
   const until = raw.until == null ? undefined : String(raw.until);
 
+  const alsoVerify = !!raw.verify;
+
   return {
+    alsoVerify,
     baseEmail,
     basePhone,
     baseURL,

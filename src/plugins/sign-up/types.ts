@@ -17,6 +17,8 @@ export type SignupOptions = {
    */
   basePhone: string;
 
+  alsoVerify: boolean;
+
   sp?: {
     method: SpMethod;
     url: URL;

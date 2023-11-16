@@ -58,6 +58,7 @@ Create a new account with a random email address.
 | `--sp`             | Create the account after redirecting from a service provider. Requires [OIDC Sinatra app][oidc-sinatra] running. |
 | `--sms`            | Use SMS for 2 factor authentication                                                                              |
 | `--until <string>` | Stop when the page title or URL contains `<string>`                                                              |
+| `--verify`         | Also verify the identity for this account after signing up.                                                      |
 
 ### Command: `verify`
 
