@@ -5,6 +5,7 @@ import {
   EventHandler,
   MessageEvent,
   MessagePreviewAvailableEvent,
+  NamedCommandEvent,
   SignupEvent,
 } from "./types";
 
@@ -20,6 +21,7 @@ export class EventBus {
     eventName: `command:${CommandName}`,
     event: CommandEvent
   ): Promise<void>;
+  emit(eventName: "command", event: NamedCommandEvent): Promise<void>;
   emit(eventName: "ask", event: AskEvent): Promise<void>;
   emit(eventName: "error", event: ErrorEvent): Promise<void>;
   emit(eventName: "message", event: MessageEvent): Promise<void>;
@@ -47,6 +49,7 @@ export class EventBus {
     }
   }
 
+  on(eventName: "command", handler: EventHandler<NamedCommandEvent>): void;
   on<CommandName extends string>(
     eventName: `command:${CommandName}`,
     handler: EventHandler<CommandEvent>

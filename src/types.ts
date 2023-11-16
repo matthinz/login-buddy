@@ -120,6 +120,10 @@ export type CommandEvent = {
   state: StateManager<GlobalState>;
 };
 
+export type NamedCommandEvent = CommandEvent & {
+  command: string;
+};
+
 export type ErrorEvent = {
   error: any;
 };

@@ -5,6 +5,7 @@ import * as format from "./format";
 import {
   CommandEvent,
   Message,
+  NamedCommandEvent,
   PluginOptions,
   ProgramOptions,
 } from "../../types";
@@ -36,10 +37,15 @@ export function cliPlugin({ programOptions, events, state }: PluginOptions) {
       state,
     };
 
-    currentExecution = events.emit(`command:${command}`, event).finally(() => {
-      currentExecution = undefined;
-      rl.prompt();
-    });
+    currentExecution = Promise.all([
+      events.emit(`command:${command}`, event),
+      events.emit("command", { ...event, command } as NamedCommandEvent),
+    ])
+      .then(() => {})
+      .finally(() => {
+        currentExecution = undefined;
+        rl.prompt();
+      });
   });
 
   rl.on("close", () => {
