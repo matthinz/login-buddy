@@ -23,9 +23,16 @@ export function enterSsn<InputState extends {}, State extends InputState>(
         "[name=mock_profiling_result]"
       );
       if (!$mockProfilingResult) {
-        if (options.threatMetrix && options.threatMetrix !== "no_result") {
+        if (
+          options.threatMetrix !== "no_result" &&
+          options.threatMetrix != null
+        ) {
           throw new Error("ThreatMetrix mock not found on the page");
         }
+        return state;
+      }
+
+      if (options.threatMetrix == null) {
         return state;
       }
 
