@@ -42,6 +42,12 @@ export async function resolveOptions(argv: string[]): Promise<ProgramOptions> {
         break;
       }
 
+      // Allow passing a URL in as environment
+      try {
+        baseURL = new URL(environment);
+        break;
+      } catch (err) {}
+
       throw new Error(`Invalid value for --env: ${environment}`);
   }
 
