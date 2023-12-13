@@ -91,31 +91,36 @@ export const VERIFY_FLOW = createFlow<InputState, VerifyOptions>()
           .submit('form[action="/verify/enter_password"] button[type=submit]')
 
           // Handle OTP before and after personal key
-          .when(optionSet("shouldEnterGpoOtp"), (flow) =>
+          .when(optionSet("shouldRequestLetter"), (flow) =>
             flow.when(atPath("/verify/by_mail/letter_enqueued"), (flow) =>
-              flow.then(tryToCaptureGpoOtp).then(enterGpoOtp)
+              flow.then(tryToCaptureGpoOtp)
             )
           )
-
-          // "Save your personal key"
-          .expect("/verify/personal_key")
-
-          .evaluate(async ({ frame, state }) => {
-            const personalKey = (await frame.evaluate(() => {
-              // @ts-ignore
-              return document.querySelector<HTMLElement>(".personal-key-block")
-                .innerText;
-            })) as string;
-            return { ...state, personalKey };
-          })
-
-          .click("label[for=acknowledgment]")
-          .submit()
-
           .when(optionSet("shouldEnterGpoOtp"), (flow) =>
-            flow.when(atPath("/verify/by_mail/letter_enqueued"), (flow) =>
-              flow.then(tryToCaptureGpoOtp).then(enterGpoOtp)
-            )
+            flow.navigateTo("/verify/by_mail/enter_code").then(enterGpoOtp)
+          )
+
+          .when(
+            async ({ options }) =>
+              !options.shouldRequestLetter || options.shouldEnterGpoOtp,
+            // Branch: We're either done with GPO flow or we didn't enter it
+            (flow) =>
+              flow
+                // "Save your personal key"
+                .expect("/verify/personal_key")
+
+                .evaluate(async ({ frame, state }) => {
+                  const personalKey = (await frame.evaluate(() => {
+                    // @ts-ignore
+                    return document.querySelector<HTMLElement>(
+                      ".personal-key-block"
+                    ).innerText;
+                  })) as string;
+                  return { ...state, personalKey };
+                })
+
+                .click("label[for=acknowledgment]")
+                .submit()
           )
       )
   );
