@@ -113,6 +113,7 @@ export function parseOptions(
       "badId",
       "badPhone",
       "barcodeReadError",
+      "fraud",
       "gpo",
       "gpoPartial",
       "mvaTimeout",
@@ -136,6 +137,10 @@ export function parseOptions(
       if (threatMetrix) {
         throw new Error("Invalid value for --threatmetrix");
       }
+  }
+
+  if (raw.fraud) {
+    threatMetrix = "reject";
   }
 
   const inPerson = !!raw.inPerson;

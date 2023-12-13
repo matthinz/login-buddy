@@ -68,6 +68,7 @@ Take the account created via `signup` through the Identity Verification (IdV) fl
 | ----------------------------------------------------- | ----------------------------------------------------------------------------- |
 | `--bad-id`                                            | Use a bad identity document.                                                  |
 | `--bad-phone`                                         | Use a phone number that will fail during phone verification                   |
+| `--fraud`                                             | Alias for `--threatMetrix reject`                                             |
 | `--gpo`                                               | Verify using GPO (the "send me a letter" flow).                               |
 | `--gpo-partial`                                       | Verify using GPO, but don't enter the OTP.                                    |
 | `--mva-timeout`                                       | Simulate a timeout talking to AAMVA                                           |
