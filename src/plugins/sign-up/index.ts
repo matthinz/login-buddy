@@ -13,25 +13,74 @@ import { SIGN_UP_FLOW } from "./flow";
 import { SignupOptions, SignupState } from "./types";
 import { EventBus } from "../../events";
 import { untilPathIncludes } from "../../dsl";
+import { PuppeteerPageImpl } from "../../dsl/v3/page";
+
+import * as NUGGETS from "./nuggets";
+import { DippedNugget, dipNuggets } from "../../dsl/v3";
 
 export { SignupState } from "./types";
 
-export function signUpPlugin({ browser, events, state }: PluginOptions) {
+export function signUpPlugin({ browser, events }: PluginOptions) {
+  console.error(NUGGETS);
+  console.error(Object.values(NUGGETS));
+
   events.on("command:signup", async ({ args, frameId, programOptions }) => {
     const options = parseOptions(args, programOptions);
     const frame =
       (await browser.getFrameById(frameId)) ??
       (await browser.tryToReusePage(options.baseURL)).mainFrame();
-    await signUp(options, frame, events, state);
 
-    if (options.alsoVerify) {
-      await events.emit("command:verify", {
-        args: [],
-        frameId,
-        programOptions,
-        state,
-      });
+    const page = new PuppeteerPageImpl(frame);
+
+    const initialState = {
+      email: generateEmail(options),
+    };
+
+    let next: DippedNugget<unknown> | undefined = {
+      name: "initial",
+      apply: () => Promise.resolve(initialState),
+    };
+
+    while (true) {
+      if (!next) {
+        break;
+      }
+
+      console.error("Apply %s", next.name);
+
+      const state: unknown = await next.apply();
+      console.error("--> new state:", state);
+      const context = { state, page };
+      const dipped = await dipNuggets(Object.values(NUGGETS), context);
+
+      switch (dipped.length) {
+        case 0:
+          next = undefined;
+          break;
+
+        case 1:
+          next = dipped[0];
+          break;
+
+        default:
+          throw new Error(
+            `Multiple nuggets can apply: ${dipped
+              .map((d) => d.name)
+              .join(", ")}`
+          );
+      }
     }
+
+    // await signUp(options, frame, events, state);
+
+    // if (options.alsoVerify) {
+    //   await events.emit("command:verify", {
+    //     args: [],
+    //     frameId,
+    //     programOptions,
+    //     state,
+    //   });
+    // }
   });
 
   events.on("signup", ({ signup: { email, password, phone, backupCodes } }) => {
@@ -143,4 +192,23 @@ export function parseOptions(
     twoFactor: twoFactor[0] ?? "totp",
     until,
   };
+}
+
+function generateEmail(options: SignupOptions): string {
+  const [name, ...rest] = options.baseEmail.split("@");
+  const now = new Date();
+
+  return [
+    name,
+    "+",
+    now.getUTCFullYear(),
+    String(now.getUTCMonth() + 1).padStart(2, "0"),
+    String(now.getUTCDate()).padStart(2, "0"),
+    "-",
+    String(now.getUTCHours()).padStart(2, "0"),
+    String(now.getUTCMinutes()).padStart(2, "0"),
+    String(now.getUTCSeconds()).padStart(2, "0"),
+    "@",
+    rest.join("@"),
+  ].join("");
 }

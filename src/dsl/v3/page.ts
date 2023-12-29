@@ -1,5 +1,6 @@
 import { ElementHandle, Frame } from "puppeteer";
-import { Page } from "./types";
+import { Page, PrimitiveType } from "./types";
+import { Url } from "url";
 
 const NOOP = () => {};
 const RESOLVED_PROMISE = Promise.resolve();
@@ -15,10 +16,16 @@ type PageState = {
  * An implementation of `Page` that drives a browser via Puppeteer.
  */
 export class PuppeteerPageImpl implements Page, Promise<void> {
-  private readonly prev: Promise<PageState>;
+  readonly #prev: Promise<PageState>;
 
   constructor(prev: Frame | Promise<PageState>) {
-    this.prev = prev instanceof Frame ? Promise.resolve({ frame: prev }) : prev;
+    if (typeof prev === "object" && "then" in prev) {
+      this.#prev = prev;
+    } else {
+      this.#prev = Promise.resolve({
+        frame: prev,
+      });
+    }
   }
 
   click(selector: string): Promise<void> & Page {
@@ -28,8 +35,66 @@ export class PuppeteerPageImpl implements Page, Promise<void> {
     });
   }
 
+  clickLinkTo(urlOrPath: string | URL): Promise<void> & Page {
+    return this.derive(async (frame) => {
+      const pageURL = new URL(frame.url());
+      const urlToClick = new URL(urlOrPath, pageURL);
+
+      const links = await frame.$$("a[href]");
+
+      const candidates = (
+        await Promise.all(
+          links.map(async (el) => {
+            const hrefProperty = await el.getProperty("href");
+            const href = String(await hrefProperty.jsonValue());
+            const link = new URL(href, pageURL);
+
+            if (link.hostname !== urlToClick.hostname) {
+              return;
+            }
+
+            if (link.pathname !== urlToClick.pathname) {
+              return;
+            }
+
+            return { el, link };
+          })
+        )
+      ).filter(Boolean) as unknown as {
+        el: ElementHandle<HTMLLinkElement>;
+        link: URL;
+      }[];
+
+      if (candidates.length === 0) {
+        throw new Error(`No links to '${urlOrPath}' found on page.`);
+      }
+
+      if (candidates.length > 1) {
+        candidates.sort((a, b) => score(b.link) - score(a.link));
+      }
+
+      const { el } = candidates[0];
+
+      await el.click();
+
+      await frame.waitForNavigation();
+
+      function score(url: URL): number {
+        return ["hostname", "pathname", "search", "hash"].filter(
+          (prop) => (url as any)[prop] === (urlToClick as any)[prop]
+        ).length;
+      }
+    });
+  }
+
   goto(url: string | URL): Promise<void> & Page {
     return this.derive((frame) => frame.goto(url.toString()).then(NOOP));
+  }
+
+  async selectorExists(selector: string): Promise<boolean> {
+    const { frame } = await this.#prev;
+    const el = await frame.$(selector);
+    return !!el;
   }
 
   setValue(selector: string, value: string | number): Promise<void> & Page {
@@ -39,42 +104,33 @@ export class PuppeteerPageImpl implements Page, Promise<void> {
   }
 
   setValues(values: {
-    [selector: string]: string | number;
+    [selector: string]: PrimitiveType;
   }): Promise<void> & Page {
-    const selectors = Object.keys(values);
-
-    return this.derive((frame) =>
-      selectors.reduce<Promise<string | undefined>>(
-        (promise, selector) =>
-          promise.then(async (lastSelector) => {
-            const el = await frame.$(selector);
-            const nodeName = await (
-              await el?.getProperty("nodeName")
-            )?.jsonValue();
-
-            // We will use different methods to write values based on the kind
-            // of things we're writing to.
-
-            switch (nodeName) {
-              case "SELECT":
-                await frame.select(selector, String(values[selector]));
-                break;
-              default:
-                await clearInput(frame, selector);
-                await frame.type(selector, String(values[selector]));
-                break;
-            }
-
-            return selector;
-          }),
-        Promise.resolve(undefined)
-      )
+    return this.derive(
+      async (frame) => await setValuesBySelector(frame, values)
     );
+  }
+
+  setValuesByName(values: {
+    [name: string]: PrimitiveType;
+  }): Promise<void> & Page {
+    const valuesBySelector: { [selector: string]: PrimitiveType } = {};
+
+    Object.keys(values).forEach((name) => {
+      const selector = `[name="${escapeName(name)}"]`;
+      valuesBySelector[selector] = values[name];
+    });
+
+    return this.setValues(valuesBySelector);
+
+    function escapeName(name: string): string {
+      return name;
+    }
   }
 
   submit(selector?: string | undefined): Promise<void> & Page {
     return new PuppeteerPageImpl(
-      this.prev.then(async ({ frame, lastSelector }) => {
+      this.#prev.then(async ({ frame, lastSelector }) => {
         let elementToClick: ElementHandle<Element> | null;
 
         if (selector) {
@@ -107,7 +163,7 @@ export class PuppeteerPageImpl implements Page, Promise<void> {
   }
 
   url(): Promise<URL> {
-    return this.prev.then(({ frame }) => new URL(frame.url()));
+    return this.#prev.then(({ frame }) => new URL(frame.url()));
   }
 
   then<TResult1 = void, TResult2 = never>(
@@ -120,7 +176,7 @@ export class PuppeteerPageImpl implements Page, Promise<void> {
       | null
       | undefined
   ): Promise<TResult1 | TResult2> {
-    return this.prev.then(NOOP).then(onfulfilled, onrejected);
+    return this.#prev.then(NOOP).then(onfulfilled, onrejected);
   }
   catch<TResult = never>(
     onrejected?:
@@ -128,10 +184,10 @@ export class PuppeteerPageImpl implements Page, Promise<void> {
       | null
       | undefined
   ): Promise<void | TResult> {
-    return this.prev.then(NOOP).catch(onrejected);
+    return this.#prev.then(NOOP).catch(onrejected);
   }
   finally(onfinally?: (() => void) | null | undefined): Promise<void> {
-    return this.prev.then(NOOP).finally(onfinally);
+    return this.#prev.then(NOOP).finally(onfinally);
   }
 
   [Symbol.toStringTag] = RESOLVED_PROMISE[Symbol.toStringTag];
@@ -140,7 +196,7 @@ export class PuppeteerPageImpl implements Page, Promise<void> {
     func: (frame: Frame) => Promise<void | string>
   ): Page & Promise<void> {
     return new PuppeteerPageImpl(
-      this.prev.then(async ({ frame, lastSelector }) => {
+      this.#prev.then(async ({ frame, lastSelector }) => {
         const newLastSelector = await func(frame);
         return {
           frame,
@@ -184,5 +240,90 @@ async function findSubmitButtonFor(
       return;
     }
     return await (await el.getProperty("nodeName")).jsonValue();
+  }
+}
+
+function setValuesBySelector(
+  frame: Frame,
+  values: { [selector: string]: PrimitiveType }
+): Promise<void> {
+  const selectors = Object.keys(values);
+  return selectors.reduce<Promise<void>>(
+    (p, selector) =>
+      p.then(async () => setValueBySelector(frame, selector, values[selector])),
+    Promise.resolve()
+  );
+}
+
+async function setValueBySelector(
+  frame: Frame,
+  selector: string,
+  value: PrimitiveType
+): Promise<void> {
+  const elements = await frame.$$(selector);
+
+  if (elements.length === 0) {
+    throw new Error(`No elements found with selector '${selector}'`);
+  }
+
+  const el =
+    elements.length === 1
+      ? elements[0]
+      : disambiguateMultipleElements(elements);
+
+  const nodeNameProperty = await el.getProperty("nodeName");
+  const nodeName = await nodeNameProperty.jsonValue();
+
+  switch (nodeName) {
+    case "SELECT":
+      await setSelectValue(el as ElementHandle<HTMLSelectElement>);
+      break;
+
+    case "INPUT":
+      if (await isInputOfType("checkbox", el)) {
+        await setCheckboxValue(el);
+        return;
+      }
+
+      if (await isInputOfType("hidden", el)) {
+      }
+
+      await el.evaluate((el) => {
+        (el as HTMLInputElement).value = "";
+      });
+      await el.type(String(value));
+      break;
+
+    default:
+      throw new Error(`Cannot set the value of ${nodeName}`);
+  }
+
+  async function setCheckboxValue(el: ElementHandle<HTMLInputElement>) {}
+
+  async function setSelectValue(el: ElementHandle<HTMLSelectElement>) {}
+
+  async function setTextValue(el: ElementHandle<HTMLInputElement>) {}
+
+  async function isInputOfType(
+    type: string,
+    el: ElementHandle<Element>
+  ): Promise<boolean> {
+    const tagName = String(
+      await (await el.getProperty("tagName")).jsonValue()
+    ).toLowerCase();
+
+    if (tagName !== "input") {
+      return false;
+    }
+
+    const actualType = String(await (await el.getProperty("type")).jsonValue());
+
+    return type.toLowerCase() === actualType.toLowerCase();
+  }
+
+  function disambiguateMultipleElements(
+    elements: ElementHandle<Element>[]
+  ): ElementHandle<Element> {
+    throw new Error("Function not implemented.");
   }
 }
