@@ -242,5 +242,5 @@ function generatePhone({
 
 function looksLikeDashboard(url: URL, baseURL: URL) {
   const expectedHost = baseURL.hostname.replace(/^idp\./, "dashboard.");
-  return expectedHost === url.hostname;
+  return expectedHost === url.hostname && expectedHost !== "localhost";
 }
