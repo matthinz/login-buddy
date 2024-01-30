@@ -7,7 +7,7 @@ import {
   optionNotSet,
 } from "../../../dsl";
 import { doDocumentCapture } from "./document-capture";
-import { doInPersonProofing } from "./ipp";
+import { doInPersonProofing, switchToInPersonProofing } from "./ipp";
 import { enterSsn } from "./ssn";
 import { enterPhone } from "./phone";
 import { enterGpoOtp, tryToCaptureGpoOtp } from "./gpo";
@@ -51,11 +51,24 @@ export const VERIFY_FLOW = createFlow<InputState, VerifyOptions>()
         .submit()
   )
 
-  .then(uploadId)
-
-  // NOTE: Pause for processing documents
-
-  .when(optionSet("inPerson"), doInPersonProofing)
+  .when(atPath("/verify/how_to_verify"), (flow) =>
+    flow.branch(
+      optionSet("inPerson"),
+      (flow) =>
+        flow
+          .click("label[for=idv_how_to_verify_form_selection_ipp]")
+          .submit()
+          .then(doInPersonProofing),
+      (flow) =>
+        flow
+          .click("label[for=idv_how_to_verify_form_selection_remote]")
+          .submit()
+          .then(uploadId)
+          .when(optionSet("inPerson"), (flow) =>
+            flow.then(switchToInPersonProofing).then(doInPersonProofing)
+          )
+    )
+  )
 
   // "Enter your Social Security number"
   .then(enterSsn)

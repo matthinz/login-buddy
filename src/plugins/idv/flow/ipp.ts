@@ -1,6 +1,14 @@
 import { FlowBuilderInterface, fromState, selectorFound } from "../../../dsl";
 import { VerifyOptions } from "../types";
 
+export function switchToInPersonProofing<State extends {}>(
+  flow: FlowBuilderInterface<State, State, VerifyOptions>
+): FlowBuilderInterface<State, State, VerifyOptions> {
+  return flow
+    .waitUntil(selectorFound("form .usa-button--outline"))
+    .click("form .usa-button--outline");
+}
+
 export function doInPersonProofing<State extends {}>(
   flow: FlowBuilderInterface<State, State, VerifyOptions>
 ): FlowBuilderInterface<State, State, VerifyOptions> {
@@ -17,9 +25,6 @@ export function doInPersonProofing<State extends {}>(
     .generate("state", () => "OH")
     .generate("zip", () => "45454")
 
-    .waitUntil(selectorFound("form .usa-button--outline"))
-
-    .click("form .usa-button--outline")
     .submit(".usa-button")
 
     .type(
