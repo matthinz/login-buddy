@@ -51,23 +51,26 @@ export const VERIFY_FLOW = createFlow<InputState, VerifyOptions>()
         .submit()
   )
 
-  .when(atPath("/verify/how_to_verify"), (flow) =>
-    flow.branch(
-      optionSet("inPerson"),
-      (flow) =>
-        flow
-          .click("label[for=idv_how_to_verify_form_selection_ipp]")
-          .submit()
-          .then(doInPersonProofing),
-      (flow) =>
-        flow
-          .click("label[for=idv_how_to_verify_form_selection_remote]")
-          .submit()
-          .then(uploadId)
-          .when(optionSet("inPerson"), (flow) =>
-            flow.then(switchToInPersonProofing).then(doInPersonProofing)
-          )
-    )
+  .branch(
+    atPath("/verify/how_to_verify"),
+    (flow) =>
+      flow.branch(
+        optionSet("inPerson"),
+        (flow) =>
+          flow
+            .click("label[for=idv_how_to_verify_form_selection_ipp]")
+            .submit()
+            .then(doInPersonProofing),
+        (flow) =>
+          flow
+            .click("label[for=idv_how_to_verify_form_selection_remote]")
+            .submit()
+            .then(uploadId)
+            .when(optionSet("inPerson"), (flow) =>
+              flow.then(switchToInPersonProofing).then(doInPersonProofing)
+            )
+      ),
+    (flow) => flow.then(uploadId)
   )
 
   // "Enter your Social Security number"
