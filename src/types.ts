@@ -141,6 +141,10 @@ export type SignupEvent = {
   signup: SignupState;
 };
 
+export type VerifiedEvent = SignupEvent & {
+  personalKey: string;
+};
+
 export type EventHandler<EventType> = (
   event: EventType
 ) => void | Promise<void>;

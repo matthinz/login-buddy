@@ -78,7 +78,7 @@ async function verify(
     phone: options.phone ?? lastSignup.phone ?? DEFAULT_PHONE,
   };
 
-  await VERIFY_FLOW.run({
+  const result = await VERIFY_FLOW.run({
     hooks: untilPathIncludes(options.until),
     options: {
       ...options,
@@ -90,6 +90,14 @@ async function verify(
     frame,
     state: inputState,
   });
+
+  const { personalKey } = result.state as Record<string, unknown>;
+  if (personalKey) {
+    events.emit("verified", {
+      signup: lastSignup,
+      personalKey: String(personalKey),
+    });
+  }
 }
 
 export function parseOptions(

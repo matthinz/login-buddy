@@ -96,6 +96,11 @@ export function cliPlugin({ programOptions, events, state }: PluginOptions) {
     err("\n🐈 connection to the IdP restored.");
   });
 
+  events.on("verified", ({ personalKey }) => {
+    log("✅ Verified");
+    log("🔑 Personal key: %s", personalKey);
+  });
+
   welcome(programOptions);
 
   // Aesthetic thing: clear the fetch() api warning

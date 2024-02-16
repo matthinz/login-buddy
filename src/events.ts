@@ -7,6 +7,7 @@ import {
   MessagePreviewAvailableEvent,
   NamedCommandEvent,
   SignupEvent,
+  VerifiedEvent,
 } from "./types";
 
 /**
@@ -30,6 +31,7 @@ export class EventBus {
     event: MessagePreviewAvailableEvent
   ): Promise<void>;
   emit(eventName: "signup", event: SignupEvent): Promise<void>;
+  emit(eventName: "verified", event: VerifiedEvent): Promise<void>;
   emit(eventName: "idpConnectionLost"): Promise<void>;
   emit(eventName: "idpConnectionRestored"): Promise<void>;
   async emit<EventType>(eventName: string, event?: EventType): Promise<void> {
@@ -62,6 +64,7 @@ export class EventBus {
     handler: EventHandler<MessagePreviewAvailableEvent>
   ): void;
   on(eventName: "signup", handler: EventHandler<SignupEvent>): void;
+  on(eventName: "verified", handler: EventHandler<VerifiedEvent>): void;
   on(eventName: "idpConnectionLost", handler: () => void): void;
   on(eventName: "idpConnectionRestored", handler: () => void): void;
   on<EventType>(
