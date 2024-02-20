@@ -70,7 +70,12 @@ export const VERIFY_FLOW = createFlow<InputState, VerifyOptions>()
               flow.then(switchToInPersonProofing).then(doInPersonProofing)
             )
       ),
-    (flow) => flow.then(uploadId)
+    (flow) =>
+      flow
+        .then(uploadId)
+        .when(optionSet("inPerson"), (flow) =>
+          flow.then(switchToInPersonProofing).then(doInPersonProofing)
+        )
   )
 
   // "Enter your Social Security number"
