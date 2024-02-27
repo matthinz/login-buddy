@@ -39,7 +39,7 @@ export function signOutPlugin({ browser, events }: PluginOptions) {
   });
 }
 
-async function signOut(
+export async function signOut(
   state: GlobalState,
   { baseURL, cleanUp, completely }: SignOutOptions,
   frame: Frame,

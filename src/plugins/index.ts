@@ -7,6 +7,7 @@ export { otpPlugin } from "./otp";
 export { overAndOverPlugin } from "./over-and-over";
 export { phonePlugin } from "./phone";
 export { resetPlugin } from "./reset";
+export { resetPasswordPlugin } from "./reset-password";
 export { screenshotPlugin } from "./screenshot";
 export { signOutPlugin } from "./sign-out";
 export { signUpPlugin } from "./sign-up";
