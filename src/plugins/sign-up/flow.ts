@@ -1,6 +1,6 @@
 import totp from "totp-generator";
 
-import { createFlow, selectorFound } from "../../dsl";
+import { atPath, createFlow, selectorFound } from "../../dsl";
 import { SignupOptions, SignupState } from "./types";
 
 const DEFAULT_PASSWORD = "reallygoodpassword";
@@ -93,6 +93,10 @@ export const SIGN_UP_FLOW = createFlow<Partial<SignupState>, SignupOptions>()
   )
 
   .submit("button[type=submit]")
+
+  .when(atPath("/login/piv_cac_recommended"), (flow) =>
+    flow.submit(".button_to  .usa-button--unstyled")
+  )
 
   .expect("/authentication_methods_setup")
 
