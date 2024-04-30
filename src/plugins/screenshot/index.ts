@@ -11,13 +11,10 @@ const LANGUAGES_BY_CODE = {
 } as const;
 
 type LanguageCode = keyof typeof LANGUAGES_BY_CODE;
-type LanguageName = typeof LANGUAGES_BY_CODE[LanguageCode];
 
-const LANGUAGES = Object.values(LANGUAGES_BY_CODE) as LanguageName[];
 const LANGUAGE_CODES = Object.keys(LANGUAGES_BY_CODE) as LanguageCode[];
 
 // These tweaks applied when taking screenshots.
-// This array is passed to Page.evaluate(), so it needs to be
 const TWEAKS = [
   {
     path: "^/(en|fr|es)/verify/doc_auth/ssn$",
@@ -29,6 +26,9 @@ export type ScreenshotOptions = {
   before: boolean;
   html: boolean;
   name: string;
+  en: boolean;
+  es: boolean;
+  fr: boolean;
 };
 
 type ScreenshotSet = { [key in LanguageCode]: string };
@@ -43,19 +43,27 @@ export function screenshotPlugin({ browser, events }: PluginOptions) {
 
 function parseOptions(args: string[]): ScreenshotOptions {
   const raw = getopts(args, {
-    boolean: ["before", "html"],
+    boolean: ["before", "html", "en", "fr", "es"],
   });
+
+  let { en, es, fr } = raw;
+  if (!(en || es || fr)) {
+    en = es = fr = true;
+  }
 
   return {
     before: !!raw.before,
     name: raw._.join(" ").trim(),
     html: !!raw.html,
+    en,
+    es,
+    fr,
   };
 }
 
 async function screenshot(
   browser: BrowserHelper,
-  { before, html, name }: ScreenshotOptions
+  { before, html, name, ...options }: ScreenshotOptions
 ) {
   const page = await browser.activePage();
   if (!page) {
@@ -74,7 +82,13 @@ async function screenshot(
           .toLowerCase()
       : name;
 
-  const screenshots = await LANGUAGE_CODES.reduce<
+  const languageCodes = [
+    options.en && "en",
+    options.es && "es",
+    options.fr && "fr",
+  ].filter(Boolean) as LanguageCode[];
+
+  const screenshots = await languageCodes.reduce<
     Promise<Partial<ScreenshotSet>>
   >(
     (promise, lang) =>
@@ -87,8 +101,10 @@ async function screenshot(
   );
 
   if (originalUrl) {
-    console.log("restore to %s", originalUrl);
-    await page.goto(originalUrl.toString());
+    if (page.url() !== originalUrl.toString()) {
+      console.log("restore to %s", originalUrl);
+      await page.goto(originalUrl.toString());
+    }
   }
 
   if (html) {
@@ -143,18 +159,22 @@ async function takeScreenshot(
   lang: LanguageCode,
   before: boolean
 ): Promise<string> {
-  const url = await page.evaluate((lang): string | undefined => {
-    const a = document.querySelector<HTMLAnchorElement>(
-      `.language-picker a[lang=${lang}]`
-    );
-    return a ? a.href.toString() : undefined;
-  }, lang);
+  const pageLang = await page.evaluate(() => document.documentElement.lang);
 
-  if (!url) {
-    throw new Error(`Could not find URL for language ${lang}`);
+  if (pageLang !== lang) {
+    const url = await page.evaluate((lang): string | undefined => {
+      const a = document.querySelector<HTMLAnchorElement>(
+        `.language-picker a[lang=${lang}]`
+      );
+      return a ? a.href.toString() : undefined;
+    }, lang);
+
+    if (!url) {
+      throw new Error(`Could not find URL for language ${lang}`);
+    }
+
+    await page.goto(url);
   }
-
-  await page.goto(url);
 
   let after = false;
 
