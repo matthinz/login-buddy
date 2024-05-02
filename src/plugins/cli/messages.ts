@@ -35,12 +35,20 @@ function reportTelephonyMessage(
   log: (...args: unknown[]) => void
 ) {
   const emoji = message.type === "sms" ? "💬" : "☎️";
+
+  let { body } = message;
+
+  if (message.type === "voice") {
+    // Clean up voice XML a little to make it easier to read
+    body = body.replace(/\s*</g, "\n<");
+  }
+
   log(
     chalk.dim("\n%s New %s message to %s: %s"),
     emoji,
     message.type,
     message.to.join(","),
-    message.body
+    body
   );
 }
 
