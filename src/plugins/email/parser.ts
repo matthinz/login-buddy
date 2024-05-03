@@ -4,7 +4,7 @@
 import { parseContentType } from "./mime/content-type";
 import { parseHeadersAndBody } from "./mime/headers";
 import { createMultipartParser } from "./mime/multipart";
-import { Header, MIMEChunk } from "./mime/types";
+import { ContentType, Header, MIMEChunk } from "./mime/types";
 
 export type Message = {
   messageId: string;
@@ -77,49 +77,52 @@ function getBodyMIMEChunks(
   let chunks: MIMEChunk[] | undefined;
   let remainder: string | undefined;
 
-  if (
-    contentType.name === "multipart/related" ||
-    contentType.name === "multipart/alternative"
-  ) {
-    const { boundary } = contentType.options;
-    if (!boundary) {
-      throw new Error("multipart without boundary");
-    }
-    const parser = createMultipartParser(boundary);
-    [chunks, remainder] = parser(body);
-  } else {
+  if (!isMultipartContentType(contentType)) {
     throw new Error("Not implemented: non-multipart bodies");
   }
 
-  let bodyChunks: MIMEChunk[];
+  [chunks, remainder] = parseMultipartBody(body, contentType);
 
-  if (contentType.name === "multipart/related") {
-    // We need to pick the chunks that actually represent the body
-    // So this might be a text/html, text/plain or multipart/alternative
+  // Not all chunks actually represent the body of the email.
+  // We are looking for text or HTML.
 
-    const bestChunk = chunks.find((c) =>
-      ["text/plain", "text/html", "multipart/alternative"].includes(
-        c.contentType.name
-      )
-    );
+  const bodyChunks = chunks.filter((c) =>
+    ["text/plain", "text/html"].includes(c.contentType.name)
+  );
 
-    if (!bestChunk) {
-      throw new Error("no best chunk to use");
-    }
-
-    if (bestChunk.contentType.name === "multipart/alternative") {
-      const { boundary } = bestChunk.contentType.options;
-      if (!boundary) {
-        throw new Error("multipart chunk without a boundary");
-      }
-      const parser = createMultipartParser(boundary);
-      [bodyChunks] = parser(bestChunk.body.toString("utf-8"));
-    } else {
-      bodyChunks = [bestChunk];
-    }
-  } else {
-    bodyChunks = chunks;
+  if (bodyChunks.length === 0) {
+    throw new Error("No body chunks");
   }
 
   return [bodyChunks, remainder];
+}
+
+function isMultipartContentType(contentType: ContentType): boolean {
+  return /^multipart\//.test(contentType.name);
+}
+
+function parseMultipartBody(
+  body: string | Buffer,
+  contentType: ContentType
+): [MIMEChunk[], string] {
+  const { boundary } = contentType.options;
+  if (!boundary) {
+    throw new Error("multipart without boundary");
+  }
+  const parser = createMultipartParser(boundary);
+  const [chunks, remainder] = parser(body.toString("utf-8"));
+
+  const expandedChunks = chunks.reduce<MIMEChunk[]>((result, chunk) => {
+    if (!isMultipartContentType(chunk.contentType)) {
+      result.push(chunk);
+      return result;
+    }
+
+    const [subchunks] = parseMultipartBody(chunk.body, chunk.contentType);
+    result.push(...subchunks);
+
+    return result;
+  }, []);
+
+  return [expandedChunks, remainder];
 }
