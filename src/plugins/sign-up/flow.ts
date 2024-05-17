@@ -39,10 +39,7 @@ export const SIGN_UP_FLOW = createFlow<Partial<SignupState>, SignupOptions>()
 
         // <SP> is using Login.gov...
         .expect("/")
-        .click(".usa-button--outline")
-
-        // "Create your account"
-        .expect("/sign_up/enter_email"),
+        .navigateTo("/sign_up/enter_email"),
 
     // Not from an SP: Just start at the "enter email" screen
     (flow) => flow.navigateTo("/sign_up/enter_email")
