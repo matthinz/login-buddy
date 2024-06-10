@@ -1,12 +1,14 @@
 import { Context, Nugget, NuggetProbe } from "./types";
 
+export * from "./probes";
+
 export function createNugget<T>(
   name: string,
-  probe: NuggetProbe<T>
+  ...probes: NuggetProbe<T>[]
 ): Nugget<T> {
   return {
     name,
-    probe,
+    probe: composeProbes(...probes),
   };
 }
 

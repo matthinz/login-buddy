@@ -32,6 +32,13 @@ export class PuppeteerPageImpl implements Page, Promise<void> {
     return this.derive((frame) => frame.goto(url.toString()).then(NOOP));
   }
 
+  selectorExists(selector: string): Promise<boolean> {
+    return this.prev.then(async ({ frame }) => {
+      const $el = await frame.$(selector);
+      return !!$el;
+    });
+  }
+
   setValue(selector: string, value: string | number): Promise<void> & Page {
     return this.setValues({
       [selector]: value,
