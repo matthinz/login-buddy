@@ -1,5 +1,6 @@
 import getopts from "getopts";
 import fs from "node:fs/promises";
+import path from "node:path";
 import { Page } from "puppeteer";
 import { BrowserHelper } from "../../browser";
 import { PluginOptions } from "../../types";
@@ -17,10 +18,14 @@ const LANGUAGE_CODES = Object.keys(LANGUAGES_BY_CODE) as LanguageCode[];
 // These tweaks applied when taking screenshots.
 const TWEAKS = [
   {
-    path: "^/(en|fr|es)/verify/doc_auth/ssn$",
+    when: (url: URL) => url.pathname.endsWith("/verify/ssn"),
     remove: "[role=status].usa-alert--info",
   },
-];
+  {
+    when: (url: URL) => url.pathname.endsWith("/verify/ssn"),
+    hide: 'form[action*="/verify/ssn"] lg-password-toggle + div',
+  },
+] as const;
 
 export type ScreenshotOptions = {
   before: boolean;
@@ -113,17 +118,32 @@ async function screenshot(
 }
 
 async function applyTweaksToPage(page: Page) {
-  await page.evaluate((TWEAKS) => {
-    TWEAKS.forEach(({ path, remove }) => {
-      const atPath = new RegExp(path).test(window.location.pathname);
-      if (!atPath) {
-        return;
+  const url = new URL(page.url());
+
+  type Tweak =
+    | {
+        remove: string;
+        hide?: string | undefined;
+      }
+    | { hide: string; remove?: string | undefined };
+
+  const tweaksToApply: Tweak[] = TWEAKS.filter(({ when }) => when(url)).map(
+    ({ when, ...rest }) => rest
+  );
+
+  await page.evaluate((tweaksToApply) => {
+    tweaksToApply.forEach(({ remove, hide }) => {
+      if (remove != null) {
+        const els = [].slice.call(document.querySelectorAll(remove));
+        els.forEach((el: Node) => el.parentNode?.removeChild(el));
       }
 
-      const els = [].slice.call(document.querySelectorAll(remove));
-      els.forEach((el: Node) => el.parentNode?.removeChild(el));
+      if (hide != null) {
+        const els = [].slice.call(document.querySelectorAll(hide));
+        els.forEach((el: HTMLElement) => (el.style.display = "none"));
+      }
     });
-  }, TWEAKS);
+  }, tweaksToApply);
 }
 
 async function renderHtmlTable(screenshots: ScreenshotSet) {
@@ -202,6 +222,12 @@ async function takeScreenshot(
 
   await fs.rm(file).catch(() => {});
 
+  await fs
+    .mkdir(path.dirname(file), {
+      recursive: true,
+    })
+    .catch(() => {});
+
   console.log("Writing %s...", file);
 
   await applyTweaksToPage(page);
@@ -226,6 +252,7 @@ function buildFilename({
   after: boolean;
 }): string {
   return [
+    "screenshots/",
     name,
     "-",
     lang,
